@@ -10,6 +10,16 @@ A comprehensive system for scraping, analyzing, and exploring Department of Just
 - **File Server**: Simple HTTP server for file downloads
 - **Database**: SQLite storage with efficient querying and filtering
 
+## License
+
+This project is licensed under the **Creative Commons Attribution-ShareAlike 4.0 International License** (CC BY-SA 4.0). See the [LICENSE](LICENSE) file for details.
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material for any purpose, even commercially
+
+Under the terms of Attribution and ShareAlike.
+
 ## Setup
 
 ### Prerequisites
@@ -107,6 +117,8 @@ ocp2-project/
 ├── .env                # Environment variables (create from env.example)
 ├── .gitignore          # Git ignore rules
 ├── env.example         # Environment template
+├── LICENSE             # CC BY-SA 4.0 license
+├── CHANGELOG.md        # Development history
 ├── templates/          # Flask templates
 │   ├── base.html
 │   ├── index.html
@@ -136,6 +148,15 @@ The database contains the following fields:
 - API keys are loaded from environment variables
 - Database files are excluded from version control
 
+## Development History
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of all development work, including:
+- Initial project setup and mission definition
+- Data ingestion pipeline development
+- AI classification improvements
+- UI/UX overhauls
+- Security and deployment enhancements
+
 ## Contributing
 
 1. Fork the repository
@@ -146,4 +167,4 @@ The database contains the following fields:
 
 ## License
 
-[Add your license information here] 
+This project is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License - see the [LICENSE](LICENSE) file for details. 
