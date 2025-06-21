@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}About - DOJ Case Analysis{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="display-4 mb-4">About the DOJ Case Analysis Project</h1>
+            
+            <!-- Mission Statement -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">🎯 Mission</h2>
+                    <p class="lead">
+                        We track and analyze Department of Justice prosecutions under <strong>18 U.S.C. § 1960</strong> 
+                        (money transmission without a license), with a particular focus on cryptocurrency-related cases.
+                    </p>
+                    <p>
+                        This project creates an open dataset for researchers, journalists, and policymakers to understand 
+                        how federal authorities are enforcing money transmission laws in the digital age.
+                    </p>
+                </div>
+            </div>
+
+            <!-- What We Do -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">🔍 What We Do</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Data Collection</h5>
+                            <ul>
+                                <li>Automatically scrape DOJ press releases (2009-present)</li>
+                                <li>Filter for cases mentioning 18 USC 1960 or cryptocurrency</li>
+                                <li>Store structured data in searchable database</li>
+                                <li>Maintain idempotent scraping to avoid duplicates</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>AI Verification</h5>
+                            <ul>
+                                <li>Use Venice AI to verify case classifications</li>
+                                <li>Identify false positives and improve accuracy</li>
+                                <li>Extract detailed case metadata</li>
+                                <li>Provide confidence scores for classifications</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Methodology -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">⚙️ Methodology</h2>
+                    
+                    <h5>Data Ingestion Pipeline</h5>
+                    <ol>
+                        <li><strong>Scraping</strong>: Automated collection from DOJ press release API</li>
+                        <li><strong>Filtering</strong>: Keyword-based identification of relevant cases</li>
+                        <li><strong>Storage</strong>: SQLite database with structured schema</li>
+                        <li><strong>Verification</strong>: AI-powered classification and validation</li>
+                    </ol>
+
+                    <h5>Classification Process</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Initial Filtering</h6>
+                            <ul>
+                                <li>18 USC 1960 mentions</li>
+                                <li>Cryptocurrency-related terms</li>
+                                <li>Money transmission keywords</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>AI Verification</h6>
+                            <ul>
+                                <li>Context analysis</li>
+                                <li>False positive detection</li>
+                                <li>Confidence scoring</li>
+                                <li>Detailed classification notes</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Schema -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">📊 Data Schema</h2>
+                    <p>Each case in our database contains:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Basic Information</h6>
+                            <ul>
+                                <li><code>title</code> - Press release title</li>
+                                <li><code>content</code> - Full press release text</li>
+                                <li><code>date</code> - Publication date</li>
+                                <li><code>url</code> - Original DOJ URL</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Classification Data</h6>
+                            <ul>
+                                <li><code>mentions_1960</code> - Boolean flag for 18 USC 1960</li>
+                                <li><code>mentions_crypto</code> - Boolean flag for cryptocurrency</li>
+                                <li><code>verified_1960</code> - AI verification result</li>
+                                <li><code>verified_crypto</code> - AI verification result</li>
+                                <li><code>classification</code> - Detailed AI notes</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Status -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">📈 Current Status</h2>
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="border rounded p-3">
+                                <h3 class="text-primary">{{ stats.total_cases if stats else 'N/A' }}</h3>
+                                <p class="mb-0">Total Cases</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="border rounded p-3">
+                                <h3 class="text-success">{{ stats.cases_1960 if stats else 'N/A' }}</h3>
+                                <p class="mb-0">18 USC 1960 Cases</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="border rounded p-3">
+                                <h3 class="text-warning">{{ stats.cases_crypto if stats else 'N/A' }}</h3>
+                                <p class="mb-0">Crypto Cases</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roadmap -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">🗺️ Roadmap</h2>
+                    
+                    <h5>Phase 1: Foundation (Current)</h5>
+                    <ul>
+                        <li>✅ Basic scraping and classification</li>
+                        <li>✅ Web interface for data exploration</li>
+                        <li>✅ AI verification system</li>
+                        <li>✅ Public repository setup</li>
+                    </ul>
+
+                    <h5>Phase 2: Enhanced Data (Q3 2025)</h5>
+                    <ul>
+                        <li>🔲 Schema v2 - fully relational database</li>
+                        <li>🔲 PACER integration for docket metadata</li>
+                        <li>🔲 Defendant and charge tracking</li>
+                        <li>🔲 Exchange/OTC desk mapping</li>
+                    </ul>
+
+                    <h5>Phase 3: Advanced Features (Q4 2025)</h5>
+                    <ul>
+                        <li>🔲 LLM Q&A layer - "Ask the dataset"</li>
+                        <li>🔲 RESTful API for programmatic access</li>
+                        <li>🔲 Advanced analytics and trend analysis</li>
+                        <li>🔲 Geographic mapping and visualization</li>
+                    </ul>
+
+                    <h5>Phase 4: Production (2026)</h5>
+                    <ul>
+                        <li>🔲 Sanctum agent integration</li>
+                        <li>🔲 Automated deployment and monitoring</li>
+                        <li>🔲 Public portal with API key system</li>
+                        <li>🔲 Community contributions and collaboration</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Technology Stack -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">🛠️ Technology Stack</h2>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Backend</h6>
+                            <ul>
+                                <li>Python 3.12</li>
+                                <li>Flask (Web Framework)</li>
+                                <li>SQLite (Database)</li>
+                                <li>Requests (HTTP Client)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>AI & Processing</h6>
+                            <ul>
+                                <li>Venice AI API</li>
+                                <li>BeautifulSoup (Parsing)</li>
+                                <li>RapidFuzz (Fuzzy Matching)</li>
+                                <li>Python-dotenv (Configuration)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Frontend</h6>
+                            <ul>
+                                <li>Bootstrap 5</li>
+                                <li>HTML5/CSS3</li>
+                                <li>JavaScript (Minimal)</li>
+                                <li>Responsive Design</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contributing -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">🤝 Contributing</h2>
+                    <p>
+                        This project is open source and welcomes contributions! We're particularly interested in:
+                    </p>
+                    <ul>
+                        <li>Improving classification accuracy</li>
+                        <li>Adding new data sources</li>
+                        <li>Enhancing the web interface</li>
+                        <li>Developing analytics tools</li>
+                        <li>Documentation and testing</li>
+                    </ul>
+                    <p>
+                        <strong>License:</strong> This project is licensed under the 
+                        <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">📞 Contact & Resources</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Project Links</h6>
+                            <ul>
+                                <li><a href="https://github.com/actuallyrizzn/project1960" target="_blank">GitHub Repository</a></li>
+                                <li><a href="{{ url_for('index') }}">Dashboard</a></li>
+                                <li><a href="{{ url_for('cases') }}">Browse Cases</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Documentation</h6>
+                            <ul>
+                                <li><a href="https://github.com/actuallyrizzn/project1960/blob/main/README.md" target="_blank">Setup Guide</a></li>
+                                <li><a href="https://github.com/actuallyrizzn/project1960/blob/main/CHANGELOG.md" target="_blank">Development History</a></li>
+                                <li><a href="https://www.law.cornell.edu/uscode/text/18/1960" target="_blank">18 USC 1960 Statute</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
