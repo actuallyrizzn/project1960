@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - DOJ Cases Explorer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold text-primary mb-3">
+            <i class="bi bi-graph-up me-2"></i>
+            DOJ Cases Dashboard
+        </h1>
+        <p class="lead text-muted">
+            Explore and analyze Department of Justice press releases for 18 USC 1960 violations
+        </p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center mb-2">
+                    <i class="bi bi-files fs-1 me-3"></i>
+                    <div>
+                        <h2 class="mb-0 fw-bold">{{ stats.total }}</h2>
+                        <p class="mb-0 opacity-75">Total Cases</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card success h-100">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center mb-2">
+                    <i class="bi bi-check-circle fs-1 me-3"></i>
+                    <div>
+                        <h2 class="mb-0 fw-bold">{{ stats.yes }}</h2>
+                        <p class="mb-0 opacity-75">Verified 1960</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card warning h-100">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center mb-2">
+                    <i class="bi bi-x-circle fs-1 me-3"></i>
+                    <div>
+                        <h2 class="mb-0 fw-bold">{{ stats.no }}</h2>
+                        <p class="mb-0 opacity-75">Not 1960</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card info h-100">
+            <div class="card-body text-center">
+                <div class="d-flex align-items-center justify-content-center mb-2">
+                    <i class="bi bi-question-circle fs-1 me-3"></i>
+                    <div>
+                        <h2 class="mb-0 fw-bold">{{ stats.unknown }}</h2>
+                        <p class="mb-0 opacity-75">Unknown</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Stats -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-search me-2 text-primary"></i>
+                    Mentions Analysis
+                </h5>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h3 class="text-primary fw-bold">{{ stats.mentions_1960 }}</h3>
+                        <p class="text-muted">Mention 18 USC 1960</p>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="text-success fw-bold">{{ stats.mentions_crypto }}</h3>
+                        <p class="text-muted">Mention Cryptocurrency</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-speedometer2 me-2 text-primary"></i>
+                    Processing Status
+                </h5>
+                <div class="progress mb-3" style="height: 25px;">
+                    {% set processed = stats.yes + stats.no %}
+                    {% set total = stats.total %}
+                    {% set percentage = (processed / total * 100) if total > 0 else 0 %}
+                    <div class="progress-bar bg-success" style="width: {{ (stats.yes / total * 100) if total > 0 else 0 }}%">
+                        {{ stats.yes }} Yes
+                    </div>
+                    <div class="progress-bar bg-warning" style="width: {{ (stats.no / total * 100) if total > 0 else 0 }}%">
+                        {{ stats.no }} No
+                    </div>
+                    <div class="progress-bar bg-info" style="width: {{ (stats.unknown / total * 100) if total > 0 else 0 }}%">
+                        {{ stats.unknown }} Unknown
+                    </div>
+                </div>
+                <p class="text-muted mb-0">
+                    <strong>{{ "%.1f"|format(percentage) }}%</strong> of cases processed
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-lightning me-2 text-primary"></i>
+                    Quick Actions
+                </h5>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('cases') }}" class="btn btn-primary w-100">
+                            <i class="bi bi-list-ul me-2"></i>
+                            Browse All Cases
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('cases', classification='yes') }}" class="btn btn-success w-100">
+                            <i class="bi bi-check-circle me-2"></i>
+                            View Verified 1960 Cases
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('cases', mentions_crypto='1') }}" class="btn btn-info w-100">
+                            <i class="bi bi-currency-bitcoin me-2"></i>
+                            View Crypto Cases
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

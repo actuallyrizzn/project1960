@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}{{ case.title[:50] }}... - DOJ Cases Explorer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('index') }}">
+                        <i class="bi bi-house me-1"></i>Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('cases') }}">Cases</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Case Detail</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h1 class="h3 fw-bold text-primary mb-3">{{ case.title }}</h1>
+                
+                <!-- Case Metadata -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-calendar3 text-muted me-2"></i>
+                            <span class="text-muted">
+                                {% if case.date %}
+                                    {{ case.date }}
+                                {% else %}
+                                    Date not available
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-building text-muted me-2"></i>
+                            <span class="text-muted">{{ case.component or 'N/A' }}</span>
+                        </div>
+                        {% if case.number %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-hash text-muted me-2"></i>
+                            <span class="text-muted">{{ case.number }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-tag text-muted me-2"></i>
+                            <span class="text-muted">{{ case.topic or 'N/A' }}</span>
+                        </div>
+                        {% if case.url %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-link-45deg text-muted me-2"></i>
+                            <a href="{{ case.url }}" target="_blank" class="text-decoration-none">
+                                View Original Release
+                                <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Classification Status -->
+                <div class="alert alert-info mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h6 class="mb-1">
+                                <i class="bi bi-shield-check me-2"></i>
+                                AI Classification Status
+                            </h6>
+                            {% if case.classification == 'yes' %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="bi bi-check-circle me-1"></i>Verified 18 USC 1960 Violation
+                                </span>
+                            {% elif case.classification == 'no' %}
+                                <span class="badge bg-warning fs-6">
+                                    <i class="bi bi-x-circle me-1"></i>Not a 1960 Violation
+                                </span>
+                            {% elif case.classification == 'unknown' %}
+                                <span class="badge bg-info fs-6">
+                                    <i class="bi bi-question-circle me-1"></i>Classification Unknown
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary fs-6">
+                                    <i class="bi bi-clock me-1"></i>Pending Classification
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-2">
+                                {% if case.mentions_1960 %}
+                                    <span class="badge bg-primary">
+                                        <i class="bi bi-search me-1"></i>Mentions 18 USC 1960
+                                    </span>
+                                {% endif %}
+                                {% if case.mentions_crypto %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-currency-bitcoin me-1"></i>Mentions Cryptocurrency
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Press Release Content -->
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-3">
+                        <i class="bi bi-file-text me-2"></i>
+                        Press Release Content
+                    </h5>
+                    <div class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto;">
+                        {% if case.body %}
+                            {{ case.body|safe }}
+                        {% else %}
+                            <p class="text-muted">Content not available</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Teaser -->
+                {% if case.teaser %}
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-3">
+                        <i class="bi bi-chat-quote me-2"></i>
+                        Summary
+                    </h5>
+                    <div class="border rounded p-3 bg-light">
+                        {{ case.teaser }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Case ID -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-fingerprint me-2"></i>
+                    Case ID
+                </h6>
+                <code class="small">{{ case.id }}</code>
+            </div>
+        </div>
+        
+        <!-- Timestamps -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Timestamps
+                </h6>
+                <div class="small">
+                    {% if case.created %}
+                    <div class="mb-2">
+                        <strong>Created:</strong><br>
+                        {{ case.created }}
+                    </div>
+                    {% endif %}
+                    {% if case.changed %}
+                    <div class="mb-2">
+                        <strong>Last Modified:</strong><br>
+                        {{ case.changed }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-gear me-2"></i>
+                    Actions
+                </h6>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('cases') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Cases
+                    </a>
+                    {% if case.url %}
+                    <a href="{{ case.url }}" target="_blank" class="btn btn-outline-secondary">
+                        <i class="bi bi-box-arrow-up-right me-2"></i>View Original
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

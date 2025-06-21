@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Cases - DOJ Cases Explorer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold text-primary mb-3">
+            <i class="bi bi-list-ul me-2"></i>
+            Cases Database
+        </h1>
+        <p class="text-muted">
+            Browse and filter DOJ press releases ({{ total }} total cases)
+        </p>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control search-box" id="search" name="search" 
+                       value="{{ search }}" placeholder="Search titles and content...">
+            </div>
+            <div class="col-md-2">
+                <label for="classification" class="form-label">Classification</label>
+                <select class="form-select" id="classification" name="classification">
+                    <option value="">All</option>
+                    <option value="yes" {{ 'selected' if classification == 'yes' }}>Yes (1960)</option>
+                    <option value="no" {{ 'selected' if classification == 'no' }}>No</option>
+                    <option value="unknown" {{ 'selected' if classification == 'unknown' }}>Unknown</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="mentions_1960" class="form-label">Mentions 1960</label>
+                <select class="form-select" id="mentions_1960" name="mentions_1960">
+                    <option value="">All</option>
+                    <option value="1" {{ 'selected' if mentions_1960 == '1' }}>Yes</option>
+                    <option value="0" {{ 'selected' if mentions_1960 == '0' }}>No</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="mentions_crypto" class="form-label">Mentions Crypto</label>
+                <select class="form-select" id="mentions_crypto" name="mentions_crypto">
+                    <option value="">All</option>
+                    <option value="1" {{ 'selected' if mentions_crypto == '1' }}>Yes</option>
+                    <option value="0" {{ 'selected' if mentions_crypto == '0' }}>No</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-search me-1"></i>Filter
+                </button>
+                <a href="{{ url_for('cases') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Cases Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Classification</th>
+                        <th>Mentions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for case in cases %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">{{ case.title[:80] }}{% if case.title|length > 80 %}...{% endif %}</div>
+                            <small class="text-muted">{{ case.component }}</small>
+                        </td>
+                        <td>
+                            {% if case.date %}
+                                {{ case.date[:10] }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if case.classification == 'yes' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>Yes
+                                </span>
+                            {% elif case.classification == 'no' %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-x-circle me-1"></i>No
+                                </span>
+                            {% elif case.classification == 'unknown' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-question-circle me-1"></i>Unknown
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-clock me-1"></i>Pending
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                {% if case.mentions_1960 %}
+                                    <span class="badge bg-primary" title="Mentions 18 USC 1960">1960</span>
+                                {% endif %}
+                                {% if case.mentions_crypto %}
+                                    <span class="badge bg-success" title="Mentions Cryptocurrency">Crypto</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('case_detail', case_id=case.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <nav aria-label="Cases pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('cases', page=page-1, classification=classification, mentions_1960=mentions_1960, mentions_crypto=mentions_crypto, search=search) }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ p }}</span>
+                        </li>
+                    {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('cases', page=p, classification=classification, mentions_1960=mentions_1960, mentions_crypto=mentions_crypto, search=search) }}">{{ p }}</a>
+                        </li>
+                    {% elif p == 4 and page > 5 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% elif p == total_pages - 3 and page < total_pages - 4 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('cases', page=page+1, classification=classification, mentions_1960=mentions_1960, mentions_crypto=mentions_crypto, search=search) }}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 
