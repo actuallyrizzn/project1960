@@ -29,20 +29,20 @@ def get_stats():
     conn = get_db_connection()
     stats = {}
     
-    # Total cases
-    stats['total'] = conn.execute('SELECT COUNT(*) FROM cases').fetchone()[0]
-    
-    # Cases by classification
-    stats['yes'] = conn.execute('SELECT COUNT(*) FROM cases WHERE verified_1960 = 1').fetchone()[0]
-    stats['no'] = conn.execute('SELECT COUNT(*) FROM cases WHERE verified_1960 = 0 AND classification IS NOT NULL').fetchone()[0]
-    stats['unknown'] = conn.execute('SELECT COUNT(*) FROM cases WHERE classification = "unknown" OR classification IS NULL').fetchone()[0]
-    
-    # Cases mentioning 1960
+    # General Stats
+    stats['total_cases'] = conn.execute('SELECT COUNT(*) FROM cases').fetchone()[0]
     stats['mentions_1960'] = conn.execute('SELECT COUNT(*) FROM cases WHERE mentions_1960 = 1').fetchone()[0]
-    
-    # Cases mentioning crypto
     stats['mentions_crypto'] = conn.execute('SELECT COUNT(*) FROM cases WHERE mentions_crypto = 1').fetchone()[0]
     
+    # 1960 Verification Stats (based on the cohort that mentions 1960)
+    cohort_1960 = 'WHERE mentions_1960 = 1'
+    stats['verified_yes'] = conn.execute(f'SELECT COUNT(*) FROM cases {cohort_1960} AND verified_1960 = 1').fetchone()[0]
+    stats['verified_no'] = conn.execute(f'SELECT COUNT(*) FROM cases {cohort_1960} AND verified_1960 = 0').fetchone()[0]
+    
+    # Calculate unprocessed for the 1960 cohort
+    processed_1960 = stats['verified_yes'] + stats['verified_no']
+    stats['unprocessed_1960'] = stats['mentions_1960'] - processed_1960
+
     conn.close()
     return stats
 
@@ -136,6 +136,26 @@ def api_cases():
     conn.close()
     
     return jsonify([dict(case) for case in cases])
+
+@app.route('/about')
+def about():
+    """About page explaining the project's purpose, methodology, and roadmap."""
+    # Get statistics for the current status section
+    conn = get_db_connection()
+    stats = {}
+    
+    # Total cases
+    stats['total_cases'] = conn.execute('SELECT COUNT(*) FROM cases').fetchone()[0]
+    
+    # Cases with 18 USC 1960 mentions
+    stats['cases_1960'] = conn.execute('SELECT COUNT(*) FROM cases WHERE mentions_1960 = 1').fetchone()[0]
+    
+    # Cases with crypto mentions
+    stats['cases_crypto'] = conn.execute('SELECT COUNT(*) FROM cases WHERE mentions_crypto = 1').fetchone()[0]
+    
+    conn.close()
+    
+    return render_template('about.html', stats=stats)
 
 if __name__ == '__main__':
     app.run(debug=DEBUG_MODE, host=HOST, port=PORT) 

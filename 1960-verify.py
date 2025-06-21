@@ -74,15 +74,25 @@ def alter_database_table():
 alter_database_table()
 
 def get_sample_cases(limit=PROCESSING_LIMIT):
-    """Retrieve UNPROCESSED sample cases from the database."""
+    """
+    Fetch a sample of unprocessed or 'unknown' cases from the database.
+    It prioritizes cases that have never been processed (classification IS NULL).
+    """
     logger.debug(f"Fetching {limit} unprocessed sample cases from DB...")
     conn = sqlite3.connect("doj_cases.db")
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT id, title, body
+        SELECT id, title, content
         FROM cases
         WHERE mentions_1960 = 1
-          AND (classification IS NULL OR classification = '')
+          AND (classification IS NULL OR classification = '' OR classification = 'unknown')
+        ORDER BY
+          CASE
+            WHEN classification IS NULL THEN 0
+            WHEN classification = '' THEN 1
+            WHEN classification = 'unknown' THEN 2
+            ELSE 3
+          END
         LIMIT ?
     """, (limit,))
     rows = cursor.fetchall()
