@@ -23,7 +23,7 @@
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <i class="bi bi-files fs-1 me-3"></i>
                     <div>
-                        <h2 class="mb-0 fw-bold">{{ stats.total }}</h2>
+                        <h2 class="mb-0 fw-bold">{{ stats.total_cases }}</h2>
                         <p class="mb-0 opacity-75">Total Cases</p>
                     </div>
                 </div>
@@ -37,7 +37,7 @@
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <i class="bi bi-check-circle fs-1 me-3"></i>
                     <div>
-                        <h2 class="mb-0 fw-bold">{{ stats.yes }}</h2>
+                        <h2 class="mb-0 fw-bold">{{ stats.verified_yes }}</h2>
                         <p class="mb-0 opacity-75">Verified 1960</p>
                     </div>
                 </div>
@@ -51,7 +51,7 @@
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <i class="bi bi-x-circle fs-1 me-3"></i>
                     <div>
-                        <h2 class="mb-0 fw-bold">{{ stats.no }}</h2>
+                        <h2 class="mb-0 fw-bold">{{ stats.verified_no }}</h2>
                         <p class="mb-0 opacity-75">Not 1960</p>
                     </div>
                 </div>
@@ -65,8 +65,8 @@
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <i class="bi bi-question-circle fs-1 me-3"></i>
                     <div>
-                        <h2 class="mb-0 fw-bold">{{ stats.unknown }}</h2>
-                        <p class="mb-0 opacity-75">Unknown</p>
+                        <h2 class="mb-0 fw-bold">{{ stats.unprocessed_1960 }}</h2>
+                        <p class="mb-0 opacity-75">Unprocessed 1960</p>
                     </div>
                 </div>
             </div>
@@ -102,25 +102,23 @@
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="bi bi-speedometer2 me-2 text-primary"></i>
-                    Processing Status
+                    1960 Verification Status
                 </h5>
+                {% if stats.mentions_1960 > 0 %}
+                    {% set processed_count = stats.verified_yes + stats.verified_no %}
+                    {% set processed_percent = (processed_count / stats.mentions_1960 * 100) %}
+                    {% set yes_percent = (stats.verified_yes / stats.mentions_1960 * 100) %}
+                    {% set no_percent = (stats.verified_no / stats.mentions_1960 * 100) %}
                 <div class="progress mb-3" style="height: 25px;">
-                    {% set processed = stats.yes + stats.no %}
-                    {% set total = stats.total %}
-                    {% set percentage = (processed / total * 100) if total > 0 else 0 %}
-                    <div class="progress-bar bg-success" style="width: {{ (stats.yes / total * 100) if total > 0 else 0 }}%">
-                        {{ stats.yes }} Yes
-                    </div>
-                    <div class="progress-bar bg-warning" style="width: {{ (stats.no / total * 100) if total > 0 else 0 }}%">
-                        {{ stats.no }} No
-                    </div>
-                    <div class="progress-bar bg-info" style="width: {{ (stats.unknown / total * 100) if total > 0 else 0 }}%">
-                        {{ stats.unknown }} Unknown
-                    </div>
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ yes_percent }}%" aria-valuenow="{{ stats.verified_yes }}" aria-valuemin="0" aria-valuemax="{{ stats.mentions_1960 }}">{{ stats.verified_yes }} Yes</div>
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ no_percent }}%" aria-valuenow="{{ stats.verified_no }}" aria-valuemin="0" aria-valuemax="{{ stats.mentions_1960 }}">{{ stats.verified_no }} No</div>
                 </div>
                 <p class="text-muted mb-0">
-                    <strong>{{ "%.1f"|format(percentage) }}%</strong> of cases processed
+                    <strong>{{ "%.1f"|format(processed_percent) }}%</strong> of {{ stats.mentions_1960 }} cases processed
                 </p>
+                {% else %}
+                <p class="text-muted mb-0">No cases mention 18 USC 1960.</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -159,4 +157,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
