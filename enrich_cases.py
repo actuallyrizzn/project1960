@@ -1,0 +1,372 @@
+import sqlite3
+import requests
+import json
+import time
+import re
+import logging
+import argparse
+import os
+from dotenv import load_dotenv
+
+# --- Configuration ---
+load_dotenv()
+VENICE_API_KEY = os.getenv("VENICE_API_KEY")
+VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions"
+MODEL_NAME = "qwen-2.5-qwq-32b"
+DATABASE_NAME = os.getenv("DATABASE_NAME", "doj_cases.db")
+TABLE_CHOICES = [
+    'case_metadata', 'participants', 'case_agencies', 'charges', 
+    'financial_actions', 'victims', 'quotes', 'themes'
+]
+
+# --- Logging Setup ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# --- Database Schema ---
+SCHEMA = {
+    'case_metadata': """
+    CREATE TABLE IF NOT EXISTS case_metadata (
+      case_id            TEXT PRIMARY KEY,
+      district_office    TEXT,
+      usa_name           TEXT,
+      event_type         TEXT,
+      judge_name         TEXT,
+      judge_title        TEXT,
+      case_number        TEXT,
+      max_penalty_text   TEXT,
+      sentence_summary   TEXT,
+      money_amounts      TEXT,
+      crypto_assets      TEXT,
+      statutes_json      TEXT,
+      timeline_json      TEXT,
+      press_release_url  TEXT,
+      extras_json        JSON,
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """,
+    'participants': """
+    CREATE TABLE IF NOT EXISTS participants (
+      participant_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT,
+      name               TEXT,
+      role               TEXT,
+      agency             TEXT,
+      age                INTEGER,
+      city               TEXT,
+      state_country      TEXT,
+      aliases            TEXT,
+      entity_name        TEXT,
+      extras_json        JSON,
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """,
+    'case_agencies': """
+    CREATE TABLE IF NOT EXISTS case_agencies (
+      case_id            TEXT,
+      agency             TEXT,
+      role               TEXT,
+      PRIMARY KEY (case_id, agency, role),
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """,
+    'charges': """
+    CREATE TABLE IF NOT EXISTS charges (
+      charge_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT,
+      statute            TEXT,
+      description        TEXT,
+      count_number       INTEGER,
+      extras_json        JSON,
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """,
+    'financial_actions': """
+    CREATE TABLE IF NOT EXISTS financial_actions (
+      fin_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT,
+      action_type        TEXT,
+      amount_text        TEXT,
+      currency           TEXT,
+      asset_type         TEXT,
+      extras_json        JSON,
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """,
+    'victims': """
+    CREATE TABLE IF NOT EXISTS victims (
+      victim_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT,
+      victim_type        TEXT,
+      industry           TEXT,
+      geography          TEXT,
+      loss_amount_text   TEXT,
+      extras_json        JSON,
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """,
+    'quotes': """
+    CREATE TABLE IF NOT EXISTS quotes (
+      quote_id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT,
+      speaker_name       TEXT,
+      speaker_title      TEXT,
+      quote_text         TEXT,
+      sentiment          TEXT,
+      extras_json        JSON,
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """,
+    'themes': """
+    CREATE TABLE IF NOT EXISTS themes (
+      case_id            TEXT,
+      theme              TEXT,
+      PRIMARY KEY (case_id, theme),
+      FOREIGN KEY(case_id) REFERENCES cases(id)
+    );
+    """
+}
+
+def setup_enrichment_tables():
+    """Creates all necessary tables for data enrichment if they don't exist."""
+    logger.info("Setting up enrichment tables in the database...")
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        for table, query in SCHEMA.items():
+            logger.debug(f"Creating table '{table}'...")
+            cursor.execute(query)
+        conn.commit()
+        logger.info("All enrichment tables created successfully or already exist.")
+    except sqlite3.Error as e:
+        logger.error(f"Database error during table setup: {e}")
+        exit(1)
+    finally:
+        if conn:
+            conn.close()
+
+def get_cases_to_enrich(table_name, limit):
+    """Fetches verified cases that have not yet been enriched for the given table."""
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    query = f"""
+        SELECT c.id, c.title, c.body, c.url
+        FROM cases c
+        LEFT JOIN {table_name} et ON c.id = et.case_id
+        WHERE c.verified_1960 = 1 AND et.case_id IS NULL
+        LIMIT ?
+    """
+    logger.debug(f"Fetching up to {limit} cases for enrichment in '{table_name}'...")
+    try:
+        cursor.execute(query, (limit,))
+        cases = cursor.fetchall()
+        logger.info(f"Found {len(cases)} cases to process for '{table_name}'.")
+        return cases
+    except sqlite3.Error as e:
+        logger.error(f"Failed to fetch cases for enrichment: {e}")
+        return []
+    finally:
+        conn.close()
+
+def get_extraction_prompt(table_name, title, body):
+    if table_name == 'case_metadata':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract specific metadata points. Return the data as a single, clean JSON object.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract the information for the following fields:
+    * `district_office`: The full name of the U.S. Attorney's Office (e.g., "Southern District of New York").
+    * `usa_name`: The name of the U.S. Attorney mentioned (e.g., "Joon H. Kim").
+    * `event_type`: The primary legal event described. Choose one from: indictment, plea, conviction, sentencing, deferred-prosecution, other.
+    * `judge_name`: The full name of the judge mentioned, if any.
+    * `judge_title`: The title of the judge (e.g., "U.S. District Judge").
+    * `case_number`: The docket or case number, if provided.
+    * `max_penalty_text`: A direct quote of the maximum potential sentence mentioned (e.g., "up to 20 years in prison").
+    * `sentence_summary`: A summary of the actual sentence imposed, if described.
+    * `money_amounts`: A comma-separated list of any significant monetary values mentioned (e.g., "$2.5 million", "€800,000").
+    * `crypto_assets`: A comma-separated list of any specific cryptocurrency assets mentioned (e.g., "BTC, ETH, Monero").
+    * `statutes_json`: A JSON array of the U.S. Code statutes mentioned (e.g., '["18 U.S.C. § 1960", "21 U.S.C. § 846"]').
+    * `timeline_json`: A JSON object of key dates, like {{"indictment_date": "YYYY-MM-DD", "plea_date": "YYYY-MM-DD"}}.
+3. If a field's value cannot be found in the text, use `null` for that field in the JSON output.
+4. The `press_release_url` will be added later; you do not need to extract it.
+5. Do not include any explanations, apologies, or text outside of the final JSON object.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
+    logger.error(f"No prompt configured for table: {table_name}")
+    return None
+
+def call_venice_api(prompt):
+    headers = {"Authorization": f"Bearer {VENICE_API_KEY}", "Content-Type": "application/json"}
+    payload = {"model": MODEL_NAME, "messages": [{"role": "user", "content": prompt}], "max_tokens": 2000, "temperature": 0.1}
+    try:
+        response = requests.post(VENICE_API_URL, headers=headers, json=payload, timeout=120)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API call failed: {e}")
+        return None
+
+def clean_and_parse_json(raw_text):
+    logger.debug(f"Attempting to clean and parse text: {raw_text[:200]}...")
+    
+    # Strategy 1: Look for JSON object that starts with { and ends with }
+    # This handles cases where there's thinking text before the JSON
+    match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', raw_text, re.DOTALL)
+    if match:
+        json_str = match.group(0)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Strategy 1 JSON parse failed: {e}. Trying strategy 2.")
+    
+    # Strategy 2: Look for the last JSON object in the text
+    # This handles cases where there might be multiple JSON-like structures
+    matches = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', raw_text, re.DOTALL))
+    if matches:
+        for match in reversed(matches):  # Try from last to first
+            json_str = match.group(0)
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                continue
+    
+    # Strategy 3: Try to extract JSON after common markers
+    # Look for JSON after "```json" or similar markers
+    json_markers = [r'```json\s*(\{.*?\})\s*```', r'```\s*(\{.*?\})\s*```', r'JSON Output:\s*(\{.*?\})']
+    for pattern in json_markers:
+        match = re.search(pattern, raw_text, re.DOTALL)
+        if match:
+            json_str = match.group(1)
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                continue
+    
+    # Strategy 4: Try to clean and parse the entire text as JSON
+    # Remove common non-JSON prefixes
+    cleaned_text = raw_text
+    # Remove thinking tags
+    cleaned_text = re.sub(r'<think>.*?</think>', '', cleaned_text, flags=re.DOTALL)
+    # Remove markdown code blocks
+    cleaned_text = re.sub(r'```.*?```', '', cleaned_text, flags=re.DOTALL)
+    # Try to find JSON in the cleaned text
+    match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned_text, re.DOTALL)
+    if match:
+        json_str = match.group(0)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Strategy 4 JSON parse failed: {e}")
+    
+    logger.warning("All JSON extraction strategies failed.")
+    logger.debug(f"Raw text that couldn't be parsed: {raw_text[:500]}...")
+    return None
+
+def store_extracted_data(case_id, table_name, data, url):
+    if not data:
+        logger.warning(f"No data provided for case {case_id}, skipping storage.")
+        return
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    if table_name == 'case_metadata':
+        data['press_release_url'] = url
+        columns = ['case_id', 'district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json', 'press_release_url', 'extras_json']
+        values = [case_id]
+        for col in columns[1:]:
+            value = data.get(col)
+            if col in ['statutes_json', 'timeline_json', 'extras_json'] and value is not None:
+                values.append(json.dumps(value))
+            else:
+                values.append(value)
+        query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+        try:
+            cursor.execute(query, tuple(values))
+            conn.commit()
+            logger.info(f"Successfully stored metadata for case {case_id}.")
+        except sqlite3.Error as e:
+            logger.error(f"Failed to store metadata for case {case_id}: {e}")
+            logger.debug(f"Query: {query}")
+            logger.debug(f"Values: {values}")
+        finally:
+            conn.close()
+    else:
+        logger.error(f"Storage logic for table '{table_name}' is not yet implemented.")
+
+def main():
+    parser = argparse.ArgumentParser(description="Enrich DOJ cases with structured data using an LLM.")
+    parser.add_argument(
+        '--table',
+        required=False,
+        choices=TABLE_CHOICES,
+        help="The target table to enrich."
+    )
+    parser.add_argument(
+        '--limit',
+        type=int,
+        default=10,
+        help="Number of cases to process in this run."
+    )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help="Simulate the process without making API calls or writing to DB."
+    )
+    parser.add_argument(
+        '--verbose',
+        '-v',
+        action='store_true',
+        help="Enable verbose logging."
+    )
+    parser.add_argument(
+        '--setup-only',
+        action='store_true',
+        help="Only set up the database tables and exit."
+    )
+    args = parser.parse_args()
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Verbose logging enabled")
+    if args.setup_only:
+        setup_enrichment_tables()
+        return
+    if not args.table:
+        parser.error("--table is required unless you are using --setup-only.")
+    logger.info(f"Starting enrichment process for table: '{args.table}'")
+    cases_to_process = get_cases_to_enrich(args.table, args.limit)
+    if not cases_to_process:
+        logger.info("No new cases to process. Exiting.")
+        return
+    for case in cases_to_process:
+        case_id, title, body, url = case
+        logger.info(f"Processing case {case_id}...")
+        prompt = get_extraction_prompt(args.table, title, body)
+        if not prompt:
+            continue
+        if args.dry_run:
+            logger.info(f"[DRY RUN] Would process case {case_id} for table '{args.table}'.")
+            logger.debug(f"[DRY RUN] Prompt for case {case_id}:\n{prompt[:500]}...")
+            continue
+        api_response = call_venice_api(prompt)
+        if not api_response:
+            logger.warning(f"Skipping case {case_id} due to API failure.")
+            continue
+        content = api_response.get('choices', [{}])[0].get('message', {}).get('content', '')
+        if not content:
+            logger.warning(f"No content in API response for case {case_id}.")
+            continue
+        extracted_data = clean_and_parse_json(content)
+        if not extracted_data:
+            logger.warning(f"Failed to parse data for case {case_id}. Check logs for details.")
+            with open(f"failed_parse_{case_id}.txt", "w", encoding="utf-8") as f:
+                f.write(content)
+            continue
+        store_extracted_data(case_id, args.table, extracted_data, url)
+        time.sleep(1)
+    logger.info("Enrichment run complete.")
+
+if __name__ == "__main__":
+    main()
