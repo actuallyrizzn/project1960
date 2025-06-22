@@ -223,7 +223,8 @@ def get_cases_to_enrich(table_name, limit):
 def get_extraction_prompt(table_name, title, body):
     if table_name == 'case_metadata':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract specific metadata points. Return the data as a single, clean JSON object.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract specific metadata points. Return ONLY a single, clean JSON object with no additional text, explanations, or thinking content.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract the information for the following fields:
@@ -241,16 +242,32 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `timeline_json`: A JSON object of key dates, like {{"indictment_date": "YYYY-MM-DD", "plea_date": "YYYY-MM-DD"}}.
 3. If a field's value cannot be found in the text, use `null` for that field in the JSON output.
 4. The `press_release_url` will be added later; you do not need to extract it.
-5. Do not include any explanations, apologies, or text outside of the final JSON object.
+5. Return ONLY the JSON object. Do not include any explanations, thinking text, or content outside the JSON.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+{{
+  "district_office": "value or null",
+  "usa_name": "value or null",
+  "event_type": "value or null",
+  "judge_name": "value or null",
+  "judge_title": "value or null",
+  "case_number": "value or null",
+  "max_penalty_text": "value or null",
+  "sentence_summary": "value or null",
+  "money_amounts": "value or null",
+  "crypto_assets": "value or null",
+  "statutes_json": ["array of statutes or null"],
+  "timeline_json": {{"key": "value or null"}}
+}}
 """
     elif table_name == 'participants':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all participants mentioned. Return the data as a JSON array of participant objects.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all participants mentioned. Return ONLY a JSON array of participant objects with no additional text.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract information about all participants mentioned (defendants, prosecutors, attorneys, etc.).
@@ -264,17 +281,30 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `nationality`: Nationality if mentioned
     * `status`: Current status if mentioned (e.g., "sentenced", "pleaded guilty", "indicted")
 4. If a field's value cannot be found, use `null` for that field.
-5. Return as a JSON array: [{{participant1}}, {{participant2}}, ...]
-6. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+[
+  {{
+    "name": "value or null",
+    "role": "value or null",
+    "title": "value or null",
+    "organization": "value or null",
+    "location": "value or null",
+    "age": "value or null",
+    "nationality": "value or null",
+    "status": "value or null"
+  }}
+]
 """
     elif table_name == 'case_agencies':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all law enforcement agencies involved. Return the data as a JSON array of agency objects.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all law enforcement agencies involved. Return ONLY a JSON array of agency objects with no additional text.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract information about all law enforcement agencies mentioned.
@@ -286,17 +316,28 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `agents_mentioned`: Names of specific agents mentioned
     * `contribution`: Brief description of their contribution to the case
 4. If a field's value cannot be found, use `null` for that field.
-5. Return as a JSON array: [{{agency1}}, {{agency2}}, ...]
-6. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+[
+  {{
+    "agency_name": "value or null",
+    "abbreviation": "value or null",
+    "role": "value or null",
+    "office_location": "value or null",
+    "agents_mentioned": "value or null",
+    "contribution": "value or null"
+  }}
+]
 """
     elif table_name == 'charges':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all criminal charges mentioned. Return the data as a JSON array of charge objects.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all criminal charges mentioned. Return ONLY a JSON array of charge objects with no additional text.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract information about all criminal charges mentioned.
@@ -309,17 +350,29 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `defendant`: Name of the defendant charged with this offense
     * `status`: Status of this charge (e.g., "indicted", "pleaded guilty", "convicted")
 4. If a field's value cannot be found, use `null` for that field.
-5. Return as a JSON array: [{{charge1}}, {{charge2}}, ...]
-6. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+[
+  {{
+    "charge_description": "value or null",
+    "statute": "value or null",
+    "severity": "value or null",
+    "max_penalty": "value or null",
+    "fine_amount": "value or null",
+    "defendant": "value or null",
+    "status": "value or null"
+  }}
+]
 """
     elif table_name == 'financial_actions':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all financial actions, seizures, forfeitures, and monetary penalties mentioned. Return the data as a JSON array of financial action objects.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all financial actions, seizures, forfeitures, and monetary penalties mentioned. Return ONLY a JSON array of financial action objects with no additional text.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract information about all financial actions mentioned (seizures, forfeitures, fines, restitution, etc.).
@@ -332,17 +385,29 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `defendant`: Name of the defendant associated with this action
     * `status`: Status of the action (e.g., "ordered", "completed", "pending")
 4. If a field's value cannot be found, use `null` for that field.
-5. Return as a JSON array: [{{action1}}, {{action2}}, ...]
-6. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+[
+  {{
+    "action_type": "value or null",
+    "amount": "value or null",
+    "currency": "value or null",
+    "description": "value or null",
+    "asset_type": "value or null",
+    "defendant": "value or null",
+    "status": "value or null"
+  }}
+]
 """
     elif table_name == 'victims':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about any victims mentioned. Return the data as a JSON array of victim objects.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about any victims mentioned. Return ONLY a JSON array of victim objects with no additional text.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract information about any victims mentioned in the case.
@@ -355,17 +420,29 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `vulnerability_factors`: Any vulnerability factors mentioned (e.g., "elderly", "immigrants")
     * `impact_description`: Description of the impact on victims
 4. If a field's value cannot be found, use `null` for that field.
-5. Return as a JSON array: [{{victim1}}, {{victim2}}, ...]
-6. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+[
+  {{
+    "victim_type": "value or null",
+    "description": "value or null",
+    "number_affected": "value or null",
+    "loss_amount": "value or null",
+    "geographic_scope": "value or null",
+    "vulnerability_factors": "value or null",
+    "impact_description": "value or null"
+  }}
+]
 """
     elif table_name == 'quotes':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract all significant quotes mentioned. Return the data as a JSON array of quote objects.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract all significant quotes mentioned. Return ONLY a JSON array of quote objects with no additional text.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract all significant quotes mentioned in the press release.
@@ -378,17 +455,29 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `context`: Brief context of when/why the quote was made
     * `significance`: Why this quote is significant to the case
 4. If a field's value cannot be found, use `null` for that field.
-5. Return as a JSON array: [{{quote1}}, {{quote2}}, ...]
-6. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+[
+  {{
+    "quote_text": "value or null",
+    "speaker_name": "value or null",
+    "speaker_title": "value or null",
+    "speaker_organization": "value or null",
+    "quote_type": "value or null",
+    "context": "value or null",
+    "significance": "value or null"
+  }}
+]
 """
     elif table_name == 'themes':
         return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract key themes and topics. Return the data as a JSON array of theme objects.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract key themes and topics. Return ONLY a JSON array of theme objects with no additional text.
+
 **Instructions:**
 1. Read the entire press release text provided below.
 2. Extract key themes and topics mentioned in the press release.
@@ -397,20 +486,29 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `description`: Description of how this theme appears in the case
     * `significance`: Why this theme is important to the case
     * `related_statutes`: Any statutes related to this theme
-    * `geographic_scope`: Geographic scope if relevant to the theme
-    * `temporal_aspects`: Any temporal aspects mentioned (e.g., "ongoing", "historical")
-    * `stakeholders`: Key stakeholders involved in this theme
+    * `impact`: Impact of this theme on the case outcome
+    * `trends`: Any trends or patterns related to this theme
 4. If a field's value cannot be found, use `null` for that field.
-5. Return as a JSON array: [{{theme1}}, {{theme2}}, ...]
-6. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
-**JSON Output:**
+
+[
+  {{
+    "theme_name": "value or null",
+    "description": "value or null",
+    "significance": "value or null",
+    "related_statutes": "value or null",
+    "impact": "value or null",
+    "trends": "value or null"
+  }}
+]
 """
-    logger.error(f"No prompt configured for table: {table_name}")
-    return None
+    else:
+        raise ValueError(f"Unknown table name: {table_name}")
 
 def call_venice_api(prompt):
     headers = {"Authorization": f"Bearer {VENICE_API_KEY}", "Content-Type": "application/json"}
@@ -445,35 +543,69 @@ def clean_and_parse_json(raw_text):
         logger.debug(f"After cleaning, text length: {len(cleaned_text)}")
         logger.debug(f"Cleaned text preview: {cleaned_text[:500]}...")
     
-    # Strategy 2: Look for JSON objects and arrays
+    # Strategy 2: Look for complete JSON objects with balanced braces (prioritize objects over arrays)
     if isinstance(cleaned_text, str):
-        # Try to find JSON arrays first
-        array_matches = list(re.finditer(r'\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]', cleaned_text, re.DOTALL))
+        # Use the same pattern as 1960-verify.py for complete JSON objects
+        json_patterns = [
+            # Standard JSON object with balanced braces
+            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',
+            # JSON object that ends at line end or followed by non-comma
+            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}(?=\s*$|\s*[^,])',
+        ]
+        
+        for i, pattern in enumerate(json_patterns, 1):
+            logger.debug(f"Strategy 2.{i}: Trying pattern for complete JSON objects")
+            matches = re.findall(pattern, cleaned_text, re.DOTALL | re.IGNORECASE)
+            logger.debug(f"Found {len(matches)} matches with pattern {i}")
+            
+            for j, match in enumerate(matches):
+                logger.debug(f"  Match {j+1}: {repr(match)}")
+                try:
+                    # Clean the JSON string
+                    cleaned = clean_json_string(match)
+                    logger.debug(f"  Cleaned: {repr(cleaned)}")
+                    
+                    if cleaned:
+                        parsed = json.loads(cleaned)
+                        logger.debug(f"  Parsed successfully: {type(parsed)}")
+                        
+                        # Validate that this is a complete object with expected fields
+                        if isinstance(parsed, dict):
+                            # Check if this looks like a complete metadata object
+                            expected_fields = ['district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json']
+                            found_fields = [field for field in expected_fields if field in parsed]
+                            if len(found_fields) >= 3:  # At least 3 expected fields present
+                                logger.debug(f"  ✅ Valid complete JSON object found with {len(found_fields)} expected fields")
+                                return parsed
+                            else:
+                                logger.debug(f"  ❌ JSON object missing expected fields. Found: {found_fields}")
+                        else:
+                            logger.debug(f"  ❌ Parsed result is not a dict: {type(parsed)}")
+                    else:
+                        logger.debug(f"  ❌ JSON cleaning failed for: {repr(match)}")
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.debug(f"  ❌ JSON decode error: {e}")
+                    continue
+    
+    # Strategy 3: Look for JSON arrays (for tables that expect arrays)
+    if isinstance(cleaned_text, str):
+        # Look for complete JSON arrays
+        array_pattern = r'\[\s*(?:[^[\]]*|\[[^[\]]*\])*\s*\]'
+        array_matches = list(re.finditer(array_pattern, cleaned_text, re.DOTALL))
         if array_matches:
             for match in reversed(array_matches):
                 json_str = match.group(0)
                 try:
-                    parsed = json.loads(json_str)
-                    logger.debug(f"Successfully parsed JSON array with {len(parsed) if isinstance(parsed, list) else 'unknown'} items")
-                    return parsed
+                    cleaned = clean_json_string(json_str)
+                    if cleaned:
+                        parsed = json.loads(cleaned)
+                        logger.debug(f"Successfully parsed JSON array with {len(parsed) if isinstance(parsed, list) else 'unknown'} items")
+                        return parsed
                 except json.JSONDecodeError as e:
                     logger.debug(f"Failed to parse array JSON: {e}")
                     continue
-        
-        # Try to find JSON objects
-        object_matches = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned_text, re.DOTALL))
-        if object_matches:
-            for match in reversed(object_matches):
-                json_str = match.group(0)
-                try:
-                    parsed = json.loads(json_str)
-                    logger.debug(f"Successfully parsed JSON object with keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'not a dict'}")
-                    return parsed
-                except json.JSONDecodeError as e:
-                    logger.debug(f"Failed to parse object JSON: {e}")
-                    continue
     
-    # Strategy 3: Try to extract JSON after common markers
+    # Strategy 4: Try to extract JSON after common markers
     if isinstance(cleaned_text, str):
         json_markers = [
             r'JSON Output:\s*(\{.*?\})',
@@ -481,32 +613,84 @@ def clean_and_parse_json(raw_text):
             r'```json\s*(\{.*?\})\s*```',
             r'```json\s*(\[.*?\])\s*```',
             r'```\s*(\{.*?\})\s*```',
-            r'```\s*(\[.*?\])\s*```'
+            r'```\s*(\[.*?\])\s*```',
+            r'Output:\s*(\{.*?\})',
+            r'Output:\s*(\[.*?\])',
+            r'Result:\s*(\{.*?\})',
+            r'Result:\s*(\[.*?\])'
         ]
         for pattern in json_markers:
             match = re.search(pattern, cleaned_text, re.DOTALL)
             if match:
                 json_str = match.group(1)
                 try:
-                    parsed = json.loads(json_str)
-                    logger.debug(f"Successfully parsed JSON from marker pattern: {type(parsed)}")
-                    return parsed
+                    cleaned = clean_json_string(json_str)
+                    if cleaned:
+                        parsed = json.loads(cleaned)
+                        logger.debug(f"Successfully parsed JSON from marker pattern: {type(parsed)}")
+                        return parsed
                 except json.JSONDecodeError as e:
                     logger.debug(f"Failed to parse JSON from marker: {e}")
                     continue
     
-    # Strategy 4: Try to parse the entire cleaned text as JSON
+    # Strategy 5: Try to parse the entire cleaned text as JSON
     if isinstance(cleaned_text, str):
         try:
-            parsed = json.loads(cleaned_text.strip())
-            logger.debug(f"Successfully parsed entire cleaned text as JSON: {type(parsed)}")
-            return parsed
+            cleaned = clean_json_string(cleaned_text.strip())
+            if cleaned:
+                parsed = json.loads(cleaned)
+                logger.debug(f"Successfully parsed entire cleaned text as JSON: {type(parsed)}")
+                return parsed
         except json.JSONDecodeError as e:
             logger.debug(f"Failed to parse entire text as JSON: {e}")
     
     logger.warning("All JSON extraction strategies failed.")
     logger.debug(f"Final cleaned text that couldn't be parsed: {cleaned_text[:1000] if isinstance(cleaned_text, str) else 'not a string'}...")
     return None
+
+def clean_json_string(json_str):
+    """
+    Clean and normalize a potentially dirty JSON string.
+    Handles common issues like trailing commas, unquoted keys, etc.
+    """
+    if not json_str or not isinstance(json_str, str):
+        logger.debug("JSON string is None or not a string")
+        return None
+    
+    logger.debug(f"Cleaning JSON string: {repr(json_str)}")
+    
+    # Remove leading/trailing whitespace
+    original = json_str
+    json_str = json_str.strip()
+    if json_str != original:
+        logger.debug(f"  Stripped whitespace: {repr(json_str)}")
+    
+    # Common fixes for dirty JSON
+    fixes = [
+        # Remove trailing commas before closing braces/brackets
+        (r',(\s*[}\]])', r'\1'),
+        # Fix unquoted keys (basic cases)
+        (r'(\s*)(\w+)(\s*):', r'\1"\2"\3:'),
+        # Fix single quotes to double quotes
+        (r"'([^']*)'", r'"\1"'),
+        # Remove any non-printable characters
+        (r'[\x00-\x1f\x7f-\x9f]', ''),
+        # Fix common escape issues
+        (r'\\"', '"'),
+        (r'\\n', ' '),
+        (r'\\t', ' '),
+    ]
+    
+    for i, (pattern, replacement) in enumerate(fixes, 1):
+        before = json_str
+        json_str = re.sub(pattern, replacement, json_str)
+        if json_str != before:
+            logger.debug(f"  Fix {i}: {pattern} -> {replacement}")
+            logger.debug(f"    Before: {repr(before)}")
+            logger.debug(f"    After:  {repr(json_str)}")
+    
+    logger.debug(f"Final cleaned JSON: {repr(json_str)}")
+    return json_str
 
 def normalize_data_for_table(data, table_name):
     """Normalize data to expected format for each table."""
@@ -541,22 +725,26 @@ def normalize_data_for_table(data, table_name):
         logger.error(f"{table_name} expects a list, got {type(data)}: {repr(data)}")
         return None
 
-def log_enrichment_activity(case_id, table_name, status, notes):
-    try:
-        conn = sqlite3.connect(DATABASE_NAME, timeout=30.0)
-        cursor = conn.cursor()
-        from datetime import datetime, UTC
-        timestamp = datetime.now(UTC).isoformat()
-        cursor.execute(
-            "INSERT INTO enrichment_activity_log (timestamp, case_id, table_name, status, notes) VALUES (?, ?, ?, ?, ?)",
-            (timestamp, case_id, table_name, status, notes)
-        )
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        # Don't let logging failures crash the main process
-        logger.warning(f"Failed to log activity: {e}")
-        pass
+def log_enrichment_activity(case_id, table_name, status, notes, max_retries=3):
+    from datetime import datetime, UTC
+    for attempt in range(max_retries):
+        try:
+            conn = sqlite3.connect(DATABASE_NAME, timeout=60.0)
+            cursor = conn.cursor()
+            timestamp = datetime.now(UTC).isoformat()
+            cursor.execute(
+                "INSERT INTO enrichment_activity_log (timestamp, case_id, table_name, status, notes) VALUES (?, ?, ?, ?, ?)",
+                (timestamp, case_id, table_name, status, notes)
+            )
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to log activity (attempt {attempt+1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # Exponential backoff
+    logger.warning(f"Failed to log activity for case {case_id}, table {table_name} after {max_retries} attempts. Continuing without logging.")
+    return False
 
 def store_extracted_data(case_id, table_name, data, url):
     if not data:
@@ -580,7 +768,8 @@ def store_extracted_data(case_id, table_name, data, url):
             data_obj = normalized_data
             if not isinstance(data_obj, dict):
                 logger.error(f"case_metadata expects a dict, got {type(data_obj)}: {repr(data_obj)}")
-                log_enrichment_activity(case_id, table_name, 'error', f'Expected dict, got {type(data_obj)}')
+                if not log_enrichment_activity(case_id, table_name, 'error', f'Expected dict, got {type(data_obj)}'):
+                    return
                 return
             data_obj['press_release_url'] = url
             columns = ['case_id', 'district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json', 'press_release_url', 'extras_json']
@@ -594,7 +783,8 @@ def store_extracted_data(case_id, table_name, data, url):
             query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
             cursor.execute(query, tuple(values))
             logger.info(f"Successfully stored metadata for case {case_id}.")
-            log_enrichment_activity(case_id, table_name, 'success', 'Stored metadata')
+            if not log_enrichment_activity(case_id, table_name, 'success', 'Stored metadata'):
+                return
             
         elif table_name == 'participants':
             for participant in normalized_data:
@@ -605,7 +795,8 @@ def store_extracted_data(case_id, table_name, data, url):
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
             logger.info(f"Successfully stored {len(normalized_data)} participants for case {case_id}.")
-            log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} participants")
+            if not log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} participants"):
+                return
                 
         elif table_name == 'case_agencies':
             skipped = 0
@@ -613,7 +804,8 @@ def store_extracted_data(case_id, table_name, data, url):
                 if not isinstance(agency, dict):
                     logger.warning(f"Skipping non-dict item in case_agencies: {repr(agency)} (type: {type(agency)})")
                     skipped += 1
-                    log_enrichment_activity(case_id, table_name, 'skipped', f"Non-dict item: {repr(agency)}")
+                    if not log_enrichment_activity(case_id, table_name, 'skipped', f"Non-dict item: {repr(agency)}"):
+                        return
                     continue
                 columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
                 values = [case_id]
@@ -621,7 +813,8 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(agency.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-                log_enrichment_activity(case_id, table_name, 'success', f"Stored agency: {agency.get('agency_name')}")
+                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored agency: {agency.get('agency_name')}"):
+                    return
             logger.info(f"Successfully stored {len(normalized_data) - skipped} agencies for case {case_id}. Skipped {skipped} non-dict items.")
                 
         elif table_name == 'charges':
@@ -632,8 +825,9 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(charge.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
+                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored charge: {charge.get('statute')}"):
+                    return
             logger.info(f"Successfully stored {len(normalized_data)} charges for case {case_id}.")
-            log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} charges")
                 
         elif table_name == 'financial_actions':
             for action in normalized_data:
@@ -643,8 +837,9 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(action.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
+                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored action: {action.get('action_type')}"):
+                    return
             logger.info(f"Successfully stored {len(normalized_data)} financial actions for case {case_id}.")
-            log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} financial actions")
                 
         elif table_name == 'victims':
             for victim in normalized_data:
@@ -654,8 +849,9 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(victim.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
+                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored victim: {victim.get('victim_type')}"):
+                    return
             logger.info(f"Successfully stored {len(normalized_data)} victims for case {case_id}.")
-            log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} victims")
                 
         elif table_name == 'quotes':
             for quote in normalized_data:
@@ -665,8 +861,9 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(quote.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
+                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored quote: {quote.get('speaker_name')}"):
+                    return
             logger.info(f"Successfully stored {len(normalized_data)} quotes for case {case_id}.")
-            log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} quotes")
                 
         elif table_name == 'themes':
             for theme in normalized_data:
@@ -676,8 +873,9 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(theme.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
+                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored theme: {theme.get('theme_name')}"):
+                    return
             logger.info(f"Successfully stored {len(normalized_data)} themes for case {case_id}.")
-            log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} themes")
                 
         else:
             logger.error(f"Storage logic for table '{table_name}' is not yet implemented.")
