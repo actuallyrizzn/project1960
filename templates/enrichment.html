@@ -303,14 +303,12 @@
                             <tr>
                                 <td class="text-nowrap">{{ log[0][:19].replace('T', ' ') }}</td>
                                 <td class="text-monospace small">
-                                    <a href="{{ url_for('case_detail', case_id=log[1]) }}" 
-                                       class="text-decoration-none text-primary fw-medium"
-                                       title="View case details and metadata">
+                                    <a href="{{ url_for('case_detail', case_id=log[1]) }}" class="text-primary fw-bold text-decoration-none" title="View details for {{ log[1] }}">
                                         {{ log[1] }}
-                                        <i class="bi bi-arrow-up-right text-muted ms-1" style="font-size: 0.75em;"></i>
+                                        <i class="bi bi-box-arrow-up-right ms-1 opacity-75"></i>
                                     </a>
                                 </td>
-                                <td>{{ log[2] }}</td>
+                                <td><span class="badge bg-secondary">{{ log[2] }}</span></td>
                                 <td>
                                     {% if log[3] == 'success' %}
                                         <span class="badge bg-success">Success</span>
@@ -323,7 +321,7 @@
                                 <td class="small">{{ log[4] }}</td>
                             </tr>
                             {% else %}
-                            <tr><td colspan="5" class="text-center text-muted">No recent activity.</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted py-3">No recent activity.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

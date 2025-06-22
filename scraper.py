@@ -202,7 +202,7 @@ def fetch_all(wait_sec=2):
         # Check if we've reached already-scraped content
         page_stored = 0
         reached_existing_content = False
-        
+
         for item in results:
             item_date = item.get("date", "")
             
@@ -222,7 +222,7 @@ def fetch_all(wait_sec=2):
         # If we reached existing content, stop the crawl
         if reached_existing_content:
             break
-            
+
         page += 1
         # Polite wait to avoid hitting the API too fast
         time.sleep(wait_sec)
