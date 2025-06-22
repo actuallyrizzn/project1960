@@ -196,11 +196,14 @@ class VeniceAPIClient:
                     logger.debug(f"Prompt preview: {truncated_prompt[:200]}...")
                     
                     # Make the API call
+                    model_timeout = self._get_model_timeout(current_model)
+                    logger.info(f"Using timeout of {model_timeout} seconds for model {current_model}")
+                    
                     response = requests.post(
                         self.api_url,
                         headers=headers,
                         json=payload,
-                        timeout=self.timeout
+                        timeout=model_timeout
                     )
                     
                     if response.status_code == 200:
@@ -391,7 +394,7 @@ class VeniceAPIClient:
                 self.api_url,
                 headers=headers,
                 json=test_payload,
-                timeout=10
+                timeout=30  # Short timeout for availability check
             )
             
             if response.status_code == 200:
@@ -417,3 +420,27 @@ class VeniceAPIClient:
             else:
                 logger.info(f"Skipping unavailable model: {model}")
         return available_models 
+
+    def _get_model_timeout(self, model: str) -> int:
+        """Get appropriate timeout for a model based on its size and complexity."""
+        # Timeout configuration based on model size and complexity
+        timeout_config = {
+            # Primary model - fast
+            "qwen-2.5-qwq-32b": 120,
+            
+            # Large reasoning models - need more time
+            "qwen3-235b": 300,      # 235B parameters, reasoning model
+            "deepseek-r1-671b": 600, # 671B parameters, reasoning model - very slow
+            
+            # Large non-reasoning models - moderate time
+            "llama-3.2-3b": 180,    # 3B parameters but 131k context
+            "mistral-31-24b": 240,  # 24B parameters, 131k context
+            
+            # Medium models - standard time
+            "llama-3.3-70b": 180,   # 70B parameters, 65k context
+            "llama-3.1-405b": 300,  # 405B parameters, 65k context
+        }
+        
+        timeout = timeout_config.get(model, 120)  # Default to 120 seconds
+        logger.debug(f"Using timeout of {timeout} seconds for model {model}")
+        return timeout 
