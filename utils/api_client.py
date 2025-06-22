@@ -53,11 +53,16 @@ class VeniceAPIClient:
     
     def _get_next_fallback_model(self) -> Optional[str]:
         """Get the next available fallback model."""
+        logger.debug(f"Looking for next fallback model. Tried models: {self.tried_models}")
+        logger.debug(f"Available fallback models: {self.available_fallback_models}")
+        
         for model in self.available_fallback_models:
             if model not in self.tried_models:
                 logger.info(f"Next available fallback model: {model}")
                 return model
+        
         logger.warning("No more fallback models available")
+        logger.warning(f"All models tried: {self.tried_models}")
         return None
     
     def _estimate_tokens(self, text: str) -> int:
@@ -235,11 +240,14 @@ class VeniceAPIClient:
                                 logger.error("All available models have been tried. Cannot process this document.")
                                 return None
                         else:
-                            # Check if this is a model not found error
-                            if "model" in response_text.lower() and ("not found" in response_text.lower() or "not available" in response_text.lower()):
-                                logger.warning(f"Model {current_model} is not available: {response_text}")
+                            # Check if this is a model not found error or any model-related error
+                            model_error_keywords = ["model", "not found", "not available", "invalid", "unsupported"]
+                            is_model_error = any(keyword in response_text.lower() for keyword in model_error_keywords)
+                            
+                            if is_model_error:
+                                logger.warning(f"Model {current_model} error: {response_text}")
                                 
-                                # Try next fallback model
+                                # Try next fallback model immediately (don't retry model errors)
                                 next_model = self._get_next_fallback_model()
                                 if next_model:
                                     logger.info(f"Switching to fallback model: {next_model}")
@@ -252,9 +260,25 @@ class VeniceAPIClient:
                                     logger.error("All available models have been tried. Cannot process this document.")
                                     return None
                             else:
-                                # Not a token limit or model availability error, don't retry
-                                logger.error(f"Non-token-limit error, not retrying: {response_text}")
-                                return None
+                                # Not a token limit or model availability error, retry if attempts remain
+                                if attempt < self.retry_attempts - 1:
+                                    logger.warning(f"Retrying {current_model} due to non-model error (attempt {attempt + 1}/{self.retry_attempts})")
+                                    time.sleep(self.retry_delay)
+                                    continue
+                                else:
+                                    logger.error(f"All retry attempts failed for {current_model}: {response_text}")
+                                    # Try next fallback model
+                                    next_model = self._get_next_fallback_model()
+                                    if next_model:
+                                        logger.info(f"Switching to fallback model: {next_model}")
+                                        current_model = next_model
+                                        self.tried_models.add(current_model)
+                                        # Use the truncated prompt for the next model
+                                        current_prompt = truncated_prompt
+                                        break  # Break out of retry loop and try new model
+                                    else:
+                                        logger.error("All available models have been tried. Cannot process this document.")
+                                        return None
                             
                 except requests.exceptions.RequestException as e:
                     logger.error(f"Request failed: {e}")
