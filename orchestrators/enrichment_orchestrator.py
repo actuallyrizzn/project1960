@@ -21,6 +21,10 @@ class EnrichmentOrchestrator:
         self.db_manager = DatabaseManager()
         self.api_client = VeniceAPIClient()
         
+    def get_all_schemas(self) -> Dict[str, str]:
+        """Get a copy of all schema definitions."""
+        return get_all_schemas()
+
     def setup_enrichment_tables(self) -> None:
         """Set up all enrichment tables in the database."""
         logger.info("Setting up enrichment tables in the database...")
@@ -41,7 +45,7 @@ class EnrichmentOrchestrator:
         # Check if enrichment activity log exists
         if not self.db_manager.table_exists('enrichment_activity_log'):
             # Create the log table if it doesn't exist
-            log_schema = get_all_schemas()['enrichment_activity_log']
+            log_schema = self.get_all_schemas()['enrichment_activity_log']
             self.db_manager.execute_query(log_schema)
         
         # Get cases that haven't been successfully enriched for this table

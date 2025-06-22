@@ -2,8 +2,32 @@
 import sqlite3
 import argparse
 import pandas as pd
+from orchestrators.enrichment_orchestrator import EnrichmentOrchestrator
 
-def check_database(query=None):
+def check_database(query=None, rebuild=False):
+    if rebuild:
+        print("Rebuilding all enrichment tables...")
+        try:
+            orchestrator = EnrichmentOrchestrator()
+            db_manager = orchestrator.db_manager
+            
+            # Get all enrichment table names
+            all_schemas = orchestrator.get_all_schemas()
+            table_names = list(all_schemas.keys())
+            
+            # Drop each table
+            for table_name in table_names:
+                print(f"Dropping table: {table_name}")
+                db_manager.execute_query(f"DROP TABLE IF EXISTS {table_name};")
+            
+            # Recreate tables
+            print("Re-running schema setup...")
+            orchestrator.setup_enrichment_tables()
+            print("Database rebuild complete.")
+        except Exception as e:
+            print(f"Error during rebuild: {e}")
+        return
+
     conn = sqlite3.connect('doj_cases.db')
     
     if query:
@@ -44,6 +68,10 @@ def check_database(query=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Check the status of the DOJ cases database.')
     parser.add_argument('--query', type=str, help='Execute a raw SQL query against the database.')
+    parser.add_argument('--rebuild', action='store_true', help='Drop and rebuild all enrichment tables.')
     args = parser.parse_args()
+
+    if args.rebuild and args.query:
+        parser.error("Cannot use --rebuild and --query at the same time.")
     
-    check_database(query=args.query) 
+    check_database(query=args.query, rebuild=args.rebuild) 
