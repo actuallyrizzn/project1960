@@ -38,6 +38,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Use the same database name logic as enrich_cases.py
+DATABASE_NAME = os.getenv("DATABASE_NAME", "doj_cases.db")
+
 # Define the enrichment order and batch sizes
 ENRICHMENT_ORDER = [
     ('case_metadata', 20),      # Foundation data - larger batches
@@ -54,6 +57,17 @@ def run_enrichment_pass(table_name, limit, dry_run=False, verbose=False):
     """Run enrichment for a specific table."""
     logger.info(f"Starting enrichment pass for table: {table_name}")
     
+    # Check if enrich_cases.py exists
+    if not os.path.exists('enrich_cases.py'):
+        logger.error(f"ERROR: enrich_cases.py not found in current directory: {os.getcwd()}")
+        return False
+    
+    # Check if VENICE_API_KEY is set
+    if not os.getenv("VENICE_API_KEY"):
+        logger.error("ERROR: VENICE_API_KEY environment variable is not set!")
+        logger.error("Please set it with: export VENICE_API_KEY=your_api_key_here")
+        return False
+    
     cmd = ['python', 'enrich_cases.py', '--table', table_name, '--limit', str(limit)]
     
     if dry_run:
@@ -62,34 +76,46 @@ def run_enrichment_pass(table_name, limit, dry_run=False, verbose=False):
         cmd.append('--verbose')
     
     logger.info(f"Running command: {' '.join(cmd)}")
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info(f"Database: {DATABASE_NAME}")
     
     try:
         start_time = time.time()
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)  # 1 hour timeout
+        # Pass current environment to subprocess
+        env = os.environ.copy()
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600, env=env)  # 1 hour timeout
         end_time = time.time()
         
+        # Always log the output for debugging
+        if result.stdout:
+            logger.info(f"STDOUT: {result.stdout}")
+        if result.stderr:
+            logger.warning(f"STDERR: {result.stderr}")
+        
         if result.returncode == 0:
-            logger.info(f"✅ Successfully completed {table_name} enrichment in {end_time - start_time:.1f}s")
-            if result.stdout:
-                logger.debug(f"Output: {result.stdout}")
+            logger.info(f"SUCCESS: Completed {table_name} enrichment in {end_time - start_time:.1f}s")
             return True
         else:
-            logger.error(f"❌ Failed to enrich {table_name}")
+            logger.error(f"FAILED: Failed to enrich {table_name} (return code: {result.returncode})")
             logger.error(f"Error output: {result.stderr}")
             return False
             
     except subprocess.TimeoutExpired:
-        logger.error(f"⏰ Timeout while enriching {table_name}")
+        logger.error(f"TIMEOUT: Timeout while enriching {table_name}")
+        return False
+    except FileNotFoundError as e:
+        logger.error(f"FILE ERROR: File not found error enriching {table_name}: {e}")
+        logger.error(f"Command attempted: {' '.join(cmd)}")
         return False
     except Exception as e:
-        logger.error(f"💥 Unexpected error enriching {table_name}: {e}")
+        logger.error(f"ERROR: Unexpected error enriching {table_name}: {e}")
         return False
 
 def get_database_stats():
     """Get current database statistics."""
     try:
         import sqlite3
-        conn = sqlite3.connect('doj_cases.db')
+        conn = sqlite3.connect(DATABASE_NAME)
         cursor = conn.cursor()
         
         # Get total cases and verified cases
@@ -126,7 +152,7 @@ def print_progress_report(stats):
         return
     
     logger.info("=" * 60)
-    logger.info("📊 ENRICHMENT PROGRESS REPORT")
+    logger.info("ENRICHMENT PROGRESS REPORT")
     logger.info("=" * 60)
     logger.info(f"Total cases in database: {stats['total_cases']}")
     logger.info(f"Verified cases (1960): {stats['verified_cases']}")
@@ -170,14 +196,29 @@ def main():
         logger.setLevel(logging.DEBUG)
     
     # Print startup information
-    logger.info("🚀 Starting progressive enrichment process")
+    logger.info("Starting progressive enrichment process")
     logger.info(f"Dry run mode: {args.dry_run}")
     logger.info(f"Tables to process: {args.tables if args.tables else 'ALL'}")
+    logger.info(f"Database: {DATABASE_NAME}")
+    
+    # Check if database exists
+    if not os.path.exists(DATABASE_NAME):
+        logger.error(f"ERROR: Database file not found: {DATABASE_NAME}")
+        logger.error("Please ensure the database exists and contains verified cases.")
+        sys.exit(1)
     
     # Get initial stats
     initial_stats = get_database_stats()
-    if initial_stats:
-        print_progress_report(initial_stats)
+    if not initial_stats:
+        logger.error("ERROR: Failed to get database statistics")
+        sys.exit(1)
+    
+    if initial_stats['verified_cases'] == 0:
+        logger.warning("WARNING: No verified cases found in database")
+        logger.warning("Enrichment will complete quickly but won't process any data")
+        logger.warning("Consider running the verification script first")
+    
+    print_progress_report(initial_stats)
     
     # Determine which tables to process
     tables_to_process = ENRICHMENT_ORDER
@@ -208,7 +249,7 @@ def main():
     
     # Final progress report
     logger.info(f"\n{'='*60}")
-    logger.info("🎯 ENRICHMENT PROCESS COMPLETE")
+    logger.info("ENRICHMENT PROCESS COMPLETE")
     logger.info(f"{'='*60}")
     logger.info(f"Successful passes: {successful_passes}/{total_passes}")
     
@@ -218,10 +259,10 @@ def main():
     
     # Exit with appropriate code
     if successful_passes == total_passes:
-        logger.info("✅ All enrichment passes completed successfully!")
+        logger.info("SUCCESS: All enrichment passes completed successfully!")
         sys.exit(0)
     else:
-        logger.warning(f"⚠️  {total_passes - successful_passes} passes failed")
+        logger.warning(f"WARNING: {total_passes - successful_passes} passes failed")
         sys.exit(1)
 
 if __name__ == "__main__":
