@@ -165,9 +165,9 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
         logger.debug(f"After cleaning, text length: {len(cleaned_text)}")
         logger.debug(f"Cleaned text preview: {cleaned_text[:500]}...")
     
-    # Strategy 2: Look for complete JSON objects with balanced braces (prioritize objects over arrays)
+    # Strategy 2: Look for the LAST complete JSON object in the text (most likely the actual output)
     if isinstance(cleaned_text, str):
-        # Use the same pattern as 1960-verify.py for complete JSON objects
+        # Use a more robust pattern to find complete JSON objects
         json_patterns = [
             # Standard JSON object with balanced braces
             r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',
@@ -177,14 +177,16 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
         
         for i, pattern in enumerate(json_patterns, 1):
             logger.debug(f"Strategy 2.{i}: Trying pattern for complete JSON objects")
-            matches = re.findall(pattern, cleaned_text, re.DOTALL | re.IGNORECASE)
+            matches = list(re.finditer(pattern, cleaned_text, re.DOTALL | re.IGNORECASE))
             logger.debug(f"Found {len(matches)} matches with pattern {i}")
             
-            for j, match in enumerate(matches):
-                logger.debug(f"  Match {j+1}: {repr(match)}")
+            # Process matches in reverse order to get the LAST (most recent) JSON object
+            for match in reversed(matches):
+                json_str = match.group(0)
+                logger.debug(f"  Match: {repr(json_str)}")
                 try:
                     # Clean the JSON string
-                    cleaned = clean_json_string(match)
+                    cleaned = clean_json_string(json_str)
                     logger.debug(f"  Cleaned: {repr(cleaned)}")
                     
                     if cleaned:
@@ -204,7 +206,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
                         else:
                             logger.debug(f"  ❌ Parsed result is not a dict: {type(parsed)}")
                     else:
-                        logger.debug(f"  ❌ JSON cleaning failed for: {repr(match)}")
+                        logger.debug(f"  ❌ JSON cleaning failed for: {repr(json_str)}")
                 except (json.JSONDecodeError, TypeError) as e:
                     logger.debug(f"  ❌ JSON decode error: {e}")
                     continue
@@ -215,6 +217,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
         array_pattern = r'\[\s*(?:[^[\]]*|\[[^[\]]*\])*\s*\]'
         array_matches = list(re.finditer(array_pattern, cleaned_text, re.DOTALL))
         if array_matches:
+            # Process matches in reverse order to get the LAST array
             for match in reversed(array_matches):
                 json_str = match.group(0)
                 try:
@@ -255,7 +258,65 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
                     logger.debug(f"Failed to parse JSON from marker: {e}")
                     continue
     
-    # Strategy 5: Try to parse the entire cleaned text as JSON
+    # Strategy 5: Look for the last occurrence of a JSON-like structure in the text
+    if isinstance(cleaned_text, str):
+        # Split the text and look for JSON in the last few lines
+        lines = cleaned_text.split('\n')
+        for line in reversed(lines[-10:]):  # Check last 10 lines
+            line = line.strip()
+            if line.startswith('{') and line.endswith('}'):
+                try:
+                    cleaned = clean_json_string(line)
+                    if cleaned:
+                        parsed = json.loads(cleaned)
+                        logger.debug(f"Successfully parsed JSON from last lines: {type(parsed)}")
+                        return parsed
+                except json.JSONDecodeError:
+                    continue
+    
+    # Strategy 6: Handle truncated responses by looking for the last complete JSON object
+    if isinstance(cleaned_text, str):
+        # Look for the last complete JSON object that might be truncated
+        # This handles cases where the AI response was cut off mid-JSON
+        json_start_pattern = r'\{[^{}]*$'  # JSON object that starts but doesn't end
+        matches = list(re.finditer(json_start_pattern, cleaned_text, re.DOTALL))
+        
+        if matches:
+            # Get the last match and try to complete it
+            last_match = matches[-1]
+            start_pos = last_match.start()
+            partial_json = cleaned_text[start_pos:]
+            
+            # Try to find a reasonable ending point
+            # Look for common patterns that might indicate where the JSON should end
+            end_patterns = [
+                r'\n\s*\n',  # Double newline
+                r'\n\s*[A-Z]',  # Newline followed by capital letter (start of new sentence)
+                r'\n\s*[0-9]',  # Newline followed by number
+                r'\n\s*[•\-*]',  # Newline followed by bullet point
+            ]
+            
+            for pattern in end_patterns:
+                end_match = re.search(pattern, partial_json)
+                if end_match:
+                    partial_json = partial_json[:end_match.start()]
+                    break
+            
+            # Try to complete the JSON by adding missing closing braces
+            brace_count = partial_json.count('{') - partial_json.count('}')
+            if brace_count > 0:
+                partial_json += '}' * brace_count
+            
+            try:
+                cleaned = clean_json_string(partial_json)
+                if cleaned:
+                    parsed = json.loads(cleaned)
+                    logger.debug(f"Successfully parsed truncated JSON: {type(parsed)}")
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+    
+    # Strategy 7: Try to parse the entire cleaned text as JSON
     if isinstance(cleaned_text, str):
         try:
             cleaned = clean_json_string(cleaned_text.strip())

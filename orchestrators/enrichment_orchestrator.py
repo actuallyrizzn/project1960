@@ -97,42 +97,40 @@ class EnrichmentOrchestrator:
                     logger.warning(f"DRY RUN: Failed to create mock data for case {case_id}")
                     return False
             
-            # Get the extraction prompt
+            # Get the extraction prompt for this table
             prompt = get_extraction_prompt(table_name, title, body)
             
-            # Make API call
-            logger.debug(f"Sending extraction request for case {case_id}, table {table_name}")
-            response_data = self.api_client.call_api(prompt)
+            # Make API call with increased token limit to ensure complete JSON output
+            response_data = self.api_client.call_api(prompt, max_tokens=4000, temperature=0.1)
             
             if not response_data:
-                logger.error(f"API call failed for case {case_id}")
+                logger.warning(f"Failed to get API response for case {case_id}")
                 if not dry_run:
                     store_extracted_data(case_id, table_name, None, url)
                 return False
             
-            # Extract content from response
-            content = self.api_client.extract_content(response_data)
-            if not content:
-                logger.error(f"Failed to extract content from API response for case {case_id}")
+            # Extract content from the API response
+            response = self.api_client.extract_content(response_data)
+            if not response:
+                logger.warning(f"Failed to extract content from API response for case {case_id}")
                 if not dry_run:
                     store_extracted_data(case_id, table_name, None, url)
                 return False
             
-            # Parse JSON from content
-            parsed_data = clean_and_parse_json(content)
+            # Parse the JSON response
+            parsed_data = clean_and_parse_json(response)
+            
             if not parsed_data:
-                logger.warning(f"Failed to parse data for case {case_id}.")
+                logger.warning(f"Failed to parse data for case {case_id}")
                 if not dry_run:
                     store_extracted_data(case_id, table_name, None, url)
                 return False
             
-            # Store the extracted data
+            # Store the parsed data
             if not dry_run:
-                success = store_extracted_data(case_id, table_name, parsed_data, url)
-                return success
-            else:
-                logger.info(f"DRY RUN: Would store parsed data: {parsed_data}")
-                return True
+                store_extracted_data(case_id, table_name, parsed_data, url)
+            
+            return True
             
         except Exception as e:
             logger.error(f"Error enriching case {case_id} for table {table_name}: {e}")

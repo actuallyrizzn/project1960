@@ -61,11 +61,6 @@ def main():
     setup_logging()
     logger = logging.getLogger(__name__)
     
-    # Temporarily enable debug logging
-    logging.getLogger().setLevel(logging.DEBUG)
-    logging.getLogger('utils.api_client').setLevel(logging.DEBUG)
-    logging.getLogger('utils.json_parser').setLevel(logging.DEBUG)
-    
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Enrich DOJ cases with structured data')
     parser.add_argument('--table', choices=[
