@@ -101,6 +101,27 @@
 
 ---
 
+## **2025-01-27 | Documentation Overhaul for Enrichment Process**
+
+| Area               | Item                                                                                                                                                                                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Documentation**  | • **README.md overhaul**: Completely updated usage instructions to feature `enrich_cases.py` with its `--table` argument system.<br>• **Database schema documentation**: Replaced outdated flat schema with comprehensive relational database diagram showing central `cases` table and 8 enrichment tables.<br>• **Project structure**: Updated to reflect `enrich_cases.py` as the main AI enrichment script, demoting `1960-verify.py` to legacy status.<br>• **Features section**: Updated to highlight "AI-Powered Enrichment" instead of simple verification, accurately describing the sophisticated data extraction capabilities.<br>• **Usage examples**: Added clear command-line examples for running enrichment on specific tables with `--limit` and other options. |
+| **Web Interface**  | • **About page modernization**: Completely rewrote `templates/about.html` to reflect current AI-powered data extraction process.<br>• **Methodology section**: Updated to describe modern data enrichment pipeline with LLM-powered extraction instead of simple classification.<br>• **Data schema visualization**: Added comprehensive database relationship diagram and detailed descriptions of all enrichment tables (case_metadata, participants, case_agencies, charges, financial_actions, victims, quotes, themes).<br>• **AI capabilities**: Renamed "AI Verification" to "AI-Powered Data Extraction" with updated description of entity extraction and structured data population.<br>• **Process explanation**: Added clear description of how LLMs parse unstructured press releases into queryable, relational datasets. |
+| **Project Planning** | • **Implementation context**: Added preamble to `docs/project-plan.md` clarifying that the schema described is actively implemented by `enrich_cases.py`.<br>• **Live system connection**: Linked theoretical project plan to the actual working system without altering core content.<br>• **Architecture documentation**: Connected the sophisticated relational schema design to the current implementation status. |
+| **Accuracy Improvements** | • **Process descriptions**: All documentation now accurately reflects the sophisticated legal data extraction system that uses LLMs to parse unstructured press releases into a queryable, relational database.<br>• **Technical accuracy**: Removed outdated references to simple classification and replaced with descriptions of advanced entity extraction and structured data population.<br>• **User guidance**: Updated all usage instructions to reflect the current `enrich_cases.py` workflow with table-specific enrichment commands. |
+
+### **Documentation Impact**
+
+| Improvement | Before | After |
+|-------------|--------|-------|
+| **Process Description** | Simple AI verification of classifications | Sophisticated LLM-powered data extraction into relational schema |
+| **Database Schema** | Flat table with basic fields | Comprehensive relational diagram with 8 enrichment tables |
+| **Usage Instructions** | Basic verification script | Table-specific enrichment with `--table` arguments |
+| **Architecture Understanding** | Classification tool | Legal data extraction system with entity recognition |
+| **User Guidance** | Generic verification steps | Specific commands for each enrichment table |
+
+---
+
 ## **Coming Up** (Not Yet Shipped, but spec'd)
 
 1. **Schema-v2** – fully relational (many-to-many) for exchanges/OTC desks and cross-district agent mapping.
