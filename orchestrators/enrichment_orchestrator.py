@@ -70,7 +70,7 @@ class EnrichmentOrchestrator:
     
     def get_case_by_id(self, case_number: str) -> List[tuple]:
         """Get a single case by its case number."""
-        query = "SELECT id, title, body, url FROM cases WHERE case_number = ?"
+        query = "SELECT id, title, body, url FROM cases WHERE number = ?"
         try:
             result = self.db_manager.execute_query(query, (case_number,))
             if result:
