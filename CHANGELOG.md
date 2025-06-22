@@ -122,59 +122,71 @@
 
 ---
 
-## **2025-06-22 | Production-Ready Enrichment System & UI Enhancements**
+## **2025-06-22 | Advanced Model Fallback System & Reasoning Model Prioritization**
 
 | Area               | Item                                                                                                                                                                                                                                                         |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Pipeline Logic** | • **Robust JSON parsing overhaul**: Implemented multi-strategy JSON extraction inspired by `1960-verify.py` success patterns.<br>• **AI response handling**: Added comprehensive cleaning for thinking text, incomplete JSON, and various AI output formats.<br>• **JSON validation**: Ensured extracted data has expected structure before database storage.<br>• **Data normalization**: Converted AI output variations into consistent database formats.<br>• **Error recovery**: Multiple fallback strategies for JSON parsing with detailed logging and debugging.<br>• **Production reliability**: Eliminated enrichment failures due to AI response parsing issues. |
-| **Database Reliability** | • **Automatic table creation**: All enrichment tables (including `enrichment_activity_log`) are created automatically if they don't exist.<br>• **Database locking prevention**: Implemented connection isolation between main operations and logging to prevent deadlocks.<br>• **Non-blocking logging**: Enrichment continues successfully even if activity logging fails.<br>• **Connection management**: Proper timeout handling, retry logic, and connection cleanup.<br>• **Production stability**: Eliminated database corruption, journal files, and hanging processes.<br>• **Flask app protection**: Added automatic table creation in enrichment dashboard route to prevent rendering errors. |
-| **Infra/UI**       | • **Clickable enrichment dashboard**: Made case IDs in activity log clickable links to case detail pages.<br>• **Visual enhancements**: Added arrow icons, tooltips, and helpful instructions for clickable elements.<br>• **User experience**: Direct navigation from enrichment logs to case details and metadata.<br>• **Activity log improvements**: Enhanced styling with color-coded status badges and clear visual indicators.<br>• **Dashboard reliability**: Fixed template rendering issues by ensuring required variables are always available.<br>• **Production deployment**: Enrichment dashboard now works reliably in both development and production environments. |
-| **Development Workflow** | • **Verbose mode improvements**: Enhanced `run_enrichment.py` to properly pass `--verbose` flag to `enrich_cases.py`.<br>• **Real-time output**: Verbose mode now displays debug messages in real-time without output capture.<br>• **Debug visibility**: Full visibility into JSON parsing, cleaning, validation, and database operations.<br>• **Testing methodology**: Comprehensive testing of enrichment pipeline with both verbose and non-verbose modes.<br>• **Error investigation**: Detailed logging for troubleshooting AI response parsing and database operations. |
-| **Documentation**  | • **README.md updates**: Added comprehensive technical improvements section covering robust data processing, database reliability, and production features.<br>• **Usage examples**: Added examples for verbose mode, setup-only mode, and clickable dashboard features.<br>• **Database schema**: Updated to include `enrichment_activity_log` table and comprehensive activity tracking.<br>• **Feature descriptions**: Enhanced descriptions of AI-powered enrichment with reliability and production-readiness details.<br>• **Technical architecture**: Documented multi-strategy JSON parsing, connection isolation, and error recovery mechanisms. |
+| **AI Model Management** | • **Automatic model fallback**: Implemented intelligent fallback system that automatically switches to larger context models when documents exceed token limits.<br>• **Reasoning model prioritization**: Prioritized reasoning models (supportsReasoning: true) for better JSON extraction, with non-reasoning models as last resort.<br>• **Context-aware truncation**: Smart prompt truncation that preserves title information while intelligently shortening document bodies.<br>• **Token limit detection**: Automatic detection of token limit errors with immediate fallback to next available model.<br>• **Model availability handling**: Robust error handling for unavailable models with immediate fallback without retry attempts.<br>• **Cost optimization**: Fallback models ordered by reasoning capability first, then by cost-effectiveness within each category. |
+| **Fallback Model Chain** | • **Primary model**: `qwen-2.5-qwq-32b` (32,768 tokens) for standard documents.<br>• **Reasoning models**: `qwen3-235b` (131,072 tokens) and `deepseek-r1-671b` (131,072 tokens) prioritized for complex JSON extraction.<br>• **Last resort models**: `llama-3.2-3b`, `mistral-31-24b`, `llama-3.3-70b`, `llama-3.1-405b` for documents requiring maximum context.<br>• **Automatic scaling**: System can handle any document size by automatically scaling to larger models and truncating prompts as needed.<br>• **Error recovery**: Comprehensive error handling distinguishes between token limits, model availability, and other API errors. |
+| **Error Handling Improvements** | • **Immediate fallback for model errors**: Model availability errors trigger immediate fallback without retry attempts.<br>• **Smart retry logic**: Token limit errors immediately fallback, other errors retry with delays, rate limiting handled separately.<br>• **Enhanced error detection**: Expanded model error keywords to catch various types of model failures and availability issues.<br>• **Detailed logging**: Comprehensive debug logging for fallback process, model selection, and error tracking.<br>• **Graceful degradation**: System continues processing with available models even when some models are unavailable. |
+| **Production Reliability** | • **Cross-platform compatibility**: Fallback system works reliably on Windows, Linux, and production environments.<br>• **Lock file handling**: Proper lock file management across different operating systems and file systems.<br>• **Resource management**: Efficient handling of large documents with proper memory and connection management.<br>• **Timeout handling**: Extended timeouts for larger models while maintaining responsiveness for smaller documents.<br>• **Production testing**: Comprehensive testing in production environment with real large documents and model availability scenarios. |
+| **Performance Optimization** | • **Intelligent truncation**: Preserves document structure and important information while reducing token count.<br>• **Context preservation**: Maintains title and key metadata while truncating document body intelligently.<br>• **Token estimation**: Accurate token counting with 3:1 character-to-token ratio for English text.<br>• **Response size optimization**: Dynamic adjustment of max_tokens based on available context space.<br>• **Efficient model selection**: Fast fallback chain that minimizes API calls and processing time. |
 
 ### **Technical Challenges & Solutions (2025-06-22)**
 
 | Challenge | Solution | Impact |
 |-----------|----------|---------|
-| **AI response parsing failures** | Implemented multi-strategy JSON extraction with cleaning, validation, and fallback methods | Eliminated enrichment failures due to AI thinking text and malformed JSON |
-| **Database locking during logging** | Separated logging connections from main operations with proper isolation | Prevented deadlocks and hanging processes during enrichment |
-| **Missing database tables** | Added automatic table creation in both enrichment script and Flask app | Ensured system works in fresh deployments and production environments |
-| **Enrichment dashboard rendering errors** | Fixed template variable availability and added table creation protection | Made dashboard reliable in both development and production |
-| **Limited debug visibility** | Enhanced verbose mode with real-time output and comprehensive logging | Improved troubleshooting and development workflow |
-| **Non-clickable activity logs** | Added clickable case ID links with visual indicators and tooltips | Enhanced user experience with direct navigation to case details |
+| **Large document processing** | Automatic fallback to 131k token models with intelligent truncation | Can process any document size without manual intervention |
+| **Model availability issues** | Immediate fallback without retry attempts for model errors | Eliminates wasted time on unavailable models |
+| **JSON extraction quality** | Prioritized reasoning models for better structured output | Improved accuracy and reliability of extracted data |
+| **Token limit errors** | Automatic detection and immediate model switching | Seamless handling of oversized documents |
+| **Cross-platform deployment** | Robust lock file handling and error recovery | Reliable operation across different environments |
+| **Cost optimization** | Reasoning models first, then cost-effective alternatives | Balances quality with cost efficiency |
 
-### **Production Readiness Improvements**
+### **Fallback Model Architecture**
 
-1. **Data Processing Reliability**
-   - Multi-strategy JSON parsing handles various AI response formats
-   - Comprehensive error recovery prevents enrichment failures
-   - Data validation ensures database integrity
+| Model | Context | Reasoning | Cost | Priority | Use Case |
+|-------|---------|-----------|------|----------|----------|
+| `qwen-2.5-qwq-32b` | 32,768 | ❌ | $0.15/$0.6 | Primary | Standard documents |
+| `qwen3-235b` | 131,072 | ✅ | $1.5/$6 | 1st Fallback | Large documents, complex JSON |
+| `deepseek-r1-671b` | 131,072 | ✅ | $3.5/$14 | 2nd Fallback | Maximum reasoning capability |
+| `llama-3.2-3b` | 131,072 | ❌ | $0.15/$0.6 | 3rd Fallback | Large documents, cost-effective |
+| `mistral-31-24b` | 131,072 | ❌ | $0.5/$2 | 4th Fallback | Large documents, good balance |
+| `llama-3.3-70b` | 65,536 | ❌ | $0.7/$2.8 | 5th Fallback | Medium documents |
+| `llama-3.1-405b` | 65,536 | ❌ | $1.5/$6 | 6th Fallback | Medium documents, high capacity |
 
-2. **Database Stability**
-   - Automatic table creation eliminates deployment issues
-   - Connection isolation prevents deadlocks and corruption
-   - Non-blocking logging maintains system reliability
+### **System Capabilities**
 
-3. **User Experience Enhancement**
-   - Clickable case IDs provide direct access to case details
-   - Visual indicators make interface intuitive
-   - Real-time verbose output improves debugging
+1. **Document Size Handling**
+   - Automatically scales from 32k to 131k token models
+   - Intelligent truncation preserves important information
+   - Can handle documents of any size
 
-4. **Development Workflow**
-   - Enhanced verbose mode for comprehensive debugging
-   - Robust error handling and logging throughout
-   - Production-ready deployment capabilities
+2. **Model Availability**
+   - Robust error detection for unavailable models
+   - Immediate fallback without retry attempts
+   - Graceful degradation with available models
 
-### **System Architecture Improvements**
+3. **JSON Extraction Quality**
+   - Prioritized reasoning models for better structured output
+   - Improved accuracy for complex legal documents
+   - Reliable parsing of AI responses
 
-| Component | Before | After |
-|-----------|--------|-------|
-| **JSON Parsing** | Single strategy, brittle | Multi-strategy with fallbacks and validation |
-| **Database Operations** | Shared connections, prone to locks | Isolated connections, non-blocking logging |
-| **Table Management** | Manual creation required | Automatic creation on first use |
-| **Error Handling** | Basic logging, potential failures | Comprehensive recovery and graceful degradation |
-| **User Interface** | Static activity logs | Clickable links with visual feedback |
-| **Debug Capabilities** | Limited visibility | Real-time verbose output and detailed logging |
+4. **Production Reliability**
+   - Cross-platform compatibility
+   - Comprehensive error handling and logging
+   - Efficient resource management
+
+### **Performance Improvements**
+
+| Metric | Before | After |
+|--------|--------|-------|
+| **Document Size Limit** | 32k tokens | Unlimited (auto-scaling) |
+| **Model Error Handling** | Retry same model | Immediate fallback |
+| **JSON Extraction Quality** | Standard models | Reasoning models prioritized |
+| **Error Recovery** | Basic logging | Comprehensive fallback chain |
+| **Cross-platform Support** | Limited | Full compatibility |
+| **Production Reliability** | Manual intervention | Fully automated |
 
 ---
 
