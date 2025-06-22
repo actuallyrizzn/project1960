@@ -1,27 +1,31 @@
+# Project Plan: Press Release Data Extraction
+
+> **Implementation Note:** The schema and data extraction strategy outlined in this document are not merely a future plan; they are the blueprint for the **`enrich_cases.py`** script. This script actively implements the relational schema below to parse unstructured press releases into a queryable, structured database.
+
 # Field hunting in the press releases
 
-| Category                       | Concrete Data Points to Extract                                                                                                                                                                                                              | Why It’s Valuable / How You’ll Use It                                                                       |
+| Category                       | Concrete Data Points to Extract                                                                                                                                                                                                              | Why It's Valuable / How You'll Use It                                                                       |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Core Legal**                 | • **Event Type** (indictment, plea, conviction, sentencing, deferred-prosecution)  <br>• **Statute Mix** (wire fraud, money-laundering counts, BSA counts, § 2320 sanctions, etc.)  <br>• **Maximum Penalty** quoted                         | Drives timeline analytics (“how far along is each case?”) and severity scoring.                             |
-| **Court & Docket**             | • **Case Number / docket URL**  <br>• **Judge** (name & title)  <br>• **Sentencing Date** (future calendared)  <br>• **District / Division**                                                                                                 | Primary PACER keys; judge clustering reveals hotspots (“Judge LaPlante handles X% of crypto § 1960 cases”). |
-| **Prosecution Team**           | • **U.S. Attorney Office** (abbrev + full)  <br>• **Lead AUSA(s)**  <br>• **DOJ Units** (e.g., NCET, MLARS, OCDETF)                                                                                                                          | Lets you map who’s driving policy; spot prosecutor specializations.                                         |
+| **Core Legal**                 | • **Event Type** (indictment, plea, conviction, sentencing, deferred-prosecution)  <br>• **Statute Mix** (wire fraud, money-laundering counts, BSA counts, § 2320 sanctions, etc.)  <br>• **Maximum Penalty** quoted                         | Drives timeline analytics ("how far along is each case?") and severity scoring.                             |
+| **Court & Docket**             | • **Case Number / docket URL**  <br>• **Judge** (name & title)  <br>• **Sentencing Date** (future calendared)  <br>• **District / Division**                                                                                                 | Primary PACER keys; judge clustering reveals hotspots ("Judge LaPlante handles X% of crypto § 1960 cases"). |
+| **Prosecution Team**           | • **U.S. Attorney Office** (abbrev + full)  <br>• **Lead AUSA(s)**  <br>• **DOJ Units** (e.g., NCET, MLARS, OCDETF)                                                                                                                          | Lets you map who's driving policy; spot prosecutor specializations.                                         |
 | **Law-Enforcement Actors**     | • **Investigating Agencies** (FBI, IRS-CI, USPIS, HSI…)  <br>• **Named Special Agents / SAC quotes**                                                                                                                                         | Build co-occurrence network to surface the go-to crypto agents.                                             |
 | **Defendant Block**            | • **Full Name(s)** + aliases  <br>• **Age / DOB**  <br>• **Residence (city, state, country)**  <br>• **Citizenship** (esp. foreign nationals)  <br>• **Entity Names & Shell Companies**  <br>• **Role** (principal, money-mule, facilitator) | Enables cross-PR identity resolution and foreign-national stats.                                            |
 | **Conspiracy / Cohort**        | • **Named Co-Conspirators** (even if separate indictment)  <br>• **Affiliated Churches / NGOs / DAOs**                                                                                                                                       | Clues for expanding corpus & building relationship graphs.                                                  |
 | **Victims & Loss**             | • **Victim Type** (romance-scam, BEC victim, healthcare insurer, township)  <br>• **Victim Geography**  <br>• **Loss \$**                                                                                                                    | Good for impact narratives & heatmaps of victim origins.                                                    |
 | **Crypto Details**             | • **Coins Mentioned** (BTC, ETH, Monero, USDT, mixers)  <br>• **Exchange / Platform Names** (KuCoin, LocalBitcoins)  <br>• **On-Chain Services** (kiosks, ATMs, Sinbad blender)                                                              | Correlate with blockchain-analytics flags and sanction lists.                                               |
-| **Financial Flow**             | • **Fiat Inflow Method** (cash deposits, wire, ACH, church “donations”)  <br>• **Structuring Instructions** (“keep deposits < \$9,500”)  <br>• **Fees Charged** (%, absolute \$)                                                             | Helps model typical tradecraft patterns & compliance gaps.                                                  |
+| **Financial Flow**             | • **Fiat Inflow Method** (cash deposits, wire, ACH, church "donations")  <br>• **Structuring Instructions** ("keep deposits < \$9,500")  <br>• **Fees Charged** (%, absolute \$)                                                             | Helps model typical tradecraft patterns & compliance gaps.                                                  |
 | **Regulatory Breaches**        | • **Missing AML / KYC Controls**  <br>• **SAR / CTR Failures**  <br>• **FinCEN Registration Omission**                                                                                                                                       | Useful for policy commentary and comparative risk scoring.                                                  |
 | **Asset Recovery / Penalties** | • **Forfeiture Amounts** (cash, BTC, real estate)  <br>• **Criminal Fines**  <br>• **Restitution Ordered**  <br>• **Corporate-wide Remediation** (KuCoin exiting US)                                                                         | Feeds restitution trackers; totals show enforcement ROI.                                                    |
 | **International Cooperation**  | • **Foreign Agencies Cited** (Netherlands FIOD, Australian AFP)  <br>• **Sanctions References** (OFAC Blender/Sinbad)                                                                                                                        | Highlights multilateral reach; good for press outreach.                                                     |
 | **Quote Bank**                 | • **Pull-quotes** from U.S. Attorneys & SACs                                                                                                                                                                                                 | Great for press decks and narrative pieces; can sentiment-score rhetoric.                                   |
 | **Timeline Anchors**           | • **Offense Date Range**  <br>• **Indictment Date**  <br>• **Plea Date**  <br>• **Sentencing Date (scheduled or past)**                                                                                                                      | Lets you calculate investigation length & plea-to-sentence gaps.                                            |
-| **Ancillary Charges / Themes** | • **Tax Evasion Counts**  <br>• **Romance-Scam / Elder-Fraud references**  <br>• **Darknet / Ransomware** mentions                                                                                                                           | Tagging themes lets you build sub-dashboards (e.g., “Romance-Scam § 1960 cases in 2024”).                   |
+| **Ancillary Charges / Themes** | • **Tax Evasion Counts**  <br>• **Romance-Scam / Elder-Fraud references**  <br>• **Darknet / Ransomware** mentions                                                                                                                           | Tagging themes lets you build sub-dashboards (e.g., "Romance-Scam § 1960 cases in 2024").                   |
 | **Comms Metadata**             | • **Press-Release URL**  <br>• **PR Number / slug**                                                                                                                                                                                          | Ensures reproducibility & easy re-scrape on updates.                                                        |
 
 ---
 
-Below is a **“kitchen-sink” schema** that can swallow every data point on the checklist while staying SQLite-simple and fully additive to your existing `cases` table.
+Below is a **"kitchen-sink" schema** that can swallow every data point on the checklist while staying SQLite-simple and fully additive to your existing `cases` table.
 Use `CREATE TABLE IF NOT EXISTS …` in your enrichment scripts; no migration risk.
 
 ---
@@ -44,13 +48,13 @@ CREATE TABLE IF NOT EXISTS case_metadata (
   usa_name           TEXT,                  -- U.S. Attorney
   event_type         TEXT,                  -- indictment | plea | conviction | sentencing | deferred
   judge_name         TEXT,
-  judge_title        TEXT,                  -- “U.S. District Judge”
+  judge_title        TEXT,                  -- "U.S. District Judge"
   case_number        TEXT,
-  max_penalty_text   TEXT,                  -- “up to five years”
+  max_penalty_text   TEXT,                  -- "up to five years"
   sentence_summary   TEXT,                  -- actual sentence text
-  money_amounts      TEXT,                  -- raw e.g. “$297 million penalties”
-  crypto_assets      TEXT,                  -- “BTC,ETH”
-  statutes_json      TEXT,                  -- ‘["18 USC 1960","18 USC 1956"]’
+  money_amounts      TEXT,                  -- raw e.g. "$297 million penalties"
+  crypto_assets      TEXT,                  -- "BTC,ETH"
+  statutes_json      TEXT,                  -- '["18 USC 1960","18 USC 1956"]'
   timeline_json      TEXT,                  -- key→date pairs
   press_release_url  TEXT,
   extras_json        JSON
@@ -67,7 +71,7 @@ CREATE TABLE IF NOT EXISTS participants (
   case_id            TEXT,                 -- FK
   name               TEXT,
   role               TEXT,                 -- defendant | AUSA | agent | co-conspirator | judge
-  agency             TEXT,                 -- “FBI”, “IRS-CI” (null for defendants)
+  agency             TEXT,                 -- "FBI", "IRS-CI" (null for defendants)
   age                INTEGER,
   city               TEXT,
   state_country      TEXT,
@@ -86,7 +90,7 @@ CREATE TABLE IF NOT EXISTS participants (
 ```sql
 CREATE TABLE IF NOT EXISTS case_agencies (
   case_id            TEXT,
-  agency             TEXT,                 -- “FBI”, “HSI Pretoria”, “Netherlands FIOD”
+  agency             TEXT,                 -- "FBI", "HSI Pretoria", "Netherlands FIOD"
   role               TEXT,                 -- investigating | assisting | international_partner
   PRIMARY KEY (case_id, agency, role)
 );
@@ -100,9 +104,9 @@ CREATE TABLE IF NOT EXISTS case_agencies (
 CREATE TABLE IF NOT EXISTS charges (
   charge_id          INTEGER PRIMARY KEY AUTOINCREMENT,
   case_id            TEXT,
-  statute            TEXT,                 -- “18 USC 1960”
-  description        TEXT,                 -- “unlicensed money transmitting business”
-  count_number       INTEGER,              -- if PR lists “four counts”
+  statute            TEXT,                 -- "18 USC 1960"
+  description        TEXT,                 -- "unlicensed money transmitting business"
+  count_number       INTEGER,              -- if PR lists "four counts"
   extras_json        JSON
 );
 ```
@@ -116,7 +120,7 @@ CREATE TABLE IF NOT EXISTS financial_actions (
   fin_id             INTEGER PRIMARY KEY AUTOINCREMENT,
   case_id            TEXT,
   action_type        TEXT,                 -- forfeiture | fine | restitution | fee | laundering_volume
-  amount_text        TEXT,                 -- “$1.5 million”, “1.93 BTC”
+  amount_text        TEXT,                 -- "$1.5 million", "1.93 BTC"
   currency           TEXT,                 -- USD, BTC, ETH…
   asset_type         TEXT,                 -- fiat | crypto | real_estate
   extras_json        JSON
@@ -195,9 +199,9 @@ cases (original)
 
    * Inserts/updates `case_metadata`.
    * Loops through arrays to populate `participants`, `case_agencies`, `charges`, etc.
-4. Leave `extras_json` hooks for edge cases so you never lose info even if a field wasn’t planned.
+4. Leave `extras_json` hooks for edge cases so you never lose info even if a field wasn't planned.
 
 ---
 
-**This schema captures every “last drop” while staying flat, query-friendly, and fully additive.**
+**This schema captures every "last drop" while staying flat, query-friendly, and fully additive.**
 

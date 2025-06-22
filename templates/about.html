@@ -38,12 +38,12 @@
                             </ul>
                         </div>
                         <div class="col-md-6">
-                            <h5>AI Verification</h5>
+                            <h5>AI-Powered Data Extraction</h5>
                             <ul>
-                                <li>Use Venice AI to verify case classifications</li>
-                                <li>Identify false positives and improve accuracy</li>
-                                <li>Extract detailed case metadata</li>
-                                <li>Provide confidence scores for classifications</li>
+                                <li>Uses Large Language Models to parse press releases</li>
+                                <li>Extracts structured data into a relational schema</li>
+                                <li>Identifies entities like participants, agencies, and charges</li>
+                                <li>Populates detailed tables for deep analysis</li>
                             </ul>
                         </div>
                     </div>
@@ -55,60 +55,57 @@
                 <div class="card-body">
                     <h2 class="card-title">⚙️ Methodology</h2>
                     
-                    <h5>Data Ingestion Pipeline</h5>
+                    <h5>Data Enrichment Pipeline</h5>
                     <ol>
-                        <li><strong>Scraping</strong>: Automated collection from DOJ press release API</li>
-                        <li><strong>Filtering</strong>: Keyword-based identification of relevant cases</li>
-                        <li><strong>Storage</strong>: SQLite database with structured schema</li>
-                        <li><strong>Verification</strong>: AI-powered classification and validation</li>
+                        <li><strong>Scraping</strong>: Automated collection of press releases from the DOJ API.</li>
+                        <li><strong>Filtering</strong>: Keyword-based identification of potentially relevant cases.</li>
+                        <li><strong>AI Extraction</strong>: LLM-powered analysis to extract entities and structured data from case text.</li>
+                        <li><strong>Storage</strong>: Data is stored in a relational SQLite database with multiple tables.</li>
                     </ol>
 
-                    <h5>Classification Process</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Initial Filtering</h6>
-                            <ul>
-                                <li>18 USC 1960 mentions</li>
-                                <li>Cryptocurrency-related terms</li>
-                                <li>Money transmission keywords</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>AI Verification</h6>
-                            <ul>
-                                <li>Context analysis</li>
-                                <li>False positive detection</li>
-                                <li>Confidence scoring</li>
-                                <li>Detailed classification notes</li>
-                            </ul>
-                        </div>
-                    </div>
+                    <h5>Extraction Process</h5>
+                    <p>
+                        The enrichment process uses targeted prompts to ask a Large Language Model to act as a legal expert. It reads each press release and extracts information into a detailed, structured format, populating the database tables described below. This turns unstructured text into a queryable dataset.
+                    </p>
                 </div>
             </div>
 
             <!-- Data Schema -->
             <div class="card mb-4">
                 <div class="card-body">
-                    <h2 class="card-title">📊 Data Schema</h2>
-                    <p>Each case in our database contains:</p>
+                    <h2 class="card-title">📊 Relational Data Schema</h2>
+                    <p>The database is composed of a central `cases` table, which holds the raw press release text, and several enrichment tables that store the structured data extracted by the AI.</p>
+                    
+                    <p>
+                        <pre class="bg-light p-2 rounded"><code>cases (Primary Table)
+   ├─ case_metadata
+   ├─ participants
+   ├─ case_agencies
+   ├─ charges
+   ├─ financial_actions
+   ├─ victims
+   ├─ quotes
+   └─ themes</code></pre>
+                    </p>
+
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Basic Information</h6>
+                            <h6>Core Tables</h6>
                             <ul>
-                                <li><code>title</code> - Press release title</li>
-                                <li><code>content</code> - Full press release text</li>
-                                <li><code>date</code> - Publication date</li>
-                                <li><code>url</code> - Original DOJ URL</li>
+                                <li><code>cases</code>: Raw press release content (title, text, date, URL).</li>
+                                <li><code>case_metadata</code>: High-level details like court district, judge, and case numbers.</li>
+                                <li><code>participants</code>: All individuals mentioned (defendants, attorneys, agents).</li>
+                                <li><code>case_agencies</code>: Investigating agencies involved (FBI, IRS-CI, HSI).</li>
+                                <li><code>charges</code>: Specific legal charges and statutes cited in the case.</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
-                            <h6>Classification Data</h6>
+                            <h6>Detail Tables</h6>
                             <ul>
-                                <li><code>mentions_1960</code> - Boolean flag for 18 USC 1960</li>
-                                <li><code>mentions_crypto</code> - Boolean flag for cryptocurrency</li>
-                                <li><code>verified_1960</code> - AI verification result</li>
-                                <li><code>verified_crypto</code> - AI verification result</li>
-                                <li><code>classification</code> - Detailed AI notes</li>
+                                <li><code>financial_actions</code>: Monetary data, including fines, forfeitures, and restitution.</li>
+                                <li><code>victims</code>: Information about the victims of the described crimes.</li>
+                                <li><code>quotes</code>: Direct pull-quotes from officials in the press release.</li>
+                                <li><code>themes</code>: High-level thematic tags (e.g., 'romance_scam', 'darknet', 'sanctions').</li>
                             </ul>
                         </div>
                     </div>
