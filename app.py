@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_from_directory
 import sqlite3
 import json
 from datetime import datetime
@@ -208,8 +208,18 @@ def case_detail(case_id):
 @app.route('/enrichment')
 def enrichment_dashboard():
     """Enrichment progress dashboard."""
-    stats = get_stats()
-    return render_template('enrichment.html', stats=stats)
+    conn = sqlite3.connect('doj_cases.db')
+    cursor = conn.cursor()
+    # Fetch recent activity log (last 50 entries)
+    cursor.execute('''
+        SELECT timestamp, case_id, table_name, status, notes
+        FROM enrichment_activity_log
+        ORDER BY timestamp DESC
+        LIMIT 50
+    ''')
+    activity_log = cursor.fetchall()
+    conn.close()
+    return render_template('enrichment.html', activity_log=activity_log)
 
 @app.route('/api/stats')
 def api_stats():

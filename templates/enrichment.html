@@ -272,6 +272,56 @@
     </div>
 </div>
 
+<!-- Activity Log Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="bi bi-clipboard-data me-2"></i>
+                    Recent Enrichment Activity Log
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Timestamp (UTC)</th>
+                                <th scope="col">Case ID</th>
+                                <th scope="col">Table</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in activity_log %}
+                            <tr>
+                                <td class="text-nowrap">{{ log[0][:19].replace('T', ' ') }}</td>
+                                <td class="text-monospace small">{{ log[1] }}</td>
+                                <td>{{ log[2] }}</td>
+                                <td>
+                                    {% if log[3] == 'success' %}
+                                        <span class="badge bg-success">Success</span>
+                                    {% elif log[3] == 'skipped' %}
+                                        <span class="badge bg-warning text-dark">Skipped</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Error</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ log[4] }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted">No recent activity.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Enrichment Process Information -->
 <div class="row mt-4">
     <div class="col-12">
