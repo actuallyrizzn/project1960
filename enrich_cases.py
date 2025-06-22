@@ -925,8 +925,11 @@ def main():
     if args.verbose:
         logger.setLevel(logging.DEBUG)
         logger.debug("Verbose logging enabled")
+    
+    # Always ensure tables exist before processing
+    setup_enrichment_tables()
+    
     if args.setup_only:
-        setup_enrichment_tables()
         return
     if not args.table:
         parser.error("--table is required unless you are using --setup-only.")

@@ -125,6 +125,23 @@ def get_stats():
     conn.close()
     return stats
 
+def ensure_activity_log_table():
+    """Ensure the enrichment_activity_log table exists."""
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS enrichment_activity_log (
+            log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            case_id TEXT,
+            table_name TEXT,
+            status TEXT,
+            notes TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 @app.route('/')
 def index():
     """Main dashboard page."""
@@ -208,6 +225,9 @@ def case_detail(case_id):
 @app.route('/enrichment')
 def enrichment_dashboard():
     """Enrichment progress dashboard."""
+    # Ensure the activity log table exists
+    ensure_activity_log_table()
+    
     conn = sqlite3.connect('doj_cases.db')
     cursor = conn.cursor()
     # Fetch recent activity log (last 50 entries)
