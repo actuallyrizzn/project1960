@@ -1,107 +1,262 @@
 """
-Venice API client for the DOJ cases project.
+API client for Venice AI with fallback model support.
 """
-import requests
 import logging
+import requests
 import time
-from typing import Optional, Dict, Any
-from .config import Config
+from typing import Dict, Any, Optional, List
+from utils.config import Config
 import re
 
 logger = logging.getLogger(__name__)
 
 class VeniceAPIClient:
-    """Venice API client with retry logic and error handling."""
+    """Client for Venice AI API with automatic fallback to larger models."""
     
     def __init__(self):
-        """Initialize API client with configuration."""
-        self.api_key = Config.VENICE_API_KEY
+        """Initialize the API client."""
         self.api_url = Config.VENICE_API_URL
         self.model = Config.MODEL_NAME
-        self.timeout = Config.API_TIMEOUT
         self.retry_attempts = Config.RETRY_ATTEMPTS
         self.retry_delay = Config.RETRY_DELAY
+        self.timeout = Config.API_TIMEOUT
         
         # Validate configuration
-        if not self.api_key:
+        if not Config.VENICE_API_KEY:
             raise ValueError("VENICE_API_KEY is not set")
+        
+        # Fallback models ordered by context size (largest first)
+        self.fallback_models = [
+            "qwen3-235b",      # 131,072 tokens
+            "mistral-31-24b",  # 131,072 tokens  
+            "llama-3.2-3b",    # 131,072 tokens
+            "deepseek-r1-671b", # 131,072 tokens
+            "llama-3.3-70b",   # 65,536 tokens
+            "llama-3.1-405b",  # 65,536 tokens
+        ]
+        
+        # Track which models have been tried
+        self.tried_models = set()
     
-    def call_api(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.1) -> Optional[Dict[str, Any]]:
-        """Make API call with retry logic and error handling."""
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": max_tokens,
-            "temperature": temperature
+    def _is_token_limit_error(self, response_text: str) -> bool:
+        """Check if the error is due to token limit exceeded."""
+        return (
+            "maximum context length" in response_text.lower() and
+            "tokens" in response_text.lower() and
+            ("requested" in response_text.lower() or "exceeded" in response_text.lower())
+        )
+    
+    def _get_next_fallback_model(self) -> Optional[str]:
+        """Get the next available fallback model."""
+        for model in self.fallback_models:
+            if model not in self.tried_models:
+                return model
+        return None
+    
+    def _estimate_tokens(self, text: str) -> int:
+        """Rough estimate of token count (approximately 3 characters per token for English text)."""
+        return len(text) // 3
+    
+    def _truncate_prompt(self, prompt: str, model: str) -> str:
+        """Truncate prompt to fit within model context limits."""
+        context_limits = {
+            "qwen-2.5-qwq-32b": 32768,
+            "qwen3-235b": 131072,
+            "mistral-31-24b": 131072,
+            "llama-3.2-3b": 131072,
+            "deepseek-r1-671b": 131072,
+            "llama-3.3-70b": 65536,
+            "llama-3.1-405b": 65536,
         }
         
-        headers = Config.get_api_headers()
+        context_limit = context_limits.get(model, 32768)
         
-        logger.debug(f"Making API call to {self.api_url}")
-        logger.debug(f"Model: {self.model}")
-        logger.debug(f"Max tokens: {max_tokens}")
-        logger.debug(f"Temperature: {temperature}")
-        logger.debug(f"Prompt length: {len(prompt)} characters")
-        logger.debug(f"Prompt preview: {prompt[:200]}...")
+        # Reserve tokens for response and system overhead
+        max_prompt_tokens = context_limit - 2000  # Reserve 2000 tokens for response
         
-        for attempt in range(self.retry_attempts):
-            try:
-                logger.debug(f"Sending request to Venice API (attempt {attempt + 1})...")
-                response = requests.post(
-                    self.api_url, 
-                    headers=headers, 
-                    json=payload, 
-                    timeout=self.timeout
-                )
-                logger.debug(f"Received response with status code: {response.status_code}")
+        estimated_tokens = self._estimate_tokens(prompt)
+        logger.debug(f"Model: {model}, Context limit: {context_limit}, Max prompt tokens: {max_prompt_tokens}, Estimated tokens: {estimated_tokens}")
+        
+        if estimated_tokens <= max_prompt_tokens:
+            logger.debug(f"Prompt fits within limits, no truncation needed")
+            return prompt
+        
+        logger.warning(f"Prompt too large for {model}. Estimated tokens: {estimated_tokens}, Max allowed: {max_prompt_tokens}")
+        
+        # Find the document content in the prompt (usually after the instructions)
+        # Look for common patterns in our prompts
+        if "Press Release Title:" in prompt:
+            # Extract the title and truncate the body
+            title_start = prompt.find("Press Release Title:")
+            title_end = prompt.find("Press Release Body:", title_start)
+            if title_end != -1:
+                title_section = prompt[:title_end]
+                body_section = prompt[title_end:]
                 
-                if response.status_code == 429:
-                    logger.warning(f"Rate limit hit on attempt {attempt + 1}. Response: {response.text}")
+                # Calculate how much of the body we can keep
+                title_tokens = self._estimate_tokens(title_section)
+                available_tokens = max_prompt_tokens - title_tokens
+                
+                logger.debug(f"Title tokens: {title_tokens}, Available for body: {available_tokens}")
+                
+                if available_tokens > 0:
+                    # Truncate the body section
+                    max_body_chars = available_tokens * 3
+                    if len(body_section) > max_body_chars:
+                        truncated_body = body_section[:max_body_chars] + "\n\n[Document truncated due to length]"
+                        result = title_section + truncated_body
+                        logger.info(f"Truncated body from {len(body_section)} to {len(truncated_body)} characters")
+                        return result
+                
+        # Fallback: simple truncation
+        max_chars = max_prompt_tokens * 3
+        if len(prompt) > max_chars:
+            truncated = prompt[:max_chars] + "\n\n[Document truncated due to length]"
+            logger.warning(f"Simple truncation: from {len(prompt)} to {len(truncated)} characters for model {model}")
+            return truncated
+        
+        return prompt
+    
+    def _adjust_max_tokens(self, prompt: str, model: str) -> int:
+        """Adjust max_tokens based on model context limits and prompt size."""
+        # Model context limits (approximate)
+        context_limits = {
+            "qwen-2.5-qwq-32b": 32768,
+            "qwen3-235b": 131072,
+            "mistral-31-24b": 131072,
+            "llama-3.2-3b": 131072,
+            "deepseek-r1-671b": 131072,
+            "llama-3.3-70b": 65536,
+            "llama-3.1-405b": 65536,
+        }
+        
+        context_limit = context_limits.get(model, 32768)
+        estimated_prompt_tokens = self._estimate_tokens(prompt)
+        
+        # Reserve some tokens for the response
+        available_tokens = context_limit - estimated_prompt_tokens - 1000  # 1000 token buffer
+        
+        logger.debug(f"Context limit: {context_limit}, Estimated prompt tokens: {estimated_prompt_tokens}, Available tokens: {available_tokens}")
+        
+        if available_tokens <= 0:
+            logger.warning(f"Prompt too large for model {model}. Estimated tokens: {estimated_prompt_tokens}, Context limit: {context_limit}")
+            return 1000  # Minimum response size
+        
+        return min(available_tokens, 4000)  # Cap at 4000 tokens
+    
+    def call_api(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.1) -> Optional[Dict[str, Any]]:
+        """Make API call with retry logic and automatic model fallback."""
+        # Start with the primary model
+        current_model = self.model
+        self.tried_models = {current_model}
+        
+        # Track the current prompt (may be truncated)
+        current_prompt = prompt
+        
+        while True:
+            for attempt in range(self.retry_attempts):
+                try:
+                    logger.debug(f"Making API call with model: {current_model} (attempt {attempt + 1})")
+                    
+                    # Truncate prompt if needed for this model
+                    truncated_prompt = self._truncate_prompt(current_prompt, current_model)
+                    
+                    # Adjust max_tokens based on model and prompt size
+                    adjusted_max_tokens = self._adjust_max_tokens(truncated_prompt, current_model)
+                    
+                    payload = {
+                        "model": current_model,
+                        "messages": [{"role": "user", "content": truncated_prompt}],
+                        "max_tokens": adjusted_max_tokens,
+                        "temperature": temperature
+                    }
+                    
+                    headers = Config.get_api_headers()
+                    
+                    logger.debug(f"Making API call to {self.api_url}")
+                    logger.debug(f"Model: {current_model}")
+                    logger.debug(f"Max tokens: {adjusted_max_tokens} (adjusted from {max_tokens})")
+                    logger.debug(f"Temperature: {temperature}")
+                    logger.debug(f"Prompt length: {len(truncated_prompt)} characters (original: {len(prompt)})")
+                    logger.debug(f"Prompt preview: {truncated_prompt[:200]}...")
+                    
+                    # Make the API call
+                    response = requests.post(
+                        self.api_url,
+                        headers=headers,
+                        json=payload,
+                        timeout=self.timeout
+                    )
+                    
+                    if response.status_code == 200:
+                        logger.debug(f"Received response with status code: {response.status_code}")
+                        response_data = response.json()
+                        logger.debug(f"Raw API JSON response keys: {list(response_data.keys())}")
+                        logger.debug(f"Raw API response preview: {str(response_data)[:500]}...")
+                        return response_data
+                    
+                    elif response.status_code == 429:
+                        logger.warning(f"Rate limit hit on attempt {attempt + 1}. Response: {response.text}")
+                        if attempt < self.retry_attempts - 1:
+                            time.sleep(self.retry_delay)
+                            continue
+                        else:
+                            logger.error("All retry attempts failed due to rate limiting")
+                            return None
+                    
+                    else:
+                        response_text = response.text
+                        logger.error(f"API call failed with status {response.status_code}. Response: {response_text}")
+                        
+                        # Check if this is a token limit error
+                        if self._is_token_limit_error(response_text):
+                            logger.warning(f"Token limit exceeded for model {current_model}")
+                            
+                            # Try next fallback model
+                            next_model = self._get_next_fallback_model()
+                            if next_model:
+                                logger.info(f"Switching to fallback model: {next_model}")
+                                current_model = next_model
+                                self.tried_models.add(current_model)
+                                # Use the truncated prompt for the next model
+                                current_prompt = truncated_prompt
+                                break  # Break out of retry loop and try new model
+                            else:
+                                logger.error("All available models have been tried. Cannot process this document.")
+                                return None
+                        else:
+                            # Not a token limit error, don't retry
+                            logger.error(f"Non-token-limit error, not retrying: {response_text}")
+                            return None
+                            
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"Request failed: {e}")
                     if attempt < self.retry_attempts - 1:
                         time.sleep(self.retry_delay)
                         continue
                     else:
-                        logger.error("All retry attempts failed due to rate limiting")
                         return None
-                
-                elif response.status_code != 200:
-                    logger.error(f"API call failed with status {response.status_code}. Response: {response.text}")
-                    return None
-                
-                # Success - parse response
-                data = response.json()
-                logger.debug(f"Raw API JSON response keys: {list(data.keys()) if isinstance(data, dict) else 'not a dict'}")
-                logger.debug(f"Raw API response preview: {str(data)[:500]}...")
-                return data
-                
-            except requests.exceptions.ConnectionError as e:
-                logger.error(f"Connection error on attempt {attempt + 1}: {e}")
-                if attempt < self.retry_attempts - 1:
-                    time.sleep(self.retry_delay)
-                    continue
-                else:
-                    logger.error("All retry attempts failed due to connection errors")
-                    return None
-                    
-            except requests.exceptions.ReadTimeout as e:
-                logger.error(f"Read timeout on attempt {attempt + 1}: {e}")
-                if attempt < self.retry_attempts - 1:
-                    time.sleep(self.retry_delay)
-                    continue
-                else:
-                    logger.error("All retry attempts failed due to timeouts")
-                    return None
-                    
-            except Exception as e:
-                logger.error(f"Unexpected error on attempt {attempt + 1}: {e}")
-                if attempt < self.retry_attempts - 1:
-                    time.sleep(self.retry_delay)
-                    continue
-                else:
-                    logger.error("All retry attempts failed due to unexpected errors")
-                    return None
-        
-        return None
+                except Exception as e:
+                    logger.error(f"Unexpected error: {e}")
+                    if attempt < self.retry_attempts - 1:
+                        time.sleep(self.retry_delay)
+                        continue
+                    else:
+                        return None
+            
+            # If we get here, all retry attempts for current model failed
+            # Try next fallback model if available
+            next_model = self._get_next_fallback_model()
+            if next_model:
+                logger.info(f"All retry attempts failed for {current_model}, switching to fallback model: {next_model}")
+                current_model = next_model
+                self.tried_models.add(current_model)
+                # Use the truncated prompt for the next model
+                current_prompt = truncated_prompt
+                continue
+            else:
+                logger.error("All available models have been tried and failed.")
+                return None
     
     def extract_content(self, response_data: Optional[Dict[str, Any]]) -> Optional[str]:
         """Extract content from API response with multiple fallback strategies."""

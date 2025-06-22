@@ -158,14 +158,57 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
         cleaned_text = re.sub(r'<think>.*?</think>', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
         cleaned_text = re.sub(r'<thinking>.*?</thinking>', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
         cleaned_text = re.sub(r'<reasoning>.*?</reasoning>', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
-        # Remove markdown code blocks
-        cleaned_text = re.sub(r'```.*?```', '', cleaned_text, flags=re.DOTALL)
         # Remove any remaining XML-like tags
         cleaned_text = re.sub(r'<[^>]+>', '', cleaned_text)
         logger.debug(f"After cleaning, text length: {len(cleaned_text)}")
         logger.debug(f"Cleaned text preview: {cleaned_text[:500]}...")
     
-    # Strategy 2: Look for the LAST complete JSON object in the text (most likely the actual output)
+    # Strategy 2: Extract JSON from markdown code blocks first
+    if isinstance(cleaned_text, str):
+        # Look for JSON in markdown code blocks
+        code_block_patterns = [
+            r'```json\s*(\{.*?\})\s*```',  # ```json { ... } ```
+            r'```json\s*(\[.*?\])\s*```',  # ```json [ ... ] ```
+            r'```\s*(\{.*?\})\s*```',      # ``` { ... } ```
+            r'```\s*(\[.*?\])\s*```',      # ``` [ ... ] ```
+        ]
+        
+        for i, pattern in enumerate(code_block_patterns, 1):
+            logger.debug(f"Strategy 2.{i}: Looking for JSON in code blocks with pattern: {pattern}")
+            matches = list(re.finditer(pattern, cleaned_text, re.DOTALL | re.IGNORECASE))
+            logger.debug(f"Found {len(matches)} code block matches with pattern {i}")
+            
+            for match in matches:
+                json_str = match.group(1)
+                logger.debug(f"  Extracted from code block: {repr(json_str)}")
+                try:
+                    # Clean the JSON string
+                    cleaned = clean_json_string(json_str)
+                    logger.debug(f"  Cleaned: {repr(cleaned)}")
+                    
+                    if cleaned:
+                        parsed = json.loads(cleaned)
+                        logger.debug(f"  Parsed successfully: {type(parsed)}")
+                        
+                        # Validate that this is a complete object with expected fields
+                        if isinstance(parsed, dict):
+                            # Check if this looks like a complete metadata object
+                            expected_fields = ['district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json']
+                            found_fields = [field for field in expected_fields if field in parsed]
+                            if len(found_fields) >= 3:  # At least 3 expected fields present
+                                logger.debug(f"  ✅ Valid complete JSON object found in code block with {len(found_fields)} expected fields")
+                                return parsed
+                            else:
+                                logger.debug(f"  ❌ JSON object missing expected fields. Found: {found_fields}")
+                        else:
+                            logger.debug(f"  ❌ Parsed result is not a dict: {type(parsed)}")
+                    else:
+                        logger.debug(f"  ❌ JSON cleaning failed for: {repr(json_str)}")
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.debug(f"  ❌ JSON decode error: {e}")
+                    continue
+    
+    # Strategy 3: Look for the LAST complete JSON object in the text (most likely the actual output)
     if isinstance(cleaned_text, str):
         # Use a more robust pattern to find complete JSON objects
         json_patterns = [
@@ -176,7 +219,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
         ]
         
         for i, pattern in enumerate(json_patterns, 1):
-            logger.debug(f"Strategy 2.{i}: Trying pattern for complete JSON objects")
+            logger.debug(f"Strategy 3.{i}: Trying pattern for complete JSON objects")
             matches = list(re.finditer(pattern, cleaned_text, re.DOTALL | re.IGNORECASE))
             logger.debug(f"Found {len(matches)} matches with pattern {i}")
             
@@ -211,7 +254,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
                     logger.debug(f"  ❌ JSON decode error: {e}")
                     continue
     
-    # Strategy 3: Look for JSON arrays (for tables that expect arrays)
+    # Strategy 4: Look for JSON arrays (for tables that expect arrays)
     if isinstance(cleaned_text, str):
         # Look for complete JSON arrays
         array_pattern = r'\[\s*(?:[^[\]]*|\[[^[\]]*\])*\s*\]'
@@ -230,15 +273,11 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
                     logger.debug(f"Failed to parse array JSON: {e}")
                     continue
     
-    # Strategy 4: Try to extract JSON after common markers
+    # Strategy 5: Try to extract JSON after common markers
     if isinstance(cleaned_text, str):
         json_markers = [
             r'JSON Output:\s*(\{.*?\})',
             r'JSON Output:\s*(\[.*?\])',
-            r'```json\s*(\{.*?\})\s*```',
-            r'```json\s*(\[.*?\])\s*```',
-            r'```\s*(\{.*?\})\s*```',
-            r'```\s*(\[.*?\])\s*```',
             r'Output:\s*(\{.*?\})',
             r'Output:\s*(\[.*?\])',
             r'Result:\s*(\{.*?\})',
@@ -258,7 +297,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
                     logger.debug(f"Failed to parse JSON from marker: {e}")
                     continue
     
-    # Strategy 5: Look for the last occurrence of a JSON-like structure in the text
+    # Strategy 6: Look for the last occurrence of a JSON-like structure in the text
     if isinstance(cleaned_text, str):
         # Split the text and look for JSON in the last few lines
         lines = cleaned_text.split('\n')
@@ -274,7 +313,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
                 except json.JSONDecodeError:
                     continue
     
-    # Strategy 6: Handle truncated responses by looking for the last complete JSON object
+    # Strategy 7: Handle truncated responses by looking for the last complete JSON object
     if isinstance(cleaned_text, str):
         # Look for the last complete JSON object that might be truncated
         # This handles cases where the AI response was cut off mid-JSON
@@ -316,7 +355,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
             except json.JSONDecodeError:
                 pass
     
-    # Strategy 7: Try to parse the entire cleaned text as JSON
+    # Strategy 8: Try to parse the entire cleaned text as JSON
     if isinstance(cleaned_text, str):
         try:
             cleaned = clean_json_string(cleaned_text.strip())

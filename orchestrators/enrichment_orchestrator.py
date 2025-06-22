@@ -45,11 +45,17 @@ class EnrichmentOrchestrator:
             self.db_manager.execute_query(log_schema)
         
         # Get cases that haven't been successfully enriched for this table
+        # Use a subquery to get the most recent status for each case
         query = """
             SELECT c.id, c.title, c.body, c.url
             FROM cases c
-            LEFT JOIN enrichment_activity_log eal ON c.id = eal.case_id AND eal.table_name = ?
-            WHERE eal.status IS NULL OR eal.status != 'success'
+            LEFT JOIN (
+                SELECT case_id, table_name, status, timestamp,
+                       ROW_NUMBER() OVER (PARTITION BY case_id, table_name ORDER BY timestamp DESC) as rn
+                FROM enrichment_activity_log
+                WHERE table_name = ?
+            ) latest_status ON c.id = latest_status.case_id AND latest_status.rn = 1
+            WHERE latest_status.status IS NULL OR latest_status.status != 'success'
             ORDER BY c.created DESC
             LIMIT ?
         """
