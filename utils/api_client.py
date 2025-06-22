@@ -25,14 +25,15 @@ class VeniceAPIClient:
         if not Config.VENICE_API_KEY:
             raise ValueError("VENICE_API_KEY is not set")
         
-        # Fallback models ordered by context size (largest first) and cost-effectiveness
+        # Fallback models ordered by context size (largest first) and reasoning capability
+        # Prioritize reasoning models (supportsReasoning: true) for better JSON extraction
         self.fallback_models = [
-            "mistral-31-24b",  # 131,072 tokens - Venice Medium ($0.5/$2) - good balance
-            "llama-3.2-3b",    # 131,072 tokens - Llama 3.2 3B ($0.15/$0.6) - cheapest 131k model
-            "qwen3-235b",      # 131,072 tokens - Venice Large ($1.5/$6) - most capable but expensive
-            "deepseek-r1-671b", # 131,072 tokens - DeepSeek R1 671B ($3.5/$14) - most expensive
-            "llama-3.3-70b",   # 65,536 tokens - Llama 3.3 70B ($0.7/$2.8)
-            "llama-3.1-405b",  # 65,536 tokens - Llama 3.1 405B ($1.5/$6)
+            "qwen3-235b",      # 131,072 tokens - Venice Large ($1.5/$6) - reasoning ✅
+            "deepseek-r1-671b", # 131,072 tokens - DeepSeek R1 671B ($3.5/$14) - reasoning ✅
+            "llama-3.2-3b",    # 131,072 tokens - Llama 3.2 3B ($0.15/$0.6) - reasoning ❌ (last resort)
+            "mistral-31-24b",  # 131,072 tokens - Venice Medium ($0.5/$2) - reasoning ❌ (last resort)
+            "llama-3.3-70b",   # 65,536 tokens - Llama 3.3 70B ($0.7/$2.8) - reasoning ❌ (last resort)
+            "llama-3.1-405b",  # 65,536 tokens - Llama 3.1 405B ($1.5/$6) - reasoning ❌ (last resort)
         ]
         
         # Skip availability check in production - use all models and let the API tell us which ones work
