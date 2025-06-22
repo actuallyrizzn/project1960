@@ -168,40 +168,42 @@ line-spanning text between `{...}` or `[...]`.
         except json.JSONDecodeError:
             logger.warning(f"Failed to decode JSON from markdown block: {potential_json[:200]}...")
 
-    # Strategy 2: Greedily find the largest JSON-like object or array.
-    # This handles cases where JSON is not in a markdown block.
-    # It finds the first '{' or '[' and the last '}' or ']'
-    start_brace = raw_text.find('{')
-    start_bracket = raw_text.find('[')
+    # Strategy 2: Find the last complete JSON object or array in the text.
+    # This is more robust than a simple greedy search, as it respects nesting.
+    json_pattern = re.compile(
+        r"""
+        (
+            \{
+                [^{}]*
+                (?:
+                    \{ [^{}]* \}
+                    [^{}]*
+                )*
+            \}
+            |
+            \[
+                [^[\]]*
+                (?:
+                    \[ [^[]]* \]
+                    [^[\]]*
+                )*
+            \]
+        )
+        """, re.VERBOSE
+    )
 
-    # Determine the starting point of the potential JSON
-    if start_brace == -1:
-        start = start_bracket
-    elif start_bracket == -1:
-        start = start_brace
-    else:
-        start = min(start_brace, start_bracket)
+    matches = json_pattern.findall(raw_text)
 
-    if start == -1:
-        logger.warning("Could not find a starting '{' or '[' in the text.")
+    if not matches:
+        logger.warning("No complete JSON object or array found in the text.")
         return None
 
-    # Determine the corresponding end point
-    if raw_text[start] == '{':
-        end = raw_text.rfind('}')
-    else:
-        end = raw_text.rfind(']')
-
-    if end == -1:
-        logger.warning("Could not find a matching closing brace/bracket.")
-        return None
-
-    potential_json = raw_text[start:end + 1]
+    # The last match is the most likely candidate for the final, correct output.
+    last_match = matches[-1]
+    logger.debug(f"Found potential JSON in last match: {last_match[:200]}...")
 
     try:
-        # Attempt to parse the extracted string
-        return json.loads(potential_json)
+        return json.loads(last_match)
     except json.JSONDecodeError as e:
-        logger.error(f"Final JSON parsing attempt failed: {e}")
-        logger.debug(f"Failed to parse content: {potential_json[:500]}...")
-        return None 
+        logger.error(f"Failed to decode the last found JSON object/array: {e}")
+        return None
