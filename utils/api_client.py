@@ -35,9 +35,9 @@ class VeniceAPIClient:
             "llama-3.1-405b",  # 65,536 tokens
         ]
         
-        # Check which models are actually available
-        self.available_fallback_models = self._get_available_fallback_models()
-        logger.info(f"Available fallback models: {self.available_fallback_models}")
+        # Skip availability check in production - use all models and let the API tell us which ones work
+        self.available_fallback_models = self.fallback_models
+        logger.info(f"Using all fallback models: {self.available_fallback_models}")
         
         # Track which models have been tried
         self.tried_models = set()
@@ -234,9 +234,26 @@ class VeniceAPIClient:
                                 logger.error("All available models have been tried. Cannot process this document.")
                                 return None
                         else:
-                            # Not a token limit error, don't retry
-                            logger.error(f"Non-token-limit error, not retrying: {response_text}")
-                            return None
+                            # Check if this is a model not found error
+                            if "model" in response_text.lower() and ("not found" in response_text.lower() or "not available" in response_text.lower()):
+                                logger.warning(f"Model {current_model} is not available: {response_text}")
+                                
+                                # Try next fallback model
+                                next_model = self._get_next_fallback_model()
+                                if next_model:
+                                    logger.info(f"Switching to fallback model: {next_model}")
+                                    current_model = next_model
+                                    self.tried_models.add(current_model)
+                                    # Use the truncated prompt for the next model
+                                    current_prompt = truncated_prompt
+                                    break  # Break out of retry loop and try new model
+                                else:
+                                    logger.error("All available models have been tried. Cannot process this document.")
+                                    return None
+                            else:
+                                # Not a token limit or model availability error, don't retry
+                                logger.error(f"Non-token-limit error, not retrying: {response_text}")
+                                return None
                             
                 except requests.exceptions.RequestException as e:
                     logger.error(f"Request failed: {e}")
