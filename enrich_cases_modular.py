@@ -66,13 +66,19 @@ def main():
     parser.add_argument('--table', choices=[
         'case_metadata', 'participants', 'case_agencies', 'charges', 
         'financial_actions', 'victims', 'quotes', 'themes'
-    ], required=True, help='Table to enrich')
-    parser.add_argument('--limit', type=int, default=100, help='Maximum number of cases to process')
-    parser.add_argument('--all', action='store_true', help='Enrich all tables')
+    ], required=False, help='Table to enrich. Required if --all is not specified.')
+    parser.add_argument('--limit', type=int, default=100, help='Maximum number of cases to process per table')
+    parser.add_argument('--all', action='store_true', help='Enrich all tables sequentially.')
     parser.add_argument('--no-lock', action='store_true', help='Skip lock file (for testing)')
     parser.add_argument('--dry-run', action='store_true', help='Run in dry-run mode (no API calls)')
     
     args = parser.parse_args()
+
+    # Validate arguments
+    if args.all and args.table:
+        parser.error("Argument --table cannot be used with --all.")
+    if not args.all and not args.table:
+        parser.error("Argument --table is required when --all is not specified.")
     
     # Lock file handling
     lock_file_path = 'enrichment.lock'

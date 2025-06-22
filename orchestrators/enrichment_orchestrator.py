@@ -238,52 +238,43 @@ class EnrichmentOrchestrator:
     
     def run_all_enrichment(self, limit: int = 100, dry_run: bool = False) -> Dict[str, Any]:
         """
-        Run enrichment for all tables.
+        Run enrichment for all tables sequentially.
         
         Args:
             limit: Maximum number of cases to process per table
             dry_run: If True, simulate the enrichment without making API calls
             
         Returns:
-            Dictionary with results summary for all tables
+            Dictionary with a comprehensive results summary for all tables.
         """
-        logger.info("Starting enrichment process for all tables")
-        if dry_run:
-            logger.info("DRY RUN MODE: No actual API calls or database changes will be made")
-        
-        # Setup tables
-        if not dry_run:
-            self.setup_enrichment_tables()
-        
-        # Get all table names (excluding the log table)
-        table_names = [name for name in get_all_schemas().keys() if name != 'enrichment_activity_log']
-        
-        results = {}
-        total_successful = 0
-        total_failed = 0
-        total_cases = 0
-        
-        for table_name in table_names:
-            logger.info(f"Processing table: {table_name}")
-            result = self.run_enrichment(table_name, limit, dry_run=dry_run)
-            results[table_name] = result
+        all_tables = list(get_all_schemas().keys())
+        # We don't enrich the activity log itself
+        if 'enrichment_activity_log' in all_tables:
+            all_tables.remove('enrichment_activity_log')
             
-            total_successful += result['successful']
-            total_failed += result['failed']
-            total_cases += result['total_cases']
-        
-        overall_success_rate = (total_successful / total_cases * 100) if total_cases > 0 else 0
-        
-        overall_result = {
-            'total_tables': len(table_names),
-            'total_cases': total_cases,
-            'total_successful': total_successful,
-            'total_failed': total_failed,
-            'overall_success_rate': overall_success_rate,
-            'table_results': results,
+        logger.info(f"Starting enrichment for all tables: {all_tables}")
+
+        overall_results = {
+            'total_tables': 0,
+            'total_cases': 0,
+            'total_successful': 0,
+            'total_failed': 0,
+            'table_results': {},
             'dry_run': dry_run
         }
+
+        for table_name in all_tables:
+            logger.info(f"--- Processing table: {table_name} ---")
+            result = self.run_enrichment(table_name, limit=limit, dry_run=dry_run)
+            
+            overall_results['table_results'][table_name] = result
+            overall_results['total_tables'] += 1
+            overall_results['total_cases'] += result['total_cases']
+            overall_results['total_successful'] += result['successful']
+            overall_results['total_failed'] += result['failed']
+
+        total_processed = overall_results['total_successful'] + overall_results['total_failed']
+        overall_results['overall_success_rate'] = (overall_results['total_successful'] / total_processed * 100) if total_processed > 0 else 0
         
-        logger.info(f"All enrichment complete. Overall success rate: {overall_success_rate:.1f}%")
-        
-        return overall_result 
+        logger.info("--- Completed enrichment for all tables ---")
+        return overall_results 
