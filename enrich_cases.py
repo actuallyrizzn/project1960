@@ -417,61 +417,137 @@ def clean_and_parse_json(raw_text):
     if raw_text is None or (isinstance(raw_text, str) and raw_text.strip() == ''):
         logger.debug("Input to clean_and_parse_json is None or empty string.")
         return None
-    try:
-        logger.debug(f"Attempting to clean and parse text: {raw_text[:200]}...")
-    except Exception:
-        logger.debug("Input to clean_and_parse_json is not a string.")
-        return None
-    # Strategy 1: Look for all JSON objects and return the last one
-    matches = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', raw_text, re.DOTALL))
-    if matches:
-        for match in reversed(matches):  # Try from last to first
-            json_str = match.group(0)
-            try:
-                return json.loads(json_str)
-            except json.JSONDecodeError:
-                continue
-    # Strategy 2: Try to extract JSON after common markers
-    json_markers = [r'```json\s*(\{.*?\})\s*```', r'```\s*(\{.*?\})\s*```', r'JSON Output:\s*(\{.*?\})']
-    for pattern in json_markers:
-        match = re.search(pattern, raw_text, re.DOTALL)
-        if match:
-            json_str = match.group(1)
-            try:
-                return json.loads(json_str)
-            except json.JSONDecodeError:
-                continue
-    # Strategy 3: Try to clean and parse the entire text as JSON
+    
+    logger.debug(f"Raw text length: {len(raw_text) if isinstance(raw_text, str) else 'not a string'}")
+    logger.debug(f"Raw text preview: {raw_text[:500] if isinstance(raw_text, str) else 'not a string'}...")
+    
+    # Strategy 1: Remove think tags and other common AI artifacts
     cleaned_text = raw_text
-    cleaned_text = re.sub(r'<think>.*?</think>', '', cleaned_text, flags=re.DOTALL)
-    cleaned_text = re.sub(r'```.*?```', '', cleaned_text, flags=re.DOTALL)
-    matches = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned_text, re.DOTALL))
-    if matches:
-        for match in reversed(matches):
-            json_str = match.group(0)
-            try:
-                return json.loads(json_str)
-            except json.JSONDecodeError:
-                continue
+    if isinstance(cleaned_text, str):
+        # Remove think tags more aggressively
+        cleaned_text = re.sub(r'<think>.*?</think>', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
+        cleaned_text = re.sub(r'<thinking>.*?</thinking>', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
+        cleaned_text = re.sub(r'<reasoning>.*?</reasoning>', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
+        # Remove markdown code blocks
+        cleaned_text = re.sub(r'```.*?```', '', cleaned_text, flags=re.DOTALL)
+        # Remove any remaining XML-like tags
+        cleaned_text = re.sub(r'<[^>]+>', '', cleaned_text)
+        logger.debug(f"After cleaning, text length: {len(cleaned_text)}")
+        logger.debug(f"Cleaned text preview: {cleaned_text[:500]}...")
+    
+    # Strategy 2: Look for JSON objects and arrays
+    if isinstance(cleaned_text, str):
+        # Try to find JSON arrays first
+        array_matches = list(re.finditer(r'\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]', cleaned_text, re.DOTALL))
+        if array_matches:
+            for match in reversed(array_matches):
+                json_str = match.group(0)
+                try:
+                    parsed = json.loads(json_str)
+                    logger.debug(f"Successfully parsed JSON array with {len(parsed) if isinstance(parsed, list) else 'unknown'} items")
+                    return parsed
+                except json.JSONDecodeError as e:
+                    logger.debug(f"Failed to parse array JSON: {e}")
+                    continue
+        
+        # Try to find JSON objects
+        object_matches = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned_text, re.DOTALL))
+        if object_matches:
+            for match in reversed(object_matches):
+                json_str = match.group(0)
+                try:
+                    parsed = json.loads(json_str)
+                    logger.debug(f"Successfully parsed JSON object with keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'not a dict'}")
+                    return parsed
+                except json.JSONDecodeError as e:
+                    logger.debug(f"Failed to parse object JSON: {e}")
+                    continue
+    
+    # Strategy 3: Try to extract JSON after common markers
+    if isinstance(cleaned_text, str):
+        json_markers = [
+            r'JSON Output:\s*(\{.*?\})',
+            r'JSON Output:\s*(\[.*?\])',
+            r'```json\s*(\{.*?\})\s*```',
+            r'```json\s*(\[.*?\])\s*```',
+            r'```\s*(\{.*?\})\s*```',
+            r'```\s*(\[.*?\])\s*```'
+        ]
+        for pattern in json_markers:
+            match = re.search(pattern, cleaned_text, re.DOTALL)
+            if match:
+                json_str = match.group(1)
+                try:
+                    parsed = json.loads(json_str)
+                    logger.debug(f"Successfully parsed JSON from marker pattern: {type(parsed)}")
+                    return parsed
+                except json.JSONDecodeError as e:
+                    logger.debug(f"Failed to parse JSON from marker: {e}")
+                    continue
+    
+    # Strategy 4: Try to parse the entire cleaned text as JSON
+    if isinstance(cleaned_text, str):
+        try:
+            parsed = json.loads(cleaned_text.strip())
+            logger.debug(f"Successfully parsed entire cleaned text as JSON: {type(parsed)}")
+            return parsed
+        except json.JSONDecodeError as e:
+            logger.debug(f"Failed to parse entire text as JSON: {e}")
+    
     logger.warning("All JSON extraction strategies failed.")
-    logger.debug(f"Raw text that couldn't be parsed: {raw_text[:500]}...")
+    logger.debug(f"Final cleaned text that couldn't be parsed: {cleaned_text[:1000] if isinstance(cleaned_text, str) else 'not a string'}...")
     return None
+
+def normalize_data_for_table(data, table_name):
+    """Normalize data to expected format for each table."""
+    if data is None:
+        return None
+    
+    # case_metadata expects a single object
+    if table_name == 'case_metadata':
+        if isinstance(data, list) and len(data) > 0:
+            logger.warning(f"case_metadata expects a single object, got a list. Using first item.")
+            return data[0]
+        elif isinstance(data, dict):
+            return data
+        else:
+            logger.error(f"case_metadata expects a dict, got {type(data)}")
+            return None
+    
+    # All other tables expect lists
+    if isinstance(data, list):
+        return data
+    elif isinstance(data, dict):
+        logger.warning(f"{table_name} expects a list, got a dict. Wrapping in list.")
+        return [data]
+    else:
+        logger.error(f"{table_name} expects a list, got {type(data)}")
+        return None
 
 def store_extracted_data(case_id, table_name, data, url):
     if not data:
         logger.warning(f"No data provided for case {case_id}, skipping storage.")
         return
     
+    # Normalize data to expected format
+    normalized_data = normalize_data_for_table(data, table_name)
+    if normalized_data is None:
+        logger.error(f"Failed to normalize data for table {table_name}")
+        return
+    
+    logger.debug(f"Storing {len(normalized_data) if isinstance(normalized_data, list) else 1} items for table {table_name}")
+    
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
     
     try:
         if table_name == 'case_metadata':
-            data['press_release_url'] = url
+            data_obj = normalized_data
+            data_obj['press_release_url'] = url
             columns = ['case_id', 'district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json', 'press_release_url', 'extras_json']
             values = [case_id]
             for col in columns[1:]:
-                value = data.get(col)
+                value = data_obj.get(col)
                 if col in ['statutes_json', 'timeline_json', 'extras_json'] and value is not None:
                     values.append(json.dumps(value))
                 else:
@@ -481,95 +557,74 @@ def store_extracted_data(case_id, table_name, data, url):
             logger.info(f"Successfully stored metadata for case {case_id}.")
             
         elif table_name == 'participants':
-            if isinstance(data, list):
-                for participant in data:
-                    columns = ['case_id', 'name', 'role', 'title', 'organization', 'location', 'age', 'nationality', 'status']
-                    values = [case_id]
-                    for col in columns[1:]:
-                        values.append(participant.get(col))
-                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-                    cursor.execute(query, tuple(values))
-                logger.info(f"Successfully stored {len(data)} participants for case {case_id}.")
-            else:
-                logger.warning(f"Expected list for participants data, got {type(data)}")
+            for participant in normalized_data:
+                columns = ['case_id', 'name', 'role', 'title', 'organization', 'location', 'age', 'nationality', 'status']
+                values = [case_id]
+                for col in columns[1:]:
+                    values.append(participant.get(col))
+                query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                cursor.execute(query, tuple(values))
+            logger.info(f"Successfully stored {len(normalized_data)} participants for case {case_id}.")
                 
         elif table_name == 'case_agencies':
-            if isinstance(data, list):
-                for agency in data:
-                    columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
-                    values = [case_id]
-                    for col in columns[1:]:
-                        values.append(agency.get(col))
-                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-                    cursor.execute(query, tuple(values))
-                logger.info(f"Successfully stored {len(data)} agencies for case {case_id}.")
-            else:
-                logger.warning(f"Expected list for case_agencies data, got {type(data)}")
+            for agency in normalized_data:
+                columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
+                values = [case_id]
+                for col in columns[1:]:
+                    values.append(agency.get(col))
+                query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                cursor.execute(query, tuple(values))
+            logger.info(f"Successfully stored {len(normalized_data)} agencies for case {case_id}.")
                 
         elif table_name == 'charges':
-            if isinstance(data, list):
-                for charge in data:
-                    columns = ['case_id', 'charge_description', 'statute', 'severity', 'max_penalty', 'fine_amount', 'defendant', 'status']
-                    values = [case_id]
-                    for col in columns[1:]:
-                        values.append(charge.get(col))
-                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-                    cursor.execute(query, tuple(values))
-                logger.info(f"Successfully stored {len(data)} charges for case {case_id}.")
-            else:
-                logger.warning(f"Expected list for charges data, got {type(data)}")
+            for charge in normalized_data:
+                columns = ['case_id', 'charge_description', 'statute', 'severity', 'max_penalty', 'fine_amount', 'defendant', 'status']
+                values = [case_id]
+                for col in columns[1:]:
+                    values.append(charge.get(col))
+                query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                cursor.execute(query, tuple(values))
+            logger.info(f"Successfully stored {len(normalized_data)} charges for case {case_id}.")
                 
         elif table_name == 'financial_actions':
-            if isinstance(data, list):
-                for action in data:
-                    columns = ['case_id', 'action_type', 'amount', 'currency', 'description', 'asset_type', 'defendant', 'status']
-                    values = [case_id]
-                    for col in columns[1:]:
-                        values.append(action.get(col))
-                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-                    cursor.execute(query, tuple(values))
-                logger.info(f"Successfully stored {len(data)} financial actions for case {case_id}.")
-            else:
-                logger.warning(f"Expected list for financial_actions data, got {type(data)}")
+            for action in normalized_data:
+                columns = ['case_id', 'action_type', 'amount', 'currency', 'description', 'asset_type', 'defendant', 'status']
+                values = [case_id]
+                for col in columns[1:]:
+                    values.append(action.get(col))
+                query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                cursor.execute(query, tuple(values))
+            logger.info(f"Successfully stored {len(normalized_data)} financial actions for case {case_id}.")
                 
         elif table_name == 'victims':
-            if isinstance(data, list):
-                for victim in data:
-                    columns = ['case_id', 'victim_type', 'description', 'number_affected', 'loss_amount', 'geographic_scope', 'vulnerability_factors', 'impact_description']
-                    values = [case_id]
-                    for col in columns[1:]:
-                        values.append(victim.get(col))
-                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-                    cursor.execute(query, tuple(values))
-                logger.info(f"Successfully stored {len(data)} victims for case {case_id}.")
-            else:
-                logger.warning(f"Expected list for victims data, got {type(data)}")
+            for victim in normalized_data:
+                columns = ['case_id', 'victim_type', 'description', 'number_affected', 'loss_amount', 'geographic_scope', 'vulnerability_factors', 'impact_description']
+                values = [case_id]
+                for col in columns[1:]:
+                    values.append(victim.get(col))
+                query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                cursor.execute(query, tuple(values))
+            logger.info(f"Successfully stored {len(normalized_data)} victims for case {case_id}.")
                 
         elif table_name == 'quotes':
-            if isinstance(data, list):
-                for quote in data:
-                    columns = ['case_id', 'quote_text', 'speaker_name', 'speaker_title', 'speaker_organization', 'quote_type', 'context', 'significance']
-                    values = [case_id]
-                    for col in columns[1:]:
-                        values.append(quote.get(col))
-                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-                    cursor.execute(query, tuple(values))
-                logger.info(f"Successfully stored {len(data)} quotes for case {case_id}.")
-            else:
-                logger.warning(f"Expected list for quotes data, got {type(data)}")
+            for quote in normalized_data:
+                columns = ['case_id', 'quote_text', 'speaker_name', 'speaker_title', 'speaker_organization', 'quote_type', 'context', 'significance']
+                values = [case_id]
+                for col in columns[1:]:
+                    values.append(quote.get(col))
+                query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                cursor.execute(query, tuple(values))
+            logger.info(f"Successfully stored {len(normalized_data)} quotes for case {case_id}.")
                 
         elif table_name == 'themes':
-            if isinstance(data, list):
-                for theme in data:
-                    columns = ['case_id', 'theme_name', 'description', 'significance', 'related_statutes', 'geographic_scope', 'temporal_aspects', 'stakeholders']
-                    values = [case_id]
-                    for col in columns[1:]:
-                        values.append(theme.get(col))
-                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-                    cursor.execute(query, tuple(values))
-                logger.info(f"Successfully stored {len(data)} themes for case {case_id}.")
-            else:
-                logger.warning(f"Expected list for themes data, got {type(data)}")
+            for theme in normalized_data:
+                columns = ['case_id', 'theme_name', 'description', 'significance', 'related_statutes', 'geographic_scope', 'temporal_aspects', 'stakeholders']
+                values = [case_id]
+                for col in columns[1:]:
+                    values.append(theme.get(col))
+                query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                cursor.execute(query, tuple(values))
+            logger.info(f"Successfully stored {len(normalized_data)} themes for case {case_id}.")
                 
         else:
             logger.error(f"Storage logic for table '{table_name}' is not yet implemented.")
