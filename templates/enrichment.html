@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Enrichment Dashboard - DOJ Cases Explorer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('index') }}">
+                        <i class="bi bi-house me-1"></i>Dashboard
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Enrichment Progress</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h1 class="h3 fw-bold text-primary mb-3">
+                    <i class="bi bi-database me-2"></i>
+                    Data Enrichment Progress
+                </h1>
+                <p class="text-muted">
+                    This dashboard shows the progress of AI-powered data extraction and enrichment across all DOJ cases.
+                    Each table represents a different aspect of case analysis that has been extracted from the press releases.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-primary">{{ stats.total_cases }}</h3>
+                <p class="text-muted mb-0">Total Cases</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-success">{{ stats.mentions_1960 }}</h3>
+                <p class="text-muted mb-0">Mentions 18 USC 1960</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-info">{{ stats.mentions_crypto }}</h3>
+                <p class="text-muted mb-0">Mentions Cryptocurrency</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-warning">{{ stats.verified_yes }}</h3>
+                <p class="text-muted mb-0">Verified 1960 Violations</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enrichment Tables Progress -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-table me-2"></i>
+                    Enrichment Tables Progress
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Case Metadata -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Case Metadata
+                                    </h6>
+                                    <span class="badge bg-primary">{{ stats.enrichment.case_metadata }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Extracted case details including district office, U.S. Attorney, event type, penalties, and crypto assets.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.case_metadata / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-primary" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Participants -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-people me-2"></i>
+                                        Participants
+                                    </h6>
+                                    <span class="badge bg-success">{{ stats.enrichment.participants }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Identified individuals involved in cases including defendants, prosecutors, and other key figures.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.participants / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-success" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Agencies -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-building me-2"></i>
+                                        Law Enforcement Agencies
+                                    </h6>
+                                    <span class="badge bg-info">{{ stats.enrichment.case_agencies }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Federal, state, and local law enforcement agencies involved in investigations and prosecutions.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.case_agencies / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-info" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charges -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        Charges
+                                    </h6>
+                                    <span class="badge bg-danger">{{ stats.enrichment.charges }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Criminal charges filed, including statutes, severity levels, and maximum penalties.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.charges / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-danger" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Actions -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-cash-stack me-2"></i>
+                                        Financial Actions
+                                    </h6>
+                                    <span class="badge bg-warning">{{ stats.enrichment.financial_actions }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Forfeitures, fines, restitution, and other financial penalties or recoveries.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.financial_actions / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-warning" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Victims -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-heart-broken me-2"></i>
+                                        Victims
+                                    </h6>
+                                    <span class="badge bg-secondary">{{ stats.enrichment.victims }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Individuals, businesses, or entities harmed by the criminal activity.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.victims / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-secondary" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quotes -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-chat-quote me-2"></i>
+                                        Notable Quotes
+                                    </h6>
+                                    <span class="badge bg-dark">{{ stats.enrichment.quotes }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Key statements from prosecutors, law enforcement, and other officials.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.quotes / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-dark" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Themes -->
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-tags me-2"></i>
+                                        Themes
+                                    </h6>
+                                    <span class="badge bg-primary">{{ stats.enrichment.themes }}</span>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    Key themes and patterns identified in the case narratives.
+                                </p>
+                                <div class="progress" style="height: 6px;">
+                                    {% set percentage = (stats.enrichment.themes / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    <div class="progress-bar bg-primary" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enrichment Process Information -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    About the Enrichment Process
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>How It Works</h6>
+                        <ul class="small">
+                            <li>AI analyzes each DOJ press release using the Venice AI API</li>
+                            <li>Structured data is extracted into specialized tables</li>
+                            <li>Each enrichment pass focuses on specific data types</li>
+                            <li>Progress is tracked per table and per case</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Data Quality</h6>
+                        <ul class="small">
+                            <li>JSON parsing ensures data integrity</li>
+                            <li>Error handling prevents processing failures</li>
+                            <li>Dry-run mode available for testing</li>
+                            <li>Automated cron jobs run enrichment regularly</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

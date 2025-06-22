@@ -24,8 +24,73 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def get_enrichment_data(case_id):
+    """Get all enrichment data for a specific case."""
+    conn = get_db_connection()
+    enrichment = {}
+    
+    # Get case metadata
+    try:
+        metadata = conn.execute('SELECT * FROM case_metadata WHERE case_id = ?', (case_id,)).fetchone()
+        if metadata:
+            enrichment['metadata'] = dict(metadata)
+    except sqlite3.OperationalError:
+        enrichment['metadata'] = None
+    
+    # Get participants
+    try:
+        participants = conn.execute('SELECT * FROM participants WHERE case_id = ? ORDER BY participant_id', (case_id,)).fetchall()
+        enrichment['participants'] = [dict(p) for p in participants]
+    except sqlite3.OperationalError:
+        enrichment['participants'] = []
+    
+    # Get case agencies
+    try:
+        agencies = conn.execute('SELECT * FROM case_agencies WHERE case_id = ? ORDER BY agency_id', (case_id,)).fetchall()
+        enrichment['agencies'] = [dict(a) for a in agencies]
+    except sqlite3.OperationalError:
+        enrichment['agencies'] = []
+    
+    # Get charges
+    try:
+        charges = conn.execute('SELECT * FROM charges WHERE case_id = ? ORDER BY charge_id', (case_id,)).fetchall()
+        enrichment['charges'] = [dict(c) for c in charges]
+    except sqlite3.OperationalError:
+        enrichment['charges'] = []
+    
+    # Get financial actions
+    try:
+        financial_actions = conn.execute('SELECT * FROM financial_actions WHERE case_id = ? ORDER BY fin_id', (case_id,)).fetchall()
+        enrichment['financial_actions'] = [dict(f) for f in financial_actions]
+    except sqlite3.OperationalError:
+        enrichment['financial_actions'] = []
+    
+    # Get victims
+    try:
+        victims = conn.execute('SELECT * FROM victims WHERE case_id = ? ORDER BY victim_id', (case_id,)).fetchall()
+        enrichment['victims'] = [dict(v) for v in victims]
+    except sqlite3.OperationalError:
+        enrichment['victims'] = []
+    
+    # Get quotes
+    try:
+        quotes = conn.execute('SELECT * FROM quotes WHERE case_id = ? ORDER BY quote_id', (case_id,)).fetchall()
+        enrichment['quotes'] = [dict(q) for q in quotes]
+    except sqlite3.OperationalError:
+        enrichment['quotes'] = []
+    
+    # Get themes
+    try:
+        themes = conn.execute('SELECT * FROM themes WHERE case_id = ? ORDER BY theme_id', (case_id,)).fetchall()
+        enrichment['themes'] = [dict(t) for t in themes]
+    except sqlite3.OperationalError:
+        enrichment['themes'] = []
+    
+    conn.close()
+    return enrichment
+
 def get_stats():
-    """Get database statistics."""
+    """Get database statistics including enrichment progress."""
     conn = get_db_connection()
     stats = {}
     
@@ -42,6 +107,20 @@ def get_stats():
     # Calculate unprocessed for the 1960 cohort
     processed_1960 = stats['verified_yes'] + stats['verified_no']
     stats['unprocessed_1960'] = stats['mentions_1960'] - processed_1960
+
+    # Enrichment Progress Stats
+    enrichment_tables = [
+        'case_metadata', 'participants', 'case_agencies', 'charges', 
+        'financial_actions', 'victims', 'quotes', 'themes'
+    ]
+    
+    stats['enrichment'] = {}
+    for table in enrichment_tables:
+        try:
+            count = conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
+            stats['enrichment'][table] = count
+        except sqlite3.OperationalError:
+            stats['enrichment'][table] = 0
 
     conn.close()
     return stats
@@ -113,7 +192,7 @@ def cases():
 
 @app.route('/case/<case_id>')
 def case_detail(case_id):
-    """Individual case detail page."""
+    """Individual case detail page with enrichment data."""
     conn = get_db_connection()
     case = conn.execute('SELECT * FROM cases WHERE id = ?', (case_id,)).fetchone()
     conn.close()
@@ -121,7 +200,16 @@ def case_detail(case_id):
     if case is None:
         return "Case not found", 404
     
-    return render_template('case_detail.html', case=case)
+    # Get enrichment data
+    enrichment = get_enrichment_data(case_id)
+    
+    return render_template('case_detail.html', case=case, enrichment=enrichment)
+
+@app.route('/enrichment')
+def enrichment_dashboard():
+    """Enrichment progress dashboard."""
+    stats = get_stats()
+    return render_template('enrichment.html', stats=stats)
 
 @app.route('/api/stats')
 def api_stats():
@@ -136,6 +224,12 @@ def api_cases():
     conn.close()
     
     return jsonify([dict(case) for case in cases])
+
+@app.route('/api/enrichment/<case_id>')
+def api_enrichment(case_id):
+    """API endpoint for enrichment data."""
+    enrichment = get_enrichment_data(case_id)
+    return jsonify(enrichment)
 
 @app.route('/about')
 def about():

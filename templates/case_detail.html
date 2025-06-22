@@ -111,6 +111,253 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Enrichment Data Sections -->
+                {% if enrichment %}
+                    <!-- Case Metadata Enrichment -->
+                    {% if enrichment.metadata %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Case Metadata
+                        </h5>
+                        <div class="row">
+                            {% if enrichment.metadata.district_office %}
+                            <div class="col-md-6 mb-2">
+                                <strong>District Office:</strong><br>
+                                {{ enrichment.metadata.district_office }}
+                            </div>
+                            {% endif %}
+                            {% if enrichment.metadata.usa_name %}
+                            <div class="col-md-6 mb-2">
+                                <strong>U.S. Attorney:</strong><br>
+                                {{ enrichment.metadata.usa_name }}
+                            </div>
+                            {% endif %}
+                            {% if enrichment.metadata.event_type %}
+                            <div class="col-md-6 mb-2">
+                                <strong>Event Type:</strong><br>
+                                <span class="badge bg-primary">{{ enrichment.metadata.event_type }}</span>
+                            </div>
+                            {% endif %}
+                            {% if enrichment.metadata.max_penalty_text %}
+                            <div class="col-md-6 mb-2">
+                                <strong>Maximum Penalty:</strong><br>
+                                {{ enrichment.metadata.max_penalty_text }}
+                            </div>
+                            {% endif %}
+                            {% if enrichment.metadata.money_amounts %}
+                            <div class="col-md-6 mb-2">
+                                <strong>Money Amounts:</strong><br>
+                                {{ enrichment.metadata.money_amounts }}
+                            </div>
+                            {% endif %}
+                            {% if enrichment.metadata.crypto_assets %}
+                            <div class="col-md-6 mb-2">
+                                <strong>Crypto Assets:</strong><br>
+                                {{ enrichment.metadata.crypto_assets }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Participants -->
+                    {% if enrichment.participants %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-people me-2"></i>
+                            Participants ({{ enrichment.participants|length }})
+                        </h5>
+                        <div class="row">
+                            {% for participant in enrichment.participants %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ participant.name or 'Unknown' }}</h6>
+                                        <p class="card-text">
+                                            <span class="badge bg-secondary me-1">{{ participant.role or 'Unknown' }}</span>
+                                            {% if participant.title %}<span class="badge bg-info me-1">{{ participant.title }}</span>{% endif %}
+                                        </p>
+                                        {% if participant.organization %}
+                                        <small class="text-muted">{{ participant.organization }}</small><br>
+                                        {% endif %}
+                                        {% if participant.location %}
+                                        <small class="text-muted">{{ participant.location }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Agencies -->
+                    {% if enrichment.agencies %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-building me-2"></i>
+                            Law Enforcement Agencies ({{ enrichment.agencies|length }})
+                        </h5>
+                        <div class="row">
+                            {% for agency in enrichment.agencies %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ agency.agency_name or 'Unknown Agency' }}</h6>
+                                        {% if agency.abbreviation %}
+                                        <p class="card-text">
+                                            <span class="badge bg-primary me-1">{{ agency.abbreviation }}</span>
+                                            {% if agency.role %}<span class="badge bg-secondary">{{ agency.role }}</span>{% endif %}
+                                        </p>
+                                        {% endif %}
+                                        {% if agency.contribution %}
+                                        <small class="text-muted">{{ agency.contribution }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Charges -->
+                    {% if enrichment.charges %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Charges ({{ enrichment.charges|length }})
+                        </h5>
+                        <div class="row">
+                            {% for charge in enrichment.charges %}
+                            <div class="col-12 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ charge.charge_description or 'Unknown Charge' }}</h6>
+                                        <p class="card-text">
+                                            {% if charge.statute %}<span class="badge bg-danger me-1">{{ charge.statute }}</span>{% endif %}
+                                            {% if charge.severity %}<span class="badge bg-warning me-1">{{ charge.severity }}</span>{% endif %}
+                                            {% if charge.max_penalty %}<span class="badge bg-info me-1">{{ charge.max_penalty }}</span>{% endif %}
+                                        </p>
+                                        {% if charge.defendant %}
+                                        <small class="text-muted">Defendant: {{ charge.defendant }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Financial Actions -->
+                    {% if enrichment.financial_actions %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-cash-stack me-2"></i>
+                            Financial Actions ({{ enrichment.financial_actions|length }})
+                        </h5>
+                        <div class="row">
+                            {% for action in enrichment.financial_actions %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ action.action_type or 'Unknown Action' }}</h6>
+                                        <p class="card-text">
+                                            {% if action.amount %}<span class="badge bg-success me-1">{{ action.amount }}</span>{% endif %}
+                                            {% if action.currency %}<span class="badge bg-info me-1">{{ action.currency }}</span>{% endif %}
+                                        </p>
+                                        {% if action.description %}
+                                        <small class="text-muted">{{ action.description }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Victims -->
+                    {% if enrichment.victims %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-heart-broken me-2"></i>
+                            Victims ({{ enrichment.victims|length }})
+                        </h5>
+                        <div class="row">
+                            {% for victim in enrichment.victims %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ victim.victim_type or 'Unknown Victim Type' }}</h6>
+                                        {% if victim.description %}
+                                        <p class="card-text">{{ victim.description }}</p>
+                                        {% endif %}
+                                        {% if victim.loss_amount %}
+                                        <small class="text-muted">Loss: {{ victim.loss_amount }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Quotes -->
+                    {% if enrichment.quotes %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-chat-quote me-2"></i>
+                            Notable Quotes ({{ enrichment.quotes|length }})
+                        </h5>
+                        {% for quote in enrichment.quotes %}
+                        <div class="card border mb-3">
+                            <div class="card-body">
+                                <blockquote class="blockquote mb-2">
+                                    <p class="mb-0">"{{ quote.quote_text }}"</p>
+                                </blockquote>
+                                <footer class="blockquote-footer">
+                                    {% if quote.speaker_name %}{{ quote.speaker_name }}{% endif %}
+                                    {% if quote.speaker_title %}, {{ quote.speaker_title }}{% endif %}
+                                    {% if quote.speaker_organization %}, {{ quote.speaker_organization }}{% endif %}
+                                </footer>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Themes -->
+                    {% if enrichment.themes %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="bi bi-tags me-2"></i>
+                            Themes ({{ enrichment.themes|length }})
+                        </h5>
+                        <div class="row">
+                            {% for theme in enrichment.themes %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ theme.theme_name or 'Unknown Theme' }}</h6>
+                                        {% if theme.description %}
+                                        <p class="card-text">{{ theme.description }}</p>
+                                        {% endif %}
+                                        {% if theme.significance %}
+                                        <small class="text-muted">{{ theme.significance }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endif %}
                 
                 <!-- Press Release Content -->
                 <div class="mb-4">
@@ -155,6 +402,67 @@
                 <code class="small">{{ case.id }}</code>
             </div>
         </div>
+        
+        <!-- Enrichment Status -->
+        {% if enrichment %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-database me-2"></i>
+                    Enrichment Status
+                </h6>
+                <div class="small">
+                    {% if enrichment.metadata %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Metadata</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Metadata</div>
+                    {% endif %}
+                    
+                    {% if enrichment.participants %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Participants ({{ enrichment.participants|length }})</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Participants</div>
+                    {% endif %}
+                    
+                    {% if enrichment.agencies %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Agencies ({{ enrichment.agencies|length }})</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Agencies</div>
+                    {% endif %}
+                    
+                    {% if enrichment.charges %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Charges ({{ enrichment.charges|length }})</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Charges</div>
+                    {% endif %}
+                    
+                    {% if enrichment.financial_actions %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Financial Actions ({{ enrichment.financial_actions|length }})</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Financial Actions</div>
+                    {% endif %}
+                    
+                    {% if enrichment.victims %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Victims ({{ enrichment.victims|length }})</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Victims</div>
+                    {% endif %}
+                    
+                    {% if enrichment.quotes %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Quotes ({{ enrichment.quotes|length }})</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Quotes</div>
+                    {% endif %}
+                    
+                    {% if enrichment.themes %}
+                        <div class="mb-1"><i class="bi bi-check-circle text-success me-1"></i>Themes ({{ enrichment.themes|length }})</div>
+                    {% else %}
+                        <div class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Themes</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
         
         <!-- Timestamps -->
         <div class="card mb-4">
