@@ -117,7 +117,10 @@ def get_stats():
     stats['enrichment'] = {}
     for table in enrichment_tables:
         try:
-            count = conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
+            # For all enrichment tables, we should count the number of unique cases
+            # that have been processed, not the total number of rows, especially for
+            # one-to-many relationships (like participants, charges, etc.).
+            count = conn.execute(f'SELECT COUNT(DISTINCT case_id) FROM {table}').fetchone()[0]
             stats['enrichment'][table] = count
         except sqlite3.OperationalError:
             stats['enrichment'][table] = 0

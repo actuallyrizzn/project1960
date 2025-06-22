@@ -124,55 +124,52 @@
     </div>
 </div>
 
-<!-- Enrichment Progress -->
-{% if stats.enrichment %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="bi bi-database me-2 text-primary"></i>
-                    Data Enrichment Progress
-                </h5>
-                <a href="{{ url_for('enrichment_dashboard') }}" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-arrow-right me-1"></i>View Details
-                </a>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% set enrichment_tables = [
-                        ('case_metadata', 'Case Metadata', 'bi-info-circle', 'primary'),
-                        ('participants', 'Participants', 'bi-people', 'success'),
-                        ('case_agencies', 'Agencies', 'bi-building', 'info'),
-                        ('charges', 'Charges', 'bi-exclamation-triangle', 'danger'),
-                        ('financial_actions', 'Financial Actions', 'bi-cash-stack', 'warning'),
-                        ('victims', 'Victims', 'bi-heart-broken', 'secondary'),
-                        ('quotes', 'Quotes', 'bi-chat-quote', 'dark'),
-                        ('themes', 'Themes', 'bi-tags', 'primary')
-                    ] %}
-                    
-                    {% for table_key, table_name, icon, color in enrichment_tables %}
-                    <div class="col-md-3 col-lg-2 mb-3">
-                        <div class="text-center">
-                            <div class="mb-2">
-                                <i class="bi {{ icon }} fs-4 text-{{ color }}"></i>
-                            </div>
-                            <h6 class="mb-1">{{ table_name }}</h6>
-                            <div class="progress mb-2" style="height: 4px;">
-                                {% set count = stats.enrichment[table_key] %}
-                                {% set percentage = (count / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
-                                <div class="progress-bar bg-{{ color }}" style="width: {{ percentage }}%"></div>
-                            </div>
-                            <small class="text-muted">{{ count }} records</small>
+<!-- Data Enrichment Progress -->
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-database me-2"></i>
+                Data Enrichment Progress
+            </h5>
+            <a href="{{ url_for('enrichment_dashboard') }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-box-arrow-up-right me-1"></i>
+                View Details
+            </a>
+        </div>
+
+        <div class="row text-center">
+            {% set enrichment_items = [
+                ('case_metadata', 'Case Metadata', 'bi-info-circle'),
+                ('participants', 'Participants', 'bi-people'),
+                ('case_agencies', 'Agencies', 'bi-building'),
+                ('charges', 'Charges', 'bi-exclamation-triangle'),
+                ('financial_actions', 'Financial Actions', 'bi-cash-stack'),
+                ('victims', 'Victims', 'bi-shield-plus'),
+                ('quotes', 'Quotes', 'bi-chat-quote'),
+                ('themes', 'Themes', 'bi-tag')
+            ] %}
+
+            {% for table, name, icon in enrichment_items %}
+            <div class="col-lg col-md-4 col-6 mb-4">
+                <div class="d-flex flex-column h-100">
+                    <div>
+                        <i class="bi {{ icon }} h4 text-primary"></i>
+                        <p class="mb-0 fw-bold">{{ name }}</p>
+                        <p class="text-muted small mb-2">{{ stats.enrichment.get(table, 0) }} cases enriched</p>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="progress" style="height: 6px;" title="{{ '%.1f'|format((stats.enrichment.get(table, 0) / stats.verified_yes * 100) if stats.verified_yes > 0 else 0) }}%">
+                            {% set percentage = (stats.enrichment.get(table, 0) / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
+                            <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%;"></div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Quick Actions -->
 <div class="row">
