@@ -219,7 +219,8 @@ def enrichment_dashboard():
     ''')
     activity_log = cursor.fetchall()
     conn.close()
-    return render_template('enrichment.html', activity_log=activity_log)
+    stats = get_stats()
+    return render_template('enrichment.html', activity_log=activity_log, stats=stats)
 
 @app.route('/api/stats')
 def api_stats():
