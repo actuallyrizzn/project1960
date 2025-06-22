@@ -144,12 +144,4 @@ def get_schema(table_name: str) -> str:
 
 def get_all_schemas() -> Dict[str, str]:
     """Get a copy of all schema definitions."""
-    return SCHEMA_DEFINITIONS.copy()
-
-def get_table_names() -> list:
-    """Get list of all table names."""
-    return list(SCHEMA_DEFINITIONS.keys())
-
-def validate_schema(table_name: str) -> bool:
-    """Validate that a table schema exists."""
-    return table_name in SCHEMA_DEFINITIONS 
+    return SCHEMA_DEFINITIONS.copy() 
