@@ -545,8 +545,8 @@ def log_enrichment_activity(case_id, table_name, status, notes):
     try:
         conn = sqlite3.connect(DATABASE_NAME, timeout=30.0)
         cursor = conn.cursor()
-        from datetime import datetime
-        timestamp = datetime.utcnow().isoformat()
+        from datetime import datetime, UTC
+        timestamp = datetime.now(UTC).isoformat()
         cursor.execute(
             "INSERT INTO enrichment_activity_log (timestamp, case_id, table_name, status, notes) VALUES (?, ?, ?, ?, ?)",
             (timestamp, case_id, table_name, status, notes)
