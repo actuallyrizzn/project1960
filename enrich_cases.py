@@ -511,17 +511,24 @@ def clean_and_parse_json(raw_text):
 def normalize_data_for_table(data, table_name):
     """Normalize data to expected format for each table."""
     if data is None:
+        logger.warning(f"Data is None for table {table_name}")
         return None
+    
+    logger.debug(f"Normalizing data for {table_name}: type={type(data)}, value={repr(data)[:200]}...")
     
     # case_metadata expects a single object
     if table_name == 'case_metadata':
         if isinstance(data, list) and len(data) > 0:
             logger.warning(f"case_metadata expects a single object, got a list. Using first item.")
-            return data[0]
+            first_item = data[0]
+            if not isinstance(first_item, dict):
+                logger.error(f"case_metadata first list item is not a dict: {type(first_item)}")
+                return None
+            return first_item
         elif isinstance(data, dict):
             return data
         else:
-            logger.error(f"case_metadata expects a dict, got {type(data)}")
+            logger.error(f"case_metadata expects a dict, got {type(data)}: {repr(data)}")
             return None
     
     # All other tables expect lists
@@ -531,7 +538,7 @@ def normalize_data_for_table(data, table_name):
         logger.warning(f"{table_name} expects a list, got a dict. Wrapping in list.")
         return [data]
     else:
-        logger.error(f"{table_name} expects a list, got {type(data)}")
+        logger.error(f"{table_name} expects a list, got {type(data)}: {repr(data)}")
         return None
 
 def log_enrichment_activity(case_id, table_name, status, notes):
@@ -565,6 +572,10 @@ def store_extracted_data(case_id, table_name, data, url):
     try:
         if table_name == 'case_metadata':
             data_obj = normalized_data
+            if not isinstance(data_obj, dict):
+                logger.error(f"case_metadata expects a dict, got {type(data_obj)}: {repr(data_obj)}")
+                log_enrichment_activity(case_id, table_name, 'error', f'Expected dict, got {type(data_obj)}')
+                return
             data_obj['press_release_url'] = url
             columns = ['case_id', 'district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json', 'press_release_url', 'extras_json']
             values = [case_id]
