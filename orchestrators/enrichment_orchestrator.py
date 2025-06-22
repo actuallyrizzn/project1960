@@ -68,6 +68,21 @@ class EnrichmentOrchestrator:
             logger.error(f"Failed to get cases for enrichment: {e}")
             return []
     
+    def get_case_by_id(self, case_id: str) -> List[tuple]:
+        """Get a single case by its ID."""
+        query = "SELECT id, title, body, url FROM cases WHERE id = ?"
+        try:
+            result = self.db_manager.execute_query(query, (case_id,))
+            if result:
+                logger.info(f"Found case {case_id} for targeted enrichment.")
+                return result
+            else:
+                logger.warning(f"Case with ID {case_id} not found.")
+                return []
+        except Exception as e:
+            logger.error(f"Failed to get case by ID {case_id}: {e}")
+            return []
+    
     def enrich_case(self, case_id: str, title: str, body: str, url: str, table_name: str, dry_run: bool = False) -> bool:
         """
         Enrich a single case for a specific table.
@@ -177,7 +192,7 @@ class EnrichmentOrchestrator:
             ]
         return None
     
-    def run_enrichment(self, table_name: str, limit: int = 100, dry_run: bool = False) -> Dict[str, Any]:
+    def run_enrichment(self, table_name: str, limit: int = 100, dry_run: bool = False, case_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Run enrichment for a specific table.
         
@@ -185,6 +200,7 @@ class EnrichmentOrchestrator:
             table_name: The table to enrich
             limit: Maximum number of cases to process
             dry_run: If True, simulate the enrichment without making API calls
+            case_id: If provided, enrich only this specific case ID.
             
         Returns:
             Dictionary with results summary
@@ -198,7 +214,10 @@ class EnrichmentOrchestrator:
             self.setup_enrichment_tables()
         
         # Get cases to process
-        cases = self.get_cases_for_enrichment(table_name, limit)
+        if case_id:
+            cases = self.get_case_by_id(case_id)
+        else:
+            cases = self.get_cases_for_enrichment(table_name, limit)
         
         if not cases:
             logger.info("No cases found for enrichment.")

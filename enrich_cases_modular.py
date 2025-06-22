@@ -69,6 +69,7 @@ def main():
     ], required=False, help='Table to enrich. Required if --all is not specified.')
     parser.add_argument('--limit', type=int, default=100, help='Maximum number of cases to process per table')
     parser.add_argument('--all', action='store_true', help='Enrich all tables sequentially.')
+    parser.add_argument('--case_id', type=str, help='Run enrichment for a single specific case ID.')
     parser.add_argument('--no-lock', action='store_true', help='Skip lock file (for testing)')
     parser.add_argument('--dry-run', action='store_true', help='Run in dry-run mode (no API calls)')
     
@@ -79,6 +80,10 @@ def main():
         parser.error("Argument --table cannot be used with --all.")
     if not args.all and not args.table:
         parser.error("Argument --table is required when --all is not specified.")
+    if args.case_id and args.all:
+        parser.error("Argument --case_id cannot be used with --all.")
+    if args.case_id and not args.table:
+        parser.error("Argument --table is required when using --case_id.")
     
     # Lock file handling
     lock_file_path = 'enrichment.lock'
@@ -117,7 +122,14 @@ def main():
         else:
             # Run enrichment for specific table
             logger.info(f"Running enrichment for table: {args.table}")
-            result = orchestrator.run_enrichment(args.table, limit=args.limit, dry_run=args.dry_run)
+            if args.case_id:
+                logger.info(f"Targeting single case: {args.case_id}")
+            result = orchestrator.run_enrichment(
+                args.table, 
+                limit=args.limit, 
+                dry_run=args.dry_run,
+                case_id=args.case_id
+            )
             
             # Print summary
             print(f"\n=== ENRICHMENT SUMMARY ===")
