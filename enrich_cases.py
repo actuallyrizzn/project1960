@@ -51,22 +51,25 @@ SCHEMA = {
       case_id            TEXT,
       name               TEXT,
       role               TEXT,
-      agency             TEXT,
+      title              TEXT,
+      organization       TEXT,
+      location           TEXT,
       age                INTEGER,
-      city               TEXT,
-      state_country      TEXT,
-      aliases            TEXT,
-      entity_name        TEXT,
-      extras_json        JSON,
+      nationality        TEXT,
+      status             TEXT,
       FOREIGN KEY(case_id) REFERENCES cases(id)
     );
     """,
     'case_agencies': """
     CREATE TABLE IF NOT EXISTS case_agencies (
+      agency_id          INTEGER PRIMARY KEY AUTOINCREMENT,
       case_id            TEXT,
-      agency             TEXT,
+      agency_name        TEXT,
+      abbreviation       TEXT,
       role               TEXT,
-      PRIMARY KEY (case_id, agency, role),
+      office_location    TEXT,
+      agents_mentioned   TEXT,
+      contribution       TEXT,
       FOREIGN KEY(case_id) REFERENCES cases(id)
     );
     """,
@@ -74,10 +77,13 @@ SCHEMA = {
     CREATE TABLE IF NOT EXISTS charges (
       charge_id          INTEGER PRIMARY KEY AUTOINCREMENT,
       case_id            TEXT,
+      charge_description TEXT,
       statute            TEXT,
-      description        TEXT,
-      count_number       INTEGER,
-      extras_json        JSON,
+      severity           TEXT,
+      max_penalty        TEXT,
+      fine_amount        TEXT,
+      defendant          TEXT,
+      status             TEXT,
       FOREIGN KEY(case_id) REFERENCES cases(id)
     );
     """,
@@ -86,10 +92,12 @@ SCHEMA = {
       fin_id             INTEGER PRIMARY KEY AUTOINCREMENT,
       case_id            TEXT,
       action_type        TEXT,
-      amount_text        TEXT,
+      amount             TEXT,
       currency           TEXT,
+      description        TEXT,
       asset_type         TEXT,
-      extras_json        JSON,
+      defendant          TEXT,
+      status             TEXT,
       FOREIGN KEY(case_id) REFERENCES cases(id)
     );
     """,
@@ -98,10 +106,12 @@ SCHEMA = {
       victim_id          INTEGER PRIMARY KEY AUTOINCREMENT,
       case_id            TEXT,
       victim_type        TEXT,
-      industry           TEXT,
-      geography          TEXT,
-      loss_amount_text   TEXT,
-      extras_json        JSON,
+      description        TEXT,
+      number_affected    INTEGER,
+      loss_amount        TEXT,
+      geographic_scope   TEXT,
+      vulnerability_factors TEXT,
+      impact_description TEXT,
       FOREIGN KEY(case_id) REFERENCES cases(id)
     );
     """,
@@ -109,19 +119,27 @@ SCHEMA = {
     CREATE TABLE IF NOT EXISTS quotes (
       quote_id           INTEGER PRIMARY KEY AUTOINCREMENT,
       case_id            TEXT,
+      quote_text         TEXT,
       speaker_name       TEXT,
       speaker_title      TEXT,
-      quote_text         TEXT,
-      sentiment          TEXT,
-      extras_json        JSON,
+      speaker_organization TEXT,
+      quote_type         TEXT,
+      context            TEXT,
+      significance       TEXT,
       FOREIGN KEY(case_id) REFERENCES cases(id)
     );
     """,
     'themes': """
     CREATE TABLE IF NOT EXISTS themes (
+      theme_id           INTEGER PRIMARY KEY AUTOINCREMENT,
       case_id            TEXT,
-      theme              TEXT,
-      PRIMARY KEY (case_id, theme),
+      theme_name         TEXT,
+      description        TEXT,
+      significance       TEXT,
+      related_statutes   TEXT,
+      geographic_scope   TEXT,
+      temporal_aspects   TEXT,
+      stakeholders       TEXT,
       FOREIGN KEY(case_id) REFERENCES cases(id)
     );
     """
@@ -130,6 +148,7 @@ SCHEMA = {
 def setup_enrichment_tables():
     """Creates all necessary tables for data enrichment if they don't exist."""
     logger.info("Setting up enrichment tables in the database...")
+    conn = None
     try:
         conn = sqlite3.connect(DATABASE_NAME)
         cursor = conn.cursor()
@@ -390,25 +409,20 @@ def call_venice_api(prompt):
         response = requests.post(VENICE_API_URL, headers=headers, json=payload, timeout=120)
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         logger.error(f"API call failed: {e}")
         return None
 
 def clean_and_parse_json(raw_text):
-    logger.debug(f"Attempting to clean and parse text: {raw_text[:200]}...")
-    
-    # Strategy 1: Look for JSON object that starts with { and ends with }
-    # This handles cases where there's thinking text before the JSON
-    match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', raw_text, re.DOTALL)
-    if match:
-        json_str = match.group(0)
-        try:
-            return json.loads(json_str)
-        except json.JSONDecodeError as e:
-            logger.warning(f"Strategy 1 JSON parse failed: {e}. Trying strategy 2.")
-    
-    # Strategy 2: Look for the last JSON object in the text
-    # This handles cases where there might be multiple JSON-like structures
+    if raw_text is None or (isinstance(raw_text, str) and raw_text.strip() == ''):
+        logger.debug("Input to clean_and_parse_json is None or empty string.")
+        return None
+    try:
+        logger.debug(f"Attempting to clean and parse text: {raw_text[:200]}...")
+    except Exception:
+        logger.debug("Input to clean_and_parse_json is not a string.")
+        return None
+    # Strategy 1: Look for all JSON objects and return the last one
     matches = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', raw_text, re.DOTALL))
     if matches:
         for match in reversed(matches):  # Try from last to first
@@ -417,9 +431,7 @@ def clean_and_parse_json(raw_text):
                 return json.loads(json_str)
             except json.JSONDecodeError:
                 continue
-    
-    # Strategy 3: Try to extract JSON after common markers
-    # Look for JSON after "```json" or similar markers
+    # Strategy 2: Try to extract JSON after common markers
     json_markers = [r'```json\s*(\{.*?\})\s*```', r'```\s*(\{.*?\})\s*```', r'JSON Output:\s*(\{.*?\})']
     for pattern in json_markers:
         match = re.search(pattern, raw_text, re.DOTALL)
@@ -429,23 +441,18 @@ def clean_and_parse_json(raw_text):
                 return json.loads(json_str)
             except json.JSONDecodeError:
                 continue
-    
-    # Strategy 4: Try to clean and parse the entire text as JSON
-    # Remove common non-JSON prefixes
+    # Strategy 3: Try to clean and parse the entire text as JSON
     cleaned_text = raw_text
-    # Remove thinking tags
     cleaned_text = re.sub(r'<think>.*?</think>', '', cleaned_text, flags=re.DOTALL)
-    # Remove markdown code blocks
     cleaned_text = re.sub(r'```.*?```', '', cleaned_text, flags=re.DOTALL)
-    # Try to find JSON in the cleaned text
-    match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned_text, re.DOTALL)
-    if match:
-        json_str = match.group(0)
-        try:
-            return json.loads(json_str)
-        except json.JSONDecodeError as e:
-            logger.warning(f"Strategy 4 JSON parse failed: {e}")
-    
+    matches = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned_text, re.DOTALL))
+    if matches:
+        for match in reversed(matches):
+            json_str = match.group(0)
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                continue
     logger.warning("All JSON extraction strategies failed.")
     logger.debug(f"Raw text that couldn't be parsed: {raw_text[:500]}...")
     return None
@@ -627,6 +634,7 @@ def main():
         if not prompt:
             continue
         if args.dry_run:
+            print(f"[DRY RUN] Would process case {case_id} for table '{args.table}'.")
             logger.info(f"[DRY RUN] Would process case {case_id} for table '{args.table}'.")
             logger.debug(f"[DRY RUN] Prompt for case {case_id}:\n{prompt[:500]}...")
             continue
