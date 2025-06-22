@@ -94,286 +94,266 @@ def _store_case_metadata(db_manager: DatabaseManager, case_id: str, data_obj: Di
         log_enrichment_activity(case_id, 'case_metadata', 'error', str(e))
         return False
 
-def _store_participants(db_manager: DatabaseManager, case_id: str, normalized_data: List[Dict[str, Any]]) -> bool:
-    """Store participants data."""
-    try:
-        if not isinstance(normalized_data, list):
-            logger.error(f"participants expects a list, got {type(normalized_data)}")
-            log_enrichment_activity(case_id, 'participants', 'error', f'Expected list, got {type(normalized_data)}')
-            return False
-            
-        # Clear existing data for this case
-        db_manager.execute_query("DELETE FROM participants WHERE case_id = ?", (case_id,))
-        
-        stored_count = 0
-        skipped = 0
-        
-        for participant in normalized_data:
-            if not isinstance(participant, dict):
-                logger.warning(f"Skipping non-dict item in participants: {repr(participant)} (type: {type(participant)})")
-                skipped += 1
-                continue
-                
-            columns = ['case_id', 'name', 'role', 'title', 'organization', 'location', 'age', 'nationality', 'status']
-            values = [case_id]
-            
-            for col in columns[1:]:
-                values.append(participant.get(col))
-                
-            query = f"INSERT INTO participants ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-            db_manager.execute_query(query, tuple(values))
-            stored_count += 1
-            
-        logger.info(f"Successfully stored {stored_count} participants for case {case_id}. Skipped {skipped} non-dict items.")
-        log_enrichment_activity(case_id, 'participants', 'success', f'Stored {stored_count} participants')
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to store participants for case {case_id}: {e}")
-        log_enrichment_activity(case_id, 'participants', 'error', str(e))
-        return False
+def _store_participants(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
+    """Store participants data, wrapping a single dict in a list if needed."""
+    if isinstance(data, dict):
+        logger.warning("Received a dict for participants, wrapping in a list.")
+        data = [data]
 
-def _store_case_agencies(db_manager: DatabaseManager, case_id: str, normalized_data: List[Dict[str, Any]]) -> bool:
-    """Store case agencies data."""
-    try:
-        if not isinstance(normalized_data, list):
-            logger.error(f"case_agencies expects a list, got {type(normalized_data)}")
-            log_enrichment_activity(case_id, 'case_agencies', 'error', f'Expected list, got {type(normalized_data)}')
-            return False
-            
-        # Clear existing data for this case
-        db_manager.execute_query("DELETE FROM case_agencies WHERE case_id = ?", (case_id,))
-        
-        stored_count = 0
-        skipped = 0
-        
-        for agency in normalized_data:
-            if not isinstance(agency, dict):
-                logger.warning(f"Skipping non-dict item in case_agencies: {repr(agency)} (type: {type(agency)})")
-                skipped += 1
-                continue
-                
-            columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
-            values = [case_id]
-            
-            for col in columns[1:]:
-                value = agency.get(col)
-                # Handle agents_mentioned field - convert list to comma-separated string if needed
-                if col == 'agents_mentioned' and isinstance(value, list):
-                    value = ', '.join(str(item) for item in value)
-                values.append(value)
-                
-            query = f"INSERT INTO case_agencies ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-            db_manager.execute_query(query, tuple(values))
-            stored_count += 1
-            
-        logger.info(f"Successfully stored {stored_count} agencies for case {case_id}. Skipped {skipped} non-dict items.")
-        log_enrichment_activity(case_id, 'case_agencies', 'success', f'Stored {stored_count} agencies')
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to store agencies for case {case_id}: {e}")
-        log_enrichment_activity(case_id, 'case_agencies', 'error', str(e))
+    if not isinstance(data, list):
+        logger.error(f"participants expects a list, got {type(data)}")
+        log_enrichment_activity(case_id, 'participants', 'error', f'Expected list, got {type(data)}')
         return False
+            
+    # Clear existing data for this case
+    db_manager.execute_query("DELETE FROM participants WHERE case_id = ?", (case_id,))
+    
+    stored_count = 0
+    for item in data:
+        if not isinstance(item, dict):
+            logger.warning(f"Skipping non-dict item in participants list: {item}")
+            continue
+            
+        columns = ['case_id', 'name', 'role', 'title', 'organization', 'location', 'age', 'nationality', 'status']
+        values = [case_id] + [item.get(col) for col in columns[1:]]
+        
+        query = f"INSERT INTO participants ({','.join(columns)}) VALUES ({','.join(['?'] * len(columns))})"
+        db_manager.execute_query(query, tuple(values))
+        stored_count += 1
+        
+    logger.info(f"Successfully stored {stored_count} participants for case {case_id}.")
+    log_enrichment_activity(case_id, 'participants', 'success', f'Stored {stored_count} participants')
+    return True
 
-def _store_charges(db_manager: DatabaseManager, case_id: str, normalized_data: List[Dict[str, Any]]) -> bool:
-    """Store charges data."""
-    try:
-        if not isinstance(normalized_data, list):
-            logger.error(f"charges expects a list, got {type(normalized_data)}")
-            log_enrichment_activity(case_id, 'charges', 'error', f'Expected list, got {type(normalized_data)}')
-            return False
-            
-        # Clear existing data for this case
-        db_manager.execute_query("DELETE FROM charges WHERE case_id = ?", (case_id,))
-        
-        stored_count = 0
-        skipped = 0
-        
-        for charge in normalized_data:
-            if not isinstance(charge, dict):
-                logger.warning(f"Skipping non-dict item in charges: {repr(charge)} (type: {type(charge)})")
-                skipped += 1
-                continue
-                
-            columns = ['case_id', 'charge_description', 'statute', 'severity', 'max_penalty', 'fine_amount', 'defendant', 'status']
-            values = [case_id]
-            
-            for col in columns[1:]:
-                values.append(charge.get(col))
-                
-            query = f"INSERT INTO charges ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-            db_manager.execute_query(query, tuple(values))
-            stored_count += 1
-            
-        logger.info(f"Successfully stored {stored_count} charges for case {case_id}. Skipped {skipped} non-dict items.")
-        log_enrichment_activity(case_id, 'charges', 'success', f'Stored {stored_count} charges')
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to store charges for case {case_id}: {e}")
-        log_enrichment_activity(case_id, 'charges', 'error', str(e))
-        return False
+def _store_case_agencies(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
+    """Store case agencies data, wrapping a single dict in a list if needed."""
+    if isinstance(data, dict):
+        logger.warning("Received a dict for case_agencies, wrapping in a list.")
+        data = [data]
 
-def _store_financial_actions(db_manager: DatabaseManager, case_id: str, normalized_data: List[Dict[str, Any]]) -> bool:
-    """Store financial actions data."""
-    try:
-        if not isinstance(normalized_data, list):
-            logger.error(f"financial_actions expects a list, got {type(normalized_data)}")
-            log_enrichment_activity(case_id, 'financial_actions', 'error', f'Expected list, got {type(normalized_data)}')
-            return False
-            
-        # Clear existing data for this case
-        db_manager.execute_query("DELETE FROM financial_actions WHERE case_id = ?", (case_id,))
-        
-        stored_count = 0
-        skipped = 0
-        
-        for action in normalized_data:
-            if not isinstance(action, dict):
-                logger.warning(f"Skipping non-dict item in financial_actions: {repr(action)} (type: {type(action)})")
-                skipped += 1
-                continue
-                
-            columns = ['case_id', 'action_type', 'amount', 'currency', 'description', 'asset_type', 'defendant', 'status']
-            values = [case_id]
-            
-            for col in columns[1:]:
-                values.append(action.get(col))
-                
-            query = f"INSERT INTO financial_actions ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-            db_manager.execute_query(query, tuple(values))
-            stored_count += 1
-            
-        logger.info(f"Successfully stored {stored_count} financial actions for case {case_id}. Skipped {skipped} non-dict items.")
-        log_enrichment_activity(case_id, 'financial_actions', 'success', f'Stored {stored_count} financial actions')
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to store financial actions for case {case_id}: {e}")
-        log_enrichment_activity(case_id, 'financial_actions', 'error', str(e))
+    if not isinstance(data, list):
+        logger.error(f"case_agencies expects a list, got {type(data)}")
+        log_enrichment_activity(case_id, 'case_agencies', 'error', f'Expected list, got {type(data)}')
         return False
+            
+    # Clear existing data for this case
+    db_manager.execute_query("DELETE FROM case_agencies WHERE case_id = ?", (case_id,))
+    
+    stored_count = 0
+    skipped = 0
+    
+    for agency in data:
+        if not isinstance(agency, dict):
+            logger.warning(f"Skipping non-dict item in case_agencies: {repr(agency)} (type: {type(agency)})")
+            skipped += 1
+            continue
+            
+        columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
+        values = [case_id]
+        
+        for col in columns[1:]:
+            value = agency.get(col)
+            # Handle agents_mentioned field - convert list to comma-separated string if needed
+            if col == 'agents_mentioned' and isinstance(value, list):
+                value = ', '.join(str(item) for item in value)
+            values.append(value)
+            
+        query = f"INSERT INTO case_agencies ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+        db_manager.execute_query(query, tuple(values))
+        stored_count += 1
+        
+    logger.info(f"Successfully stored {stored_count} agencies for case {case_id}. Skipped {skipped} non-dict items.")
+    log_enrichment_activity(case_id, 'case_agencies', 'success', f'Stored {stored_count} agencies')
+    return True
 
-def _store_victims(db_manager: DatabaseManager, case_id: str, normalized_data: List[Dict[str, Any]]) -> bool:
-    """Store victims data."""
-    try:
-        if not isinstance(normalized_data, list):
-            logger.error(f"victims expects a list, got {type(normalized_data)}")
-            log_enrichment_activity(case_id, 'victims', 'error', f'Expected list, got {type(normalized_data)}')
-            return False
-            
-        # Clear existing data for this case
-        db_manager.execute_query("DELETE FROM victims WHERE case_id = ?", (case_id,))
-        
-        stored_count = 0
-        skipped = 0
-        
-        for victim in normalized_data:
-            if not isinstance(victim, dict):
-                logger.warning(f"Skipping non-dict item in victims: {repr(victim)} (type: {type(victim)})")
-                skipped += 1
-                continue
-                
-            columns = ['case_id', 'victim_type', 'description', 'number_affected', 'loss_amount', 'geographic_scope', 'vulnerability_factors', 'impact_description']
-            values = [case_id]
-            
-            for col in columns[1:]:
-                values.append(victim.get(col))
-                
-            query = f"INSERT INTO victims ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-            db_manager.execute_query(query, tuple(values))
-            stored_count += 1
-            
-        logger.info(f"Successfully stored {stored_count} victims for case {case_id}. Skipped {skipped} non-dict items.")
-        log_enrichment_activity(case_id, 'victims', 'success', f'Stored {stored_count} victims')
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to store victims for case {case_id}: {e}")
-        log_enrichment_activity(case_id, 'victims', 'error', str(e))
-        return False
+def _store_charges(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
+    """Store charges data, wrapping a single dict in a list if needed."""
+    if isinstance(data, dict):
+        logger.warning("Received a dict for charges, wrapping in a list.")
+        data = [data]
 
-def _store_quotes(db_manager: DatabaseManager, case_id: str, normalized_data: List[Dict[str, Any]]) -> bool:
-    """Store quotes data."""
-    try:
-        if not isinstance(normalized_data, list):
-            logger.error(f"quotes expects a list, got {type(normalized_data)}")
-            log_enrichment_activity(case_id, 'quotes', 'error', f'Expected list, got {type(normalized_data)}')
-            return False
-            
-        # Clear existing data for this case
-        db_manager.execute_query("DELETE FROM quotes WHERE case_id = ?", (case_id,))
-        
-        stored_count = 0
-        skipped = 0
-        
-        for quote in normalized_data:
-            if not isinstance(quote, dict):
-                logger.warning(f"Skipping non-dict item in quotes: {repr(quote)} (type: {type(quote)})")
-                skipped += 1
-                continue
-                
-            columns = ['case_id', 'quote_text', 'speaker_name', 'speaker_title', 'speaker_organization', 'quote_type', 'context', 'significance']
-            values = [case_id]
-            
-            for col in columns[1:]:
-                values.append(quote.get(col))
-                
-            query = f"INSERT INTO quotes ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-            db_manager.execute_query(query, tuple(values))
-            stored_count += 1
-            
-        logger.info(f"Successfully stored {stored_count} quotes for case {case_id}. Skipped {skipped} non-dict items.")
-        log_enrichment_activity(case_id, 'quotes', 'success', f'Stored {stored_count} quotes')
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to store quotes for case {case_id}: {e}")
-        log_enrichment_activity(case_id, 'quotes', 'error', str(e))
+    if not isinstance(data, list):
+        logger.error(f"charges expects a list, got {type(data)}")
+        log_enrichment_activity(case_id, 'charges', 'error', f'Expected list, got {type(data)}')
         return False
+            
+    # Clear existing data for this case
+    db_manager.execute_query("DELETE FROM charges WHERE case_id = ?", (case_id,))
+    
+    stored_count = 0
+    skipped = 0
+    
+    for charge in data:
+        if not isinstance(charge, dict):
+            logger.warning(f"Skipping non-dict item in charges: {repr(charge)} (type: {type(charge)})")
+            skipped += 1
+            continue
+            
+        columns = ['case_id', 'charge_description', 'statute', 'severity', 'max_penalty', 'fine_amount', 'defendant', 'status']
+        values = [case_id]
+        
+        for col in columns[1:]:
+            values.append(charge.get(col))
+            
+        query = f"INSERT INTO charges ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+        db_manager.execute_query(query, tuple(values))
+        stored_count += 1
+        
+    logger.info(f"Successfully stored {stored_count} charges for case {case_id}. Skipped {skipped} non-dict items.")
+    log_enrichment_activity(case_id, 'charges', 'success', f'Stored {stored_count} charges')
+    return True
 
-def _store_themes(db_manager: DatabaseManager, case_id: str, normalized_data: List[Dict[str, Any]]) -> bool:
-    """Store themes data."""
-    try:
-        if not isinstance(normalized_data, list):
-            logger.error(f"themes expects a list, got {type(normalized_data)}")
-            log_enrichment_activity(case_id, 'themes', 'error', f'Expected list, got {type(normalized_data)}')
-            return False
-            
-        # Clear existing data for this case
-        db_manager.execute_query("DELETE FROM themes WHERE case_id = ?", (case_id,))
-        
-        stored_count = 0
-        skipped = 0
-        
-        for theme in normalized_data:
-            if not isinstance(theme, dict):
-                logger.warning(f"Skipping non-dict item in themes: {repr(theme)} (type: {type(theme)})")
-                skipped += 1
-                continue
-                
-            columns = ['case_id', 'theme_name', 'description', 'significance', 'related_statutes', 'geographic_scope', 'temporal_aspects', 'stakeholders']
-            values = [case_id]
-            
-            for col in columns[1:]:
-                value = theme.get(col)
-                # Handle fields that should be comma-separated strings - convert lists if needed
-                if col in ['related_statutes', 'stakeholders'] and isinstance(value, list):
-                    value = ', '.join(str(item) for item in value)
-                values.append(value)
-                
-            query = f"INSERT INTO themes ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-            db_manager.execute_query(query, tuple(values))
-            stored_count += 1
-            
-        logger.info(f"Successfully stored {stored_count} themes for case {case_id}. Skipped {skipped} non-dict items.")
-        log_enrichment_activity(case_id, 'themes', 'success', f'Stored {stored_count} themes')
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to store themes for case {case_id}: {e}")
-        log_enrichment_activity(case_id, 'themes', 'error', str(e))
+def _store_financial_actions(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
+    """Store financial actions data, wrapping a single dict in a list if needed."""
+    if isinstance(data, dict):
+        logger.warning("Received a dict for financial_actions, wrapping in a list.")
+        data = [data]
+
+    if not isinstance(data, list):
+        logger.error(f"financial_actions expects a list, got {type(data)}")
+        log_enrichment_activity(case_id, 'financial_actions', 'error', f'Expected list, got {type(data)}')
         return False
+            
+    # Clear existing data for this case
+    db_manager.execute_query("DELETE FROM financial_actions WHERE case_id = ?", (case_id,))
+    
+    stored_count = 0
+    skipped = 0
+    
+    for action in data:
+        if not isinstance(action, dict):
+            logger.warning(f"Skipping non-dict item in financial_actions: {repr(action)} (type: {type(action)})")
+            skipped += 1
+            continue
+            
+        columns = ['case_id', 'action_type', 'amount', 'currency', 'description', 'asset_type', 'defendant', 'status']
+        values = [case_id]
+        
+        for col in columns[1:]:
+            values.append(action.get(col))
+            
+        query = f"INSERT INTO financial_actions ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+        db_manager.execute_query(query, tuple(values))
+        stored_count += 1
+        
+    logger.info(f"Successfully stored {stored_count} financial actions for case {case_id}. Skipped {skipped} non-dict items.")
+    log_enrichment_activity(case_id, 'financial_actions', 'success', f'Stored {stored_count} financial actions')
+    return True
+
+def _store_victims(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
+    """Store victims data, wrapping a single dict in a list if needed."""
+    if isinstance(data, dict):
+        logger.warning("Received a dict for victims, wrapping in a list.")
+        data = [data]
+
+    if not isinstance(data, list):
+        logger.error(f"victims expects a list, got {type(data)}")
+        log_enrichment_activity(case_id, 'victims', 'error', f'Expected list, got {type(data)}')
+        return False
+            
+    # Clear existing data for this case
+    db_manager.execute_query("DELETE FROM victims WHERE case_id = ?", (case_id,))
+    
+    stored_count = 0
+    skipped = 0
+    
+    for victim in data:
+        if not isinstance(victim, dict):
+            logger.warning(f"Skipping non-dict item in victims: {repr(victim)} (type: {type(victim)})")
+            skipped += 1
+            continue
+            
+        columns = ['case_id', 'victim_type', 'description', 'number_affected', 'loss_amount', 'geographic_scope', 'vulnerability_factors', 'impact_description']
+        values = [case_id]
+        
+        for col in columns[1:]:
+            values.append(victim.get(col))
+            
+        query = f"INSERT INTO victims ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+        db_manager.execute_query(query, tuple(values))
+        stored_count += 1
+        
+    logger.info(f"Successfully stored {stored_count} victims for case {case_id}. Skipped {skipped} non-dict items.")
+    log_enrichment_activity(case_id, 'victims', 'success', f'Stored {stored_count} victims')
+    return True
+
+def _store_quotes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
+    """Store quotes data, wrapping a single dict in a list if needed."""
+    if isinstance(data, dict):
+        logger.warning("Received a dict for quotes, wrapping in a list.")
+        data = [data]
+
+    if not isinstance(data, list):
+        logger.error(f"quotes expects a list, got {type(data)}")
+        log_enrichment_activity(case_id, 'quotes', 'error', f'Expected list, got {type(data)}')
+        return False
+            
+    # Clear existing data for this case
+    db_manager.execute_query("DELETE FROM quotes WHERE case_id = ?", (case_id,))
+    
+    stored_count = 0
+    skipped = 0
+    
+    for quote in data:
+        if not isinstance(quote, dict):
+            logger.warning(f"Skipping non-dict item in quotes: {repr(quote)} (type: {type(quote)})")
+            skipped += 1
+            continue
+            
+        columns = ['case_id', 'quote_text', 'speaker_name', 'speaker_title', 'speaker_organization', 'quote_type', 'context', 'significance']
+        values = [case_id]
+        
+        for col in columns[1:]:
+            values.append(quote.get(col))
+            
+        query = f"INSERT INTO quotes ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+        db_manager.execute_query(query, tuple(values))
+        stored_count += 1
+        
+    logger.info(f"Successfully stored {stored_count} quotes for case {case_id}. Skipped {skipped} non-dict items.")
+    log_enrichment_activity(case_id, 'quotes', 'success', f'Stored {stored_count} quotes')
+    return True
+
+def _store_themes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
+    """Store themes data, wrapping a single dict in a list if needed."""
+    if isinstance(data, dict):
+        logger.warning("Received a dict for themes, wrapping in a list.")
+        data = [data]
+
+    if not isinstance(data, list):
+        logger.error(f"themes expects a list, got {type(data)}")
+        log_enrichment_activity(case_id, 'themes', 'error', f'Expected list, got {type(data)}')
+        return False
+            
+    # Clear existing data for this case
+    db_manager.execute_query("DELETE FROM themes WHERE case_id = ?", (case_id,))
+    
+    stored_count = 0
+    skipped = 0
+    
+    for theme in data:
+        if not isinstance(theme, dict):
+            logger.warning(f"Skipping non-dict item in themes: {repr(theme)} (type: {type(theme)})")
+            skipped += 1
+            continue
+            
+        columns = ['case_id', 'theme_name', 'description', 'significance', 'related_statutes', 'geographic_scope', 'temporal_aspects', 'stakeholders']
+        values = [case_id]
+        
+        for col in columns[1:]:
+            value = theme.get(col)
+            # Handle fields that should be comma-separated strings - convert lists if needed
+            if col in ['related_statutes', 'stakeholders'] and isinstance(value, list):
+                value = ', '.join(str(item) for item in value)
+            values.append(value)
+            
+        query = f"INSERT INTO themes ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+        db_manager.execute_query(query, tuple(values))
+        stored_count += 1
+        
+    logger.info(f"Successfully stored {stored_count} themes for case {case_id}. Skipped {skipped} non-dict items.")
+    log_enrichment_activity(case_id, 'themes', 'success', f'Stored {stored_count} themes')
+    return True
 
 def log_enrichment_activity(case_id: str, table_name: str, status: str, notes: str) -> None:
     """Log enrichment activity to the database."""
