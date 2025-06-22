@@ -313,7 +313,7 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `abbreviation`: Common abbreviation if used (e.g., "FBI", "DEA")
     * `role`: Their role in the case (e.g., "investigation", "arrest", "prosecution")
     * `office_location`: Specific office location if mentioned (e.g., "New York Field Office")
-    * `agents_mentioned`: Names of specific agents mentioned
+    * `agents_mentioned`: Names of specific agents mentioned as a comma-separated string (e.g., "John Smith, Jane Doe")
     * `contribution`: Brief description of their contribution to the case
 4. If a field's value cannot be found, use `null` for that field.
 5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
@@ -485,9 +485,10 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `theme_name`: Name of the theme (e.g., "Money Laundering", "Cryptocurrency", "International Cooperation")
     * `description`: Description of how this theme appears in the case
     * `significance`: Why this theme is important to the case
-    * `related_statutes`: Any statutes related to this theme
-    * `impact`: Impact of this theme on the case outcome
-    * `trends`: Any trends or patterns related to this theme
+    * `related_statutes`: Any statutes related to this theme as a comma-separated string (e.g., "18 U.S.C. § 1960, 21 U.S.C. § 846")
+    * `geographic_scope`: Geographic scope of this theme (e.g., "International", "National", "Local")
+    * `temporal_aspects`: Time-related aspects of this theme (e.g., "Historical trend", "Recent development")
+    * `stakeholders`: Key stakeholders involved in this theme as a comma-separated string (e.g., "Law enforcement, Financial institutions, Victims")
 4. If a field's value cannot be found, use `null` for that field.
 5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
 
@@ -502,8 +503,9 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     "description": "value or null",
     "significance": "value or null",
     "related_statutes": "value or null",
-    "impact": "value or null",
-    "trends": "value or null"
+    "geographic_scope": "value or null",
+    "temporal_aspects": "value or null",
+    "stakeholders": "value or null"
   }}
 ]
 """
@@ -778,6 +780,10 @@ def store_extracted_data(case_id, table_name, data, url):
                 value = data_obj.get(col)
                 if col in ['statutes_json', 'timeline_json', 'extras_json'] and value is not None:
                     values.append(json.dumps(value))
+                elif col in ['money_amounts', 'crypto_assets'] and isinstance(value, list):
+                    # Handle fields that should be comma-separated strings - convert lists if needed
+                    value = ', '.join(str(item) for item in value)
+                    values.append(value)
                 else:
                     values.append(value)
             query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
@@ -804,7 +810,11 @@ def store_extracted_data(case_id, table_name, data, url):
                 columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
                 values = [case_id]
                 for col in columns[1:]:
-                    values.append(agency.get(col))
+                    value = agency.get(col)
+                    # Handle agents_mentioned field - convert list to comma-separated string if needed
+                    if col == 'agents_mentioned' and isinstance(value, list):
+                        value = ', '.join(str(item) for item in value)
+                    values.append(value)
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
             logger.info(f"Successfully stored {len(normalized_data) - skipped} agencies for case {case_id}. Skipped {skipped} non-dict items.")
@@ -854,7 +864,11 @@ def store_extracted_data(case_id, table_name, data, url):
                 columns = ['case_id', 'theme_name', 'description', 'significance', 'related_statutes', 'geographic_scope', 'temporal_aspects', 'stakeholders']
                 values = [case_id]
                 for col in columns[1:]:
-                    values.append(theme.get(col))
+                    value = theme.get(col)
+                    # Handle fields that should be comma-separated strings - convert lists if needed
+                    if col in ['related_statutes', 'stakeholders'] and isinstance(value, list):
+                        value = ', '.join(str(item) for item in value)
+                    values.append(value)
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
             logger.info(f"Successfully stored {len(normalized_data)} themes for case {case_id}.")

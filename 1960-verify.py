@@ -82,7 +82,7 @@ def get_sample_cases(limit=PROCESSING_LIMIT):
     conn = sqlite3.connect("doj_cases.db")
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT id, title, content
+        SELECT id, title, body
         FROM cases
         WHERE mentions_1960 = 1
           AND (classification IS NULL OR classification = '' OR classification = 'unknown')
