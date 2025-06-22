@@ -3,8 +3,9 @@ Database schema definitions for enrichment tables.
 """
 from typing import Dict
 
-# Database Schema for enrichment tables
-SCHEMA = {
+# A mapping of table names to their SQL CREATE TABLE statements.
+# This centralized dictionary is the single source of truth for the database structure.
+SCHEMA_DEFINITIONS = {
     'case_metadata': """
     CREATE TABLE IF NOT EXISTS case_metadata (
       case_id            TEXT PRIMARY KEY,
@@ -27,8 +28,8 @@ SCHEMA = {
     """,
     'participants': """
     CREATE TABLE IF NOT EXISTS participants (
-      participant_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id            TEXT,
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT NOT NULL,
       name               TEXT,
       role               TEXT,
       title              TEXT,
@@ -42,8 +43,8 @@ SCHEMA = {
     """,
     'case_agencies': """
     CREATE TABLE IF NOT EXISTS case_agencies (
-      agency_id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id            TEXT,
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT NOT NULL,
       agency_name        TEXT,
       abbreviation       TEXT,
       role               TEXT,
@@ -55,8 +56,8 @@ SCHEMA = {
     """,
     'charges': """
     CREATE TABLE IF NOT EXISTS charges (
-      charge_id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id            TEXT,
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT NOT NULL,
       charge_description TEXT,
       statute            TEXT,
       severity           TEXT,
@@ -69,8 +70,8 @@ SCHEMA = {
     """,
     'financial_actions': """
     CREATE TABLE IF NOT EXISTS financial_actions (
-      fin_id             INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id            TEXT,
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT NOT NULL,
       action_type        TEXT,
       amount             TEXT,
       currency           TEXT,
@@ -83,8 +84,8 @@ SCHEMA = {
     """,
     'victims': """
     CREATE TABLE IF NOT EXISTS victims (
-      victim_id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id            TEXT,
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT NOT NULL,
       victim_type        TEXT,
       description        TEXT,
       number_affected    INTEGER,
@@ -97,8 +98,8 @@ SCHEMA = {
     """,
     'quotes': """
     CREATE TABLE IF NOT EXISTS quotes (
-      quote_id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id            TEXT,
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT NOT NULL,
       quote_text         TEXT,
       speaker_name       TEXT,
       speaker_title      TEXT,
@@ -111,8 +112,8 @@ SCHEMA = {
     """,
     'themes': """
     CREATE TABLE IF NOT EXISTS themes (
-      theme_id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      case_id            TEXT,
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_id            TEXT NOT NULL,
       theme_name         TEXT,
       description        TEXT,
       significance       TEXT,
@@ -125,30 +126,30 @@ SCHEMA = {
     """,
     'enrichment_activity_log': """
     CREATE TABLE IF NOT EXISTS enrichment_activity_log (
-      log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      timestamp TEXT,
-      case_id TEXT,
-      table_name TEXT,
-      status TEXT,
-      notes TEXT
+      log_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp          TEXT NOT NULL,
+      case_id            TEXT NOT NULL,
+      table_name         TEXT NOT NULL,
+      status             TEXT NOT NULL,
+      notes              TEXT
     );
     """
 }
 
 def get_schema(table_name: str) -> str:
-    """Get schema for a specific table."""
-    if table_name not in SCHEMA:
-        raise ValueError(f"Unknown table: {table_name}")
-    return SCHEMA[table_name]
+    """Get the CREATE TABLE statement for a specific table."""
+    if table_name not in SCHEMA_DEFINITIONS:
+        raise ValueError(f"Schema not found for table: {table_name}")
+    return SCHEMA_DEFINITIONS[table_name]
 
 def get_all_schemas() -> Dict[str, str]:
-    """Get all schemas."""
-    return SCHEMA.copy()
+    """Get a copy of all schema definitions."""
+    return SCHEMA_DEFINITIONS.copy()
 
 def get_table_names() -> list:
     """Get list of all table names."""
-    return list(SCHEMA.keys())
+    return list(SCHEMA_DEFINITIONS.keys())
 
 def validate_schema(table_name: str) -> bool:
     """Validate that a table schema exists."""
-    return table_name in SCHEMA 
+    return table_name in SCHEMA_DEFINITIONS 
