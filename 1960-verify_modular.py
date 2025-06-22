@@ -5,9 +5,32 @@ Uses the new modular architecture.
 """
 import argparse
 import logging
+import os
+import sys
+import fcntl
 from utils.logging_config import setup_logging
 from utils.config import Config
 from orchestrators.verification_orchestrator import VerificationOrchestrator
+
+def acquire_lock(lock_file_path):
+    """Acquire a lock file to prevent multiple instances."""
+    try:
+        lock_file = open(lock_file_path, 'w')
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return lock_file
+    except (IOError, OSError):
+        print(f"Another instance is already running. Lock file: {lock_file_path}")
+        sys.exit(1)
+
+def release_lock(lock_file):
+    """Release the lock file."""
+    if lock_file:
+        try:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            lock_file.close()
+            os.unlink(lock_file.name)
+        except:
+            pass
 
 def main():
     """Main function for the verification script."""
@@ -20,8 +43,21 @@ def main():
     parser.add_argument('--limit', type=int, default=100, help='Maximum number of cases to process')
     parser.add_argument('--dry-run', action='store_true', help='Run in dry-run mode (no API calls)')
     parser.add_argument('--stats', action='store_true', help='Show verification statistics only')
+    parser.add_argument('--no-lock', action='store_true', help='Skip lock file (for testing)')
     
     args = parser.parse_args()
+    
+    # Lock file handling
+    lock_file = None
+    lock_file_path = 'verification.lock'
+    
+    if not args.no_lock:
+        try:
+            lock_file = acquire_lock(lock_file_path)
+            logger.info(f"Acquired lock file: {lock_file_path}")
+        except Exception as e:
+            logger.error(f"Failed to acquire lock: {e}")
+            return 1
     
     try:
         # Create orchestrator
@@ -64,6 +100,11 @@ def main():
     except Exception as e:
         logger.error(f"Verification process failed: {e}")
         return 1
+    finally:
+        # Always release the lock
+        if lock_file:
+            release_lock(lock_file)
+            logger.info("Released lock file")
     
     return 0
 

@@ -1,31 +1,16 @@
 # Cron Setup Guide for Progressive Enrichment
 
-This guide explains how to set up automatic enrichment processing on your Ubuntu server.
-
-## Files Created
-
-- `run_enrichment.py` - Main Python orchestrator
-- `run_enrichment.sh` - Shell script wrapper with error handling
-- `enrich_cases.py` - Individual table enrichment script
+This guide explains how to set up automatic enrichment processing on your Ubuntu server using the modular architecture.
 
 ## Quick Setup
 
-### 1. Make the shell script executable
+### 1. Test the script manually
 ```bash
-chmod +x run_enrichment.sh
+# Test in dry-run mode with modular scripts
+python3 run_enrichment.py --script enrich_cases_modular.py --dry-run --limit-per-table 5
 ```
 
-### 2. Test the script manually
-```bash
-# Test in dry-run mode
-./run_enrichment.sh
-
-# Or test the Python script directly
-python3 run_enrichment.py --dry-run --limit-per-table 5
-```
-
-### 3. Set up cron job
-
+### 2. Set up cron job
 Edit your crontab:
 ```bash
 crontab -e
@@ -35,22 +20,35 @@ Add one of these schedules:
 
 #### Option A: Run every 6 hours
 ```bash
-0 */6 * * * /path/to/your/project/run_enrichment.sh
+0 */6 * * * cd /path/to/your/project && python3 run_enrichment.py --script enrich_cases_modular.py >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 #### Option B: Run twice daily (6 AM and 6 PM)
 ```bash
-0 6,18 * * * /path/to/your/project/run_enrichment.sh
+0 6,18 * * * cd /path/to/your/project && python3 run_enrichment.py --script enrich_cases_modular.py >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 #### Option C: Run daily at 2 AM
 ```bash
-0 2 * * * /path/to/your/project/run_enrichment.sh
+0 2 * * * cd /path/to/your/project && python3 run_enrichment.py --script enrich_cases_modular.py >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
-#### Option D: Run every 4 hours during business hours
+## Lock File Protection
+
+The modular scripts automatically prevent multiple instances from running simultaneously:
+
+- **Enrichment script**: Creates `enrichment.lock` file
+- **Verification script**: Creates `verification.lock` file
+- **Automatic cleanup**: Lock files are removed when scripts complete
+- **Error handling**: If another instance is running, the script exits gracefully
+
+### Manual lock file management (if needed)
 ```bash
-0 9,13,17,21 * * * /path/to/your/project/run_enrichment.sh
+# Check for lock files
+ls -la *.lock
+
+# Remove stale lock file (if needed)
+rm -f enrichment.lock verification.lock
 ```
 
 ## Monitoring
@@ -64,16 +62,13 @@ sudo tail -f /var/log/cron
 ps aux | grep run_enrichment
 
 # Check for lock files
-ls -la enrichment.lock
+ls -la *.lock
 ```
 
 ### View enrichment logs
 ```bash
 # Latest log file
 tail -f logs/enrichment_$(date +%Y%m%d)*.log
-
-# All log files
-ls -la logs/
 
 # Search for errors
 grep -i error logs/enrichment_*.log
@@ -112,26 +107,16 @@ ENRICHMENT_ORDER = [
 ]
 ```
 
-### Run specific tables only
-```bash
-# Only process case_metadata and participants
-python3 run_enrichment.py --tables case_metadata participants
-
-# Only process with smaller batches
-python3 run_enrichment.py --limit-per-table 5
-```
-
 ### Environment-specific settings
-Create different cron entries for different environments:
 
 #### Development (small batches, frequent runs)
 ```bash
-*/30 * * * * /path/to/project/run_enrichment.sh  # Every 30 minutes
+*/30 * * * * cd /path/to/project && python3 run_enrichment.py --script enrich_cases_modular.py --limit-per-table 5 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 #### Production (larger batches, less frequent)
 ```bash
-0 */4 * * * /path/to/project/run_enrichment.sh   # Every 4 hours
+0 */4 * * * cd /path/to/project && python3 run_enrichment.py --script enrich_cases_modular.py >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 ## Troubleshooting
@@ -140,7 +125,7 @@ Create different cron entries for different environments:
 
 1. **Script not running**: Check file permissions and paths
    ```bash
-   ls -la run_enrichment.sh
+   ls -la run_enrichment.py
    which python3
    ```
 
@@ -165,30 +150,9 @@ Create different cron entries for different environments:
 # Find failed runs
 grep -i "failed\|error" logs/enrichment_*.log
 
-# Check API usage
-grep -i "api" logs/enrichment_*.log
-
 # Monitor processing speed
 grep "Successfully completed" logs/enrichment_*.log | tail -10
 ```
-
-## Performance Tips
-
-1. **Start small**: Begin with `--limit-per-table 5` and increase gradually
-2. **Monitor API usage**: Watch for rate limiting or quota issues
-3. **Database maintenance**: Consider VACUUM periodically for large databases
-4. **Log rotation**: Set up logrotate to manage log file sizes
-
-## Security Considerations
-
-1. **File permissions**: Ensure `.env` is readable only by the cron user
-   ```bash
-   chmod 600 .env
-   ```
-
-2. **API key security**: Rotate API keys periodically
-3. **Database backup**: Set up regular backups of `doj_cases.db`
-4. **Log security**: Ensure logs don't contain sensitive information
 
 ## Example Complete Setup
 
@@ -200,18 +164,23 @@ cd /path/to/your/project
 cp env.example .env
 # Edit .env with your API key
 
-# 3. Make script executable
-chmod +x run_enrichment.sh
+# 3. Test the enrichment script
+python3 run_enrichment.py --script enrich_cases_modular.py --dry-run --limit-per-table 5
 
-# 4. Test manually
-./run_enrichment.sh
-
-# 5. Add to crontab
+# 4. Add to crontab
 crontab -e
-# Add: 0 */6 * * * /path/to/your/project/run_enrichment.sh
+# Add: 0 */6 * * * cd /path/to/your/project && python3 run_enrichment.py --script enrich_cases_modular.py >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 
-# 6. Monitor
+# 5. Monitor
 tail -f logs/enrichment_$(date +%Y%m%d)*.log
 ```
+
+## Key Features
+
+- **Automatic locking**: Prevents multiple instances from running
+- **Built-in error handling**: Graceful failure recovery
+- **Comprehensive logging**: Detailed activity tracking
+- **Progress monitoring**: Real-time visibility into enrichment operations
+- **Modular architecture**: Clean, maintainable codebase
 
 This setup will automatically enrich your DOJ cases database as new data arrives, maintaining a continuously updated structured dataset for analysis. 
