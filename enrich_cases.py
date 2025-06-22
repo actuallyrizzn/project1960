@@ -149,6 +149,16 @@ def get_cases_to_enrich(table_name, limit):
     """Fetches verified cases that have not yet been enriched for the given table."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
+    
+    # First, ensure the target table exists
+    try:
+        cursor.execute(SCHEMA[table_name])
+        conn.commit()
+        logger.debug(f"Ensured table '{table_name}' exists")
+    except sqlite3.Error as e:
+        logger.warning(f"Could not create table '{table_name}': {e}")
+    
+    # Now try the enrichment query
     query = f"""
         SELECT c.id, c.title, c.body, c.url
         FROM cases c
@@ -161,6 +171,19 @@ def get_cases_to_enrich(table_name, limit):
         cursor.execute(query, (limit,))
         cases = cursor.fetchall()
         logger.info(f"Found {len(cases)} cases to process for '{table_name}'.")
+        return cases
+    except sqlite3.OperationalError as e:
+        # If the table doesn't exist, fall back to a simpler query
+        logger.warning(f"Table '{table_name}' doesn't exist, using fallback query: {e}")
+        fallback_query = """
+            SELECT c.id, c.title, c.body, c.url
+            FROM cases c
+            WHERE c.verified_1960 = 1
+            LIMIT ?
+        """
+        cursor.execute(fallback_query, (limit,))
+        cases = cursor.fetchall()
+        logger.info(f"Found {len(cases)} cases to process for '{table_name}' (fallback query).")
         return cases
     except sqlite3.Error as e:
         logger.error(f"Failed to fetch cases for enrichment: {e}")
