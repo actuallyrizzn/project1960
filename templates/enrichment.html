@@ -281,6 +281,10 @@
                     <i class="bi bi-clipboard-data me-2"></i>
                     Recent Enrichment Activity Log
                 </h5>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Click on any Case ID to view the case details and extracted metadata
+                </small>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -298,7 +302,14 @@
                             {% for log in activity_log %}
                             <tr>
                                 <td class="text-nowrap">{{ log[0][:19].replace('T', ' ') }}</td>
-                                <td class="text-monospace small">{{ log[1] }}</td>
+                                <td class="text-monospace small">
+                                    <a href="{{ url_for('case_detail', case_id=log[1]) }}" 
+                                       class="text-decoration-none text-primary fw-medium"
+                                       title="View case details and metadata">
+                                        {{ log[1] }}
+                                        <i class="bi bi-arrow-up-right text-muted ms-1" style="font-size: 0.75em;"></i>
+                                    </a>
+                                </td>
                                 <td>{{ log[2] }}</td>
                                 <td>
                                     {% if log[3] == 'success' %}
