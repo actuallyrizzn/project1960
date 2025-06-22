@@ -567,14 +567,19 @@ def store_extracted_data(case_id, table_name, data, url):
             logger.info(f"Successfully stored {len(normalized_data)} participants for case {case_id}.")
                 
         elif table_name == 'case_agencies':
+            skipped = 0
             for agency in normalized_data:
+                if not isinstance(agency, dict):
+                    logger.warning(f"Skipping non-dict item in case_agencies: {repr(agency)} (type: {type(agency)})")
+                    skipped += 1
+                    continue
                 columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
                 values = [case_id]
                 for col in columns[1:]:
                     values.append(agency.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-            logger.info(f"Successfully stored {len(normalized_data)} agencies for case {case_id}.")
+            logger.info(f"Successfully stored {len(normalized_data) - skipped} agencies for case {case_id}. Skipped {skipped} non-dict items.")
                 
         elif table_name == 'charges':
             for charge in normalized_data:
