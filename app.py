@@ -145,6 +145,29 @@ def ensure_activity_log_table():
     conn.commit()
     conn.close()
 
+# Custom template filter for date formatting
+@app.template_filter('human_date')
+def human_date_filter(s):
+    """
+    Converts a timestamp or a date string into a human-readable YYYY-MM-DD format.
+    Handles both integer/float timestamps and string dates.
+    """
+    if not s:
+        return "N/A"
+    try:
+        # Assume it's a Unix timestamp (integer or float)
+        return datetime.fromtimestamp(float(s)).strftime('%Y-%m-%d')
+    except (ValueError, TypeError):
+        try:
+            # If it's not a timestamp, try to parse it as a date string
+            # This handles cases where the date might already be in a recognized format.
+            return datetime.strptime(str(s), '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+        except (ValueError, TypeError):
+             # Fallback for strings that are already in 'YYYY-MM-DD' format
+            if isinstance(s, str) and len(s.split('-')) == 3:
+                return s
+            return s # Return original value if all parsing fails
+
 @app.route('/')
 def index():
     """Main dashboard page."""

@@ -84,7 +84,7 @@
                         </td>
                         <td>
                             {% if case.date %}
-                                {{ case.date[:10] }}
+                                {{ case.date | human_date }}
                             {% else %}
                                 <span class="text-muted">N/A</span>
                             {% endif %}

@@ -35,7 +35,7 @@
                             <i class="bi bi-calendar3 text-muted me-2"></i>
                             <span class="text-muted">
                                 {% if case.date %}
-                                    {{ case.date }}
+                                    {{ case.date | human_date }}
                                 {% else %}
                                     Date not available
                                 {% endif %}
