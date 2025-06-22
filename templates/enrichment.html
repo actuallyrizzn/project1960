@@ -27,7 +27,7 @@
                     Data Enrichment Progress
                 </h1>
                 <p class="text-muted">
-                    This dashboard shows the progress of AI-powered data extraction and enrichment across all DOJ cases.
+                    This dashboard shows the progress of AI-powered data extraction and enrichment for <strong>verified 18 U.S.C. § 1960 cases.</strong>
                     Each table represents a different aspect of case analysis that has been extracted from the press releases.
                 </p>
             </div>
@@ -98,7 +98,7 @@
                                     Extracted case details including district office, U.S. Attorney, event type, penalties, and crypto assets.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.case_metadata / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.case_metadata / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-primary" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
@@ -121,7 +121,7 @@
                                     Identified individuals involved in cases including defendants, prosecutors, and other key figures.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.participants / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.participants / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-success" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
@@ -144,7 +144,7 @@
                                     Federal, state, and local law enforcement agencies involved in investigations and prosecutions.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.case_agencies / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.case_agencies / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-info" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
@@ -167,7 +167,7 @@
                                     Criminal charges filed, including statutes, severity levels, and maximum penalties.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.charges / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.charges / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-danger" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
@@ -190,7 +190,7 @@
                                     Forfeitures, fines, restitution, and other financial penalties or recoveries.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.financial_actions / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.financial_actions / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-warning" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
@@ -213,7 +213,7 @@
                                     Individuals, businesses, or entities harmed by the criminal activity.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.victims / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.victims / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-secondary" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
@@ -236,7 +236,7 @@
                                     Key statements from prosecutors, law enforcement, and other officials.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.quotes / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.quotes / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-dark" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
@@ -259,7 +259,7 @@
                                     Key themes and patterns identified in the case narratives.
                                 </p>
                                 <div class="progress" style="height: 6px;">
-                                    {% set percentage = (stats.enrichment.themes / stats.total_cases * 100) if stats.total_cases > 0 else 0 %}
+                                    {% set percentage = (stats.enrichment.themes / stats.verified_yes * 100) if stats.verified_yes > 0 else 0 %}
                                     <div class="progress-bar bg-primary" style="width: {{ percentage }}%"></div>
                                 </div>
                                 <small class="text-muted">{{ "%.1f"|format(percentage) }}% complete</small>
