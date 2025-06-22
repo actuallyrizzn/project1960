@@ -5,10 +5,12 @@ A comprehensive system for scraping, analyzing, and exploring Department of Just
 ## Features
 
 - **Web Scraper**: Automatically scrapes DOJ press releases with idempotent operation
-- **AI-Powered Enrichment**: Extracts detailed, structured data from press releases into a relational database.
-- **Web Interface**: Modern Flask/Bootstrap UI for exploring and filtering cases
+- **AI-Powered Enrichment**: Extracts detailed, structured data from press releases into a relational database
+- **Robust Data Processing**: Advanced JSON parsing with multiple fallback strategies and error handling
+- **Web Interface**: Modern Flask/Bootstrap UI for exploring and filtering cases with clickable enrichment logs
 - **File Server**: Simple HTTP server for file downloads
-- **Database**: SQLite storage with a relational schema for complex queries.
+- **Database**: SQLite storage with a relational schema for complex queries
+- **Production-Ready**: Automatic table creation, database locking prevention, and comprehensive logging
 
 ## License
 
@@ -82,6 +84,12 @@ The scraper will:
 
 Next, use the AI-powered enrichment script to perform detailed data extraction on the scraped cases. This script populates a series of relational tables with structured data pulled from the press release text.
 
+**Key Features:**
+- **Automatic Table Creation**: All necessary database tables are created automatically
+- **Robust JSON Parsing**: Multiple strategies to handle AI responses with thinking text
+- **Database Lock Prevention**: Non-blocking logging with proper connection isolation
+- **Comprehensive Error Handling**: Graceful failure recovery and detailed logging
+
 You must specify which table you want to populate using the `--table` argument.
 
 ```bash
@@ -90,6 +98,12 @@ python enrich_cases.py --table case_metadata
 
 # Example: Enrich data for the 'participants' table for up to 10 cases
 python enrich_cases.py --table participants --limit 10
+
+# Example: Run with verbose logging to see detailed processing
+python enrich_cases.py --table case_metadata --limit 5 --verbose
+
+# Example: Set up database tables only (no processing)
+python enrich_cases.py --setup-only
 ```
 
 Available tables for enrichment are:
@@ -110,6 +124,12 @@ python app.py
 
 Visit `http://localhost:5000` to access the web interface.
 
+**Enrichment Dashboard Features:**
+- **Clickable Case IDs**: Click any case ID in the activity log to view case details and metadata
+- **Real-time Progress**: See enrichment progress across all data tables
+- **Activity Logging**: Track successful enrichments, errors, and skipped cases
+- **Visual Indicators**: Color-coded status badges and progress bars
+
 ### 4. File Server (Optional)
 
 ```bash
@@ -124,6 +144,7 @@ Serves files from the current directory on port 8000.
 ocp2-project/
 ├── scraper.py          # DOJ press release scraper
 ├── enrich_cases.py     # AI-powered data extraction and enrichment
+├── run_enrichment.py   # Batch enrichment runner with verbose support
 ├── 1960-verify.py      # Legacy AI verification script
 ├── app.py              # Flask web application
 ├── file_server.py      # Simple file server
@@ -157,11 +178,32 @@ cases (Primary Table)
    ├─ financial_actions    (1-to-many: Forfeitures, fines, restitution amounts)
    ├─ victims              (1-to-many: Details about victims mentioned)
    ├─ quotes               (1-to-many: Pull-quotes from officials)
-   └─ themes               (1-to-many: Thematic tags like 'romance_scam', 'darknet')
+   ├─ themes               (1-to-many: Thematic tags like 'romance_scam', 'darknet')
+   └─ enrichment_activity_log (Audit trail of enrichment operations)
 ```
 
 - **`cases`**: Stores the original press release data (title, date, body, URL).
 - **Enrichment Tables**: Each table is linked to the `cases` table via a `case_id` and contains specific, structured fields extracted by the AI from the press release text. This relational model allows for complex queries and detailed analysis.
+- **`enrichment_activity_log`**: Tracks all enrichment operations with timestamps, status, and notes for debugging and monitoring.
+
+## Technical Improvements
+
+### Robust Data Processing
+- **Multi-Strategy JSON Parsing**: Handles AI responses with thinking text, incomplete JSON, and various formatting issues
+- **JSON Validation**: Ensures extracted data has the expected structure before storage
+- **Data Normalization**: Converts AI output variations into consistent database formats
+
+### Database Reliability
+- **Automatic Table Creation**: All tables are created automatically if they don't exist
+- **Connection Isolation**: Separate database connections for logging to prevent deadlocks
+- **Non-Blocking Logging**: Enrichment continues even if logging fails
+- **Timeout Handling**: Proper connection timeouts and retry logic
+
+### Production Features
+- **Comprehensive Logging**: Detailed activity tracking with success/error/skip status
+- **Error Recovery**: Graceful handling of API failures and parsing errors
+- **Progress Monitoring**: Real-time visibility into enrichment operations
+- **User-Friendly Interface**: Clickable links and visual progress indicators
 
 ## Security Notes
 
@@ -178,6 +220,7 @@ See [CHANGELOG.md](CHANGELOG.md) for a detailed history of all development work,
 - AI classification improvements
 - UI/UX overhauls
 - Security and deployment enhancements
+- Robust data processing and database reliability improvements
 
 ## Contributing
 
