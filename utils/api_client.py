@@ -35,6 +35,10 @@ class VeniceAPIClient:
             "llama-3.1-405b",  # 65,536 tokens
         ]
         
+        # Check which models are actually available
+        self.available_fallback_models = self._get_available_fallback_models()
+        logger.info(f"Available fallback models: {self.available_fallback_models}")
+        
         # Track which models have been tried
         self.tried_models = set()
     
@@ -48,9 +52,11 @@ class VeniceAPIClient:
     
     def _get_next_fallback_model(self) -> Optional[str]:
         """Get the next available fallback model."""
-        for model in self.fallback_models:
+        for model in self.available_fallback_models:
             if model not in self.tried_models:
+                logger.info(f"Next available fallback model: {model}")
                 return model
+        logger.warning("No more fallback models available")
         return None
     
     def _estimate_tokens(self, text: str) -> int:
@@ -149,6 +155,9 @@ class VeniceAPIClient:
         # Start with the primary model
         current_model = self.model
         self.tried_models = {current_model}
+        
+        logger.info(f"Starting API call with primary model: {current_model}")
+        logger.info(f"Available fallback models: {self.available_fallback_models}")
         
         # Track the current prompt (may be truncated)
         current_prompt = prompt
@@ -323,3 +332,46 @@ class VeniceAPIClient:
         logger.debug("❌ All content extraction strategies failed")
         logger.debug(f"Final response data that couldn't be parsed: {response_data}")
         return None 
+
+    def _check_model_availability(self, model: str) -> bool:
+        """Check if a model is available by making a simple test call."""
+        try:
+            test_payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": "test"}],
+                "max_tokens": 10,
+                "temperature": 0.1
+            }
+            
+            headers = Config.get_api_headers()
+            
+            response = requests.post(
+                self.api_url,
+                headers=headers,
+                json=test_payload,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                logger.debug(f"Model {model} is available")
+                return True
+            elif response.status_code == 400 and "model" in response.text.lower():
+                logger.warning(f"Model {model} is not available: {response.text}")
+                return False
+            else:
+                logger.warning(f"Model {model} availability check failed with status {response.status_code}")
+                return True  # Assume available if we can't determine
+                
+        except Exception as e:
+            logger.warning(f"Error checking model {model} availability: {e}")
+            return True  # Assume available if we can't check
+    
+    def _get_available_fallback_models(self) -> List[str]:
+        """Get list of available fallback models."""
+        available_models = []
+        for model in self.fallback_models:
+            if self._check_model_availability(model):
+                available_models.append(model)
+            else:
+                logger.info(f"Skipping unavailable model: {model}")
+        return available_models 
