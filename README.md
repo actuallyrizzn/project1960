@@ -6,6 +6,7 @@ A comprehensive system for scraping, analyzing, and exploring Department of Just
 
 - **Web Scraper**: Automatically scrapes DOJ press releases with idempotent operation
 - **AI-Powered Enrichment**: Extracts detailed, structured data from press releases into a relational database
+- **Modular Architecture**: Clean, maintainable codebase with separated concerns and reusable components
 - **Robust Data Processing**: Advanced JSON parsing with multiple fallback strategies and error handling
 - **Web Interface**: Modern Flask/Bootstrap UI for exploring and filtering cases with clickable enrichment logs
 - **File Server**: Simple HTTP server for file downloads
@@ -116,7 +117,55 @@ Available tables for enrichment are:
 - `quotes`
 - `themes`
 
-### 3. Launch Web Interface
+### 3. Modular Enrichment (Recommended)
+
+For better maintainability and testing, use the modular enrichment script:
+
+```bash
+# Example: Enrich data for the 'case_metadata' table using modular architecture
+python enrich_cases_modular.py --table case_metadata
+
+# Example: Enrich data for the 'participants' table for up to 10 cases
+python enrich_cases_modular.py --table participants --limit 10
+
+# Example: Run with verbose logging to see detailed processing
+python enrich_cases_modular.py --table case_metadata --limit 5 --verbose
+
+# Example: Set up database tables only (no processing)
+python enrich_cases_modular.py --setup-only
+```
+
+### 4. Verify Cases (Legacy)
+
+The verification script checks if cases are related to 18 USC 1960 violations:
+
+```bash
+# Example: Verify up to 10 cases
+python 1960-verify.py --limit 10
+
+# Example: Run with verbose logging
+python 1960-verify.py --limit 5 --verbose
+
+# Example: Dry run to test without making changes
+python 1960-verify.py --dry-run --limit 3
+```
+
+### 5. Modular Verification (Recommended)
+
+For better maintainability, use the modular verification script:
+
+```bash
+# Example: Verify up to 10 cases using modular architecture
+python 1960-verify_modular.py --limit 10
+
+# Example: Run with verbose logging
+python 1960-verify_modular.py --limit 5 --verbose
+
+# Example: Dry run to test without making changes
+python 1960-verify_modular.py --dry-run --limit 3
+```
+
+### 6. Launch Web Interface
 
 ```bash
 python app.py
@@ -130,7 +179,7 @@ Visit `http://localhost:5000` to access the web interface.
 - **Activity Logging**: Track successful enrichments, errors, and skipped cases
 - **Visual Indicators**: Color-coded status badges and progress bars
 
-### 4. File Server (Optional)
+### 7. File Server (Optional)
 
 ```bash
 python file_server.py
@@ -142,27 +191,79 @@ Serves files from the current directory on port 8000.
 
 ```
 ocp2-project/
-├── scraper.py          # DOJ press release scraper
-├── enrich_cases.py     # AI-powered data extraction and enrichment
-├── run_enrichment.py   # Batch enrichment runner with verbose support
-├── 1960-verify.py      # Legacy AI verification script
-├── app.py              # Flask web application
-├── file_server.py      # Simple file server
-├── doj_cases.db        # SQLite database
-├── requirements.txt    # Python dependencies
-├── .env                # Environment variables (create from env.example)
-├── .gitignore          # Git ignore rules
-├── env.example         # Environment template
-├── LICENSE             # CC BY-SA 4.0 license
-├── CHANGELOG.md        # Development history
-├── templates/          # Flask templates
+├── scraper.py                    # DOJ press release scraper
+├── enrich_cases.py               # AI-powered data extraction and enrichment (legacy)
+├── enrich_cases_modular.py       # AI-powered data extraction (modular architecture)
+├── run_enrichment.py             # Batch enrichment runner with verbose support
+├── 1960-verify.py                # Legacy AI verification script
+├── 1960-verify_modular.py        # AI verification script (modular architecture)
+├── app.py                        # Flask web application
+├── file_server.py                # Simple file server
+├── doj_cases.db                  # SQLite database
+├── requirements.txt              # Python dependencies
+├── .env                          # Environment variables (create from env.example)
+├── .gitignore                    # Git ignore rules
+├── env.example                   # Environment template
+├── LICENSE                       # CC BY-SA 4.0 license
+├── CHANGELOG.md                  # Development history
+├── templates/                    # Flask templates
 │   ├── base.html
 │   ├── index.html
 │   ├── cases.html
 │   ├── case_detail.html
 │   └── enrichment.html
-└── README.md           # This file
+├── utils/                        # Core utilities (modular architecture)
+│   ├── __init__.py
+│   ├── config.py                 # Centralized configuration management
+│   ├── database.py               # Database connection and schema management
+│   ├── api_client.py             # Venice API client abstraction
+│   ├── json_parser.py            # JSON parsing utilities
+│   └── logging_config.py         # Logging setup and configuration
+├── modules/                      # Domain-specific modules (modular architecture)
+│   ├── __init__.py
+│   ├── enrichment/               # Enrichment domain logic
+│   │   ├── __init__.py
+│   │   ├── prompts.py            # AI prompt templates
+│   │   ├── schemas.py            # Database schema definitions
+│   │   └── storage.py            # Data storage operations
+│   └── verification/             # Verification domain logic
+│       ├── __init__.py
+│       └── classifier.py         # 1960 verification logic
+├── orchestrators/                # Process orchestration (modular architecture)
+│   ├── __init__.py
+│   ├── enrichment_orchestrator.py    # Enrichment process coordination
+│   └── verification_orchestrator.py  # Verification process coordination
+├── docs/                         # Documentation
+│   ├── modularization-plan.md    # Modularization architecture plan
+│   ├── modularization-todos.md   # Implementation TODOs and constraints
+│   └── project-plan.md           # Original project planning document
+└── README.md                     # This file
 ```
+
+## Modular Architecture
+
+The project has been refactored into a clean, modular architecture with the following layers:
+
+### 1. Core Utilities (`utils/`)
+- **Configuration Management**: Centralized environment variable handling
+- **Database Operations**: Standardized database connections and operations
+- **API Client**: Abstracted Venice AI API interactions
+- **JSON Parsing**: Robust JSON extraction and validation utilities
+- **Logging**: Standardized logging configuration and setup
+
+### 2. Domain-Specific Modules (`modules/`)
+- **Enrichment**: AI-powered data extraction logic, prompts, and storage
+- **Verification**: 18 USC 1960 classification and validation logic
+
+### 3. Orchestration Layer (`orchestrators/`)
+- **Process Coordination**: High-level workflow management
+- **Error Handling**: Centralized error recovery and monitoring
+- **Batch Processing**: Efficient handling of large datasets
+
+### 4. CLI Interface
+- **Modular Scripts**: `enrich_cases_modular.py` and `1960-verify_modular.py`
+- **Legacy Support**: Original scripts maintained for backward compatibility
+- **Consistent Interface**: Same CLI arguments across modular and legacy versions
 
 ## Database Schema
 
@@ -188,6 +289,12 @@ cases (Primary Table)
 
 ## Technical Improvements
 
+### Modular Architecture
+- **Separation of Concerns**: Clear boundaries between utilities, domain logic, and orchestration
+- **Code Reusability**: Common functionality extracted into reusable modules
+- **Maintainability**: Smaller, focused files with single responsibilities
+- **Testability**: Isolated components that can be tested independently
+
 ### Robust Data Processing
 - **Multi-Strategy JSON Parsing**: Handles AI responses with thinking text, incomplete JSON, and various formatting issues
 - **JSON Validation**: Ensures extracted data has the expected structure before storage
@@ -199,37 +306,8 @@ cases (Primary Table)
 - **Non-Blocking Logging**: Enrichment continues even if logging fails
 - **Timeout Handling**: Proper connection timeouts and retry logic
 
-### Production Features
-- **Comprehensive Logging**: Detailed activity tracking with success/error/skip status
-- **Error Recovery**: Graceful handling of API failures and parsing errors
-- **Progress Monitoring**: Real-time visibility into enrichment operations
-- **User-Friendly Interface**: Clickable links and visual progress indicators
-
-## Security Notes
-
-- Never commit your `.env` file to version control
-- The `.gitignore` file excludes sensitive files
-- API keys are loaded from environment variables
-- Database files are excluded from version control
-
-## Development History
-
-See [CHANGELOG.md](CHANGELOG.md) for a detailed history of all development work, including:
-- Initial project setup and mission definition
-- Data ingestion pipeline development
-- AI classification improvements
-- UI/UX overhauls
-- Security and deployment enhancements
-- Robust data processing and database reliability improvements
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License - see the [LICENSE](LICENSE) file for details. 
+### Production-Ready Features
+- **Environment Configuration**: Centralized configuration management
+- **Error Recovery**: Comprehensive error handling and graceful degradation
+- **Logging**: Detailed logging for debugging and monitoring
+- **CLI Interface**: Consistent command-line interface with help and validation 
