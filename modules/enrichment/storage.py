@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 def store_extracted_data(case_id: str, table_name: str, normalized_data: Any, url: str) -> bool:
     """
-    Store extracted data in the appropriate table.
+    Store extracted data in the appropriate table after validating the data type.
     
     Args:
         case_id: The case ID
@@ -22,6 +22,14 @@ def store_extracted_data(case_id: str, table_name: str, normalized_data: Any, ur
     Returns:
         True if successful, False otherwise
     """
+    # Centralized validation before dispatching to the storage function
+    expected_type = list if table_name != 'case_metadata' else dict
+    if not isinstance(normalized_data, expected_type):
+        error_msg = f"Invalid data type for {table_name}. Expected {expected_type.__name__}, but got {type(normalized_data).__name__}."
+        logger.error(f"{error_msg} Case ID: {case_id}, Data: {repr(normalized_data)}")
+        log_enrichment_activity(case_id, table_name, 'error', error_msg)
+        return False
+        
     try:
         db_manager = DatabaseManager()
         

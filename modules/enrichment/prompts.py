@@ -73,41 +73,26 @@ You are a legal data extraction expert. Your task is to analyze the following U.
 def _get_participants_prompt(title: str, body: str) -> str:
     """Get prompt for participants extraction."""
     return f"""
-You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all participants mentioned. Return ONLY a JSON array of participant objects with no additional text.
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all participants mentioned. Your response MUST be a single, clean JSON array of participant objects.
 
-**Instructions:**
-1. Read the entire press release text provided below.
-2. Extract information about all participants mentioned (defendants, prosecutors, attorneys, etc.).
-3. For each participant, create a JSON object with these fields:
-    * `name`: Full name of the participant
-    * `role`: Their role in the case (e.g., "defendant", "prosecutor", "defense attorney", "judge", "witness")
-    * `title`: Professional title if mentioned (e.g., "U.S. Attorney", "Assistant U.S. Attorney")
-    * `organization`: Organization they represent (e.g., "U.S. Attorney's Office", "FBI")
-    * `location`: Geographic location if mentioned (e.g., "New York", "California")
-    * `age`: Age if mentioned
-    * `nationality`: Nationality if mentioned
-    * `status`: Current status if mentioned (e.g., "sentenced", "pleaded guilty", "indicted")
-4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
-6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
+**CRITICAL INSTRUCTIONS:**
+1.  **JSON ONLY**: Your entire response must be ONLY the JSON array. Do not include any introductory text, explanations, apologies, or markdown `json` code blocks. Your response should start with `[` and end with `]`.
+2.  **EMPTY ARRAY FOR NO RESULTS**: If no participants are mentioned in the text, you MUST return an empty JSON array: `[]`. Do not return messages like "No participants found." or an empty object.
+3.  **ADHERE TO SCHEMA**: For each participant found, create a JSON object with the exact following fields. Use `null` if a value cannot be found.
+    *   `name`: Full name of the participant.
+    *   `role`: Their role (e.g., "defendant", "prosecutor", "defense attorney", "judge", "witness").
+    *   `title`: Professional title (e.g., "U.S. Attorney", "Assistant U.S. Attorney").
+    *   `organization`: Organization they represent (e.g., "U.S. Attorney's Office", "FBI").
+    *   `location`: Geographic location (e.g., "New York", "California").
+    *   `age`: Age, as an integer.
+    *   `nationality`: Nationality.
+    *   `status`: Current legal status (e.g., "sentenced", "pleaded guilty", "indicted").
 
 **Press Release Title:**
 {title}
+
 **Press Release Body:**
 {body}
-
-[
-  {{
-    "name": "value or null",
-    "role": "value or null",
-    "title": "value or null",
-    "organization": "value or null",
-    "location": "value or null",
-    "age": "value or null",
-    "nationality": "value or null",
-    "status": "value or null"
-  }}
-]
 """
 
 def _get_case_agencies_prompt(title: str, body: str) -> str:
