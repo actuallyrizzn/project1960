@@ -1,8 +1,23 @@
 #!/usr/bin/env python3
 import sqlite3
+import argparse
+import pandas as pd
 
-def check_database():
+def check_database(query=None):
     conn = sqlite3.connect('doj_cases.db')
+    
+    if query:
+        print(f"Executing query: {query}")
+        try:
+            # Use pandas to execute query and display results in a nice table
+            df = pd.read_sql_query(query, conn)
+            print(df.to_string())
+        except Exception as e:
+            print(f"Error executing query: {e}")
+        finally:
+            conn.close()
+        return
+
     c = conn.cursor()
     
     # Check case_metadata table
@@ -27,4 +42,8 @@ def check_database():
     conn.close()
 
 if __name__ == "__main__":
-    check_database() 
+    parser = argparse.ArgumentParser(description='Check the status of the DOJ cases database.')
+    parser.add_argument('--query', type=str, help='Execute a raw SQL query against the database.')
+    args = parser.parse_args()
+    
+    check_database(query=args.query) 

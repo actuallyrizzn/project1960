@@ -1,5 +1,7 @@
 requests==2.31.0
-beautifulsoup4==4.12.2
+beautifulsoup4==4.12.3
 rapidfuzz==3.5.2
 flask==3.0.0
-python-dotenv==1.0.0 
+python-dotenv==1.0.0
+rich==13.7.1
+pandas 
