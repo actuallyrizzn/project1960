@@ -7,36 +7,64 @@ import argparse
 import logging
 import os
 import sys
-import fcntl
+import time
 from utils.logging_config import setup_logging
 from utils.config import Config
 from orchestrators.enrichment_orchestrator import EnrichmentOrchestrator
 
 def acquire_lock(lock_file_path):
-    """Acquire a lock file to prevent multiple instances."""
+    """Acquire a lock file to prevent multiple instances (cross-platform)."""
     try:
-        lock_file = open(lock_file_path, 'w')
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return lock_file
-    except (IOError, OSError):
-        print(f"Another instance is already running. Lock file: {lock_file_path}")
+        # Try to create the lock file
+        with open(lock_file_path, 'w') as f:
+            # Write the current process ID
+            f.write(str(os.getpid()))
+        
+        # On Unix systems, try to use fcntl if available
+        try:
+            import fcntl
+            with open(lock_file_path, 'r+') as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return lock_file_path
+        except (ImportError, IOError, OSError):
+            # On Windows or if fcntl fails, use simple file existence check
+            # Check if another process is using the lock file
+            time.sleep(0.1)  # Small delay to avoid race conditions
+            with open(lock_file_path, 'r') as f:
+                pid = f.read().strip()
+                if pid and pid != str(os.getpid()):
+                    # Check if the process is still running
+                    try:
+                        os.kill(int(pid), 0)  # Signal 0 just checks if process exists
+                        print(f"Another instance (PID {pid}) is already running. Lock file: {lock_file_path}")
+                        sys.exit(1)
+                    except (OSError, ValueError):
+                        # Process doesn't exist, remove stale lock file
+                        pass
+            return lock_file_path
+            
+    except Exception as e:
+        print(f"Failed to acquire lock: {e}")
         sys.exit(1)
 
-def release_lock(lock_file):
+def release_lock(lock_file_path):
     """Release the lock file."""
-    if lock_file:
-        try:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-            lock_file.close()
-            os.unlink(lock_file.name)
-        except:
-            pass
+    try:
+        if os.path.exists(lock_file_path):
+            os.unlink(lock_file_path)
+    except:
+        pass
 
 def main():
     """Main function for the enrichment script."""
     # Setup logging
     setup_logging()
     logger = logging.getLogger(__name__)
+    
+    # Temporarily enable debug logging
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger('utils.api_client').setLevel(logging.DEBUG)
+    logging.getLogger('utils.json_parser').setLevel(logging.DEBUG)
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Enrich DOJ cases with structured data')
@@ -47,16 +75,16 @@ def main():
     parser.add_argument('--limit', type=int, default=100, help='Maximum number of cases to process')
     parser.add_argument('--all', action='store_true', help='Enrich all tables')
     parser.add_argument('--no-lock', action='store_true', help='Skip lock file (for testing)')
+    parser.add_argument('--dry-run', action='store_true', help='Run in dry-run mode (no API calls)')
     
     args = parser.parse_args()
     
     # Lock file handling
-    lock_file = None
     lock_file_path = 'enrichment.lock'
     
     if not args.no_lock:
         try:
-            lock_file = acquire_lock(lock_file_path)
+            lock_file_path = acquire_lock(lock_file_path)
             logger.info(f"Acquired lock file: {lock_file_path}")
         except Exception as e:
             logger.error(f"Failed to acquire lock: {e}")
@@ -69,10 +97,12 @@ def main():
         if args.all:
             # Run enrichment for all tables
             logger.info("Running enrichment for all tables")
-            result = orchestrator.run_all_enrichment(limit=args.limit)
+            result = orchestrator.run_all_enrichment(limit=args.limit, dry_run=args.dry_run)
             
             # Print summary
             print(f"\n=== ENRICHMENT SUMMARY ===")
+            if result.get('dry_run'):
+                print("DRY RUN MODE - No actual changes made")
             print(f"Total tables processed: {result['total_tables']}")
             print(f"Total cases processed: {result['total_cases']}")
             print(f"Successful: {result['total_successful']}")
@@ -86,10 +116,12 @@ def main():
         else:
             # Run enrichment for specific table
             logger.info(f"Running enrichment for table: {args.table}")
-            result = orchestrator.run_enrichment(args.table, limit=args.limit)
+            result = orchestrator.run_enrichment(args.table, limit=args.limit, dry_run=args.dry_run)
             
             # Print summary
             print(f"\n=== ENRICHMENT SUMMARY ===")
+            if result.get('dry_run'):
+                print("DRY RUN MODE - No actual changes made")
             print(f"Table: {result['table_name']}")
             print(f"Total cases: {result['total_cases']}")
             print(f"Successful: {result['successful']}")
@@ -103,8 +135,8 @@ def main():
         return 1
     finally:
         # Always release the lock
-        if lock_file:
-            release_lock(lock_file)
+        if not args.no_lock:
+            release_lock(lock_file_path)
             logger.info("Released lock file")
     
     return 0

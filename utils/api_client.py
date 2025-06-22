@@ -37,6 +37,13 @@ class VeniceAPIClient:
         
         headers = Config.get_api_headers()
         
+        logger.debug(f"Making API call to {self.api_url}")
+        logger.debug(f"Model: {self.model}")
+        logger.debug(f"Max tokens: {max_tokens}")
+        logger.debug(f"Temperature: {temperature}")
+        logger.debug(f"Prompt length: {len(prompt)} characters")
+        logger.debug(f"Prompt preview: {prompt[:200]}...")
+        
         for attempt in range(self.retry_attempts):
             try:
                 logger.debug(f"Sending request to Venice API (attempt {attempt + 1})...")
@@ -63,7 +70,8 @@ class VeniceAPIClient:
                 
                 # Success - parse response
                 data = response.json()
-                logger.debug(f"Raw API JSON response: {data}")
+                logger.debug(f"Raw API JSON response keys: {list(data.keys()) if isinstance(data, dict) else 'not a dict'}")
+                logger.debug(f"Raw API response preview: {str(data)[:500]}...")
                 return data
                 
             except requests.exceptions.ConnectionError as e:
@@ -102,15 +110,19 @@ class VeniceAPIClient:
             return None
         
         logger.debug(f"Extracting content from response data with keys: {list(response_data.keys())}")
+        logger.debug(f"Full response data: {response_data}")
         
         # Strategy 1: Standard OpenAI-style response
         try:
             if "choices" in response_data and response_data["choices"]:
                 choice = response_data["choices"][0]
+                logger.debug(f"Found choices: {choice}")
                 if "message" in choice and "content" in choice["message"]:
                     content = choice["message"]["content"]
                     logger.debug(f"✅ Strategy 1 (OpenAI format) succeeded: {repr(content[:100])}...")
                     return content
+                else:
+                    logger.debug(f"❌ Strategy 1 failed: choice structure: {choice}")
         except (KeyError, IndexError, TypeError) as e:
             logger.debug(f"❌ Strategy 1 (OpenAI format) failed: {e}")
         
@@ -129,6 +141,7 @@ class VeniceAPIClient:
             try:
                 if field in response_data:
                     content = response_data[field]
+                    logger.debug(f"Found field '{field}': {content}")
                     if isinstance(content, str):
                         logger.debug(f"✅ Strategy 3 (text field '{field}') succeeded: {repr(content[:100])}...")
                         return content
@@ -143,6 +156,7 @@ class VeniceAPIClient:
         try:
             import json
             response_str = str(response_data)
+            logger.debug(f"Strategy 4: Converting response to string: {response_str[:500]}...")
             json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_str)
             if json_match:
                 content = json_match.group(0)
@@ -152,4 +166,5 @@ class VeniceAPIClient:
             logger.debug(f"❌ Strategy 4 (string conversion) failed: {e}")
         
         logger.debug("❌ All content extraction strategies failed")
+        logger.debug(f"Final response data that couldn't be parsed: {response_data}")
         return None 

@@ -43,17 +43,18 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `money_amounts`: A comma-separated list of any significant monetary values mentioned (e.g., "$2.5 million", "€800,000").
     * `crypto_assets`: A comma-separated list of any specific cryptocurrency assets mentioned (e.g., "BTC, ETH, Monero").
     * `statutes_json`: A JSON array of the U.S. Code statutes mentioned (e.g., '["18 U.S.C. § 1960", "21 U.S.C. § 846"]').
-    * `timeline_json`: A JSON object of key dates, like {{"indictment_date": "YYYY-MM-DD", "plea_date": "YYYY-MM-DD"}}.
+    * `timeline_json`: A JSON object of key dates, like {{{{"indictment_date": "YYYY-MM-DD", "plea_date": "YYYY-MM-DD"}}}}.
 3. If a field's value cannot be found in the text, use `null` for that field in the JSON output.
 4. The `press_release_url` will be added later; you do not need to extract it.
-5. Return ONLY the JSON object. Do not include any explanations, thinking text, or content outside the JSON.
+5. Return ONLY the JSON object. Do NOT include any explanations, markdown, thinking text, or content outside the JSON. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON object: `{{}}`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON object.
 
 **Press Release Title:**
 {title}
 **Press Release Body:**
 {body}
 
-{{
+{{{{
   "district_office": "value or null",
   "usa_name": "value or null",
   "event_type": "value or null",
@@ -65,8 +66,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
   "money_amounts": "value or null",
   "crypto_assets": "value or null",
   "statutes_json": ["array of statutes or null"],
-  "timeline_json": {{"key": "value or null"}}
-}}
+  "timeline_json": {{{{"key": "value or null"}}}}
+}}}}
 """
 
 def _get_participants_prompt(title: str, body: str) -> str:
@@ -87,7 +88,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `nationality`: Nationality if mentioned
     * `status`: Current status if mentioned (e.g., "sentenced", "pleaded guilty", "indicted")
 4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
 
 **Press Release Title:**
 {title}
@@ -124,7 +126,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `agents_mentioned`: Names of specific agents mentioned as a comma-separated string (e.g., "John Smith, Jane Doe")
     * `contribution`: Brief description of their contribution to the case
 4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
 
 **Press Release Title:**
 {title}
@@ -160,7 +163,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `defendant`: Name of the defendant charged with this offense
     * `status`: Status of this charge (e.g., "indicted", "pleaded guilty", "convicted")
 4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
 
 **Press Release Title:**
 {title}
@@ -197,7 +201,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `defendant`: Name of the defendant associated with this action
     * `status`: Status of the action (e.g., "ordered", "completed", "pending")
 4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
 
 **Press Release Title:**
 {title}
@@ -234,7 +239,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `vulnerability_factors`: Any vulnerability factors mentioned (e.g., "elderly", "immigrants")
     * `impact_description`: Description of the impact on victims
 4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
 
 **Press Release Title:**
 {title}
@@ -271,7 +277,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `context`: Context in which the quote was made
     * `significance`: Why this quote is significant to the case
 4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
 
 **Press Release Title:**
 {title}
@@ -308,7 +315,8 @@ You are a legal data extraction expert. Your task is to analyze the following U.
     * `temporal_aspects`: Time-related aspects of this theme (e.g., "Historical trend", "Recent development")
     * `stakeholders`: Key stakeholders involved in this theme as a comma-separated string (e.g., "Law enforcement, Financial institutions, Victims")
 4. If a field's value cannot be found, use `null` for that field.
-5. Return ONLY the JSON array. Do not include any explanations or text outside of the JSON array.
+5. Return ONLY the JSON array. Do NOT include any explanations, markdown, or text outside of the JSON array. Do NOT include any text before or after the JSON. If you cannot extract the data, return an empty JSON array: `[]`.
+6. Do NOT explain your reasoning. Do NOT use markdown. Do NOT include any text except the JSON array.
 
 **Press Release Title:**
 {title}
