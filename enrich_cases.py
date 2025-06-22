@@ -542,16 +542,21 @@ def normalize_data_for_table(data, table_name):
         return None
 
 def log_enrichment_activity(case_id, table_name, status, notes):
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    from datetime import datetime
-    timestamp = datetime.utcnow().isoformat()
-    cursor.execute(
-        "INSERT INTO enrichment_activity_log (timestamp, case_id, table_name, status, notes) VALUES (?, ?, ?, ?, ?)",
-        (timestamp, case_id, table_name, status, notes)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DATABASE_NAME, timeout=30.0)
+        cursor = conn.cursor()
+        from datetime import datetime
+        timestamp = datetime.utcnow().isoformat()
+        cursor.execute(
+            "INSERT INTO enrichment_activity_log (timestamp, case_id, table_name, status, notes) VALUES (?, ?, ?, ?, ?)",
+            (timestamp, case_id, table_name, status, notes)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        # Don't let logging failures crash the main process
+        logger.warning(f"Failed to log activity: {e}")
+        pass
 
 def store_extracted_data(case_id, table_name, data, url):
     if not data:
@@ -566,10 +571,11 @@ def store_extracted_data(case_id, table_name, data, url):
     
     logger.debug(f"Storing {len(normalized_data) if isinstance(normalized_data, list) else 1} items for table {table_name}")
     
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    
+    conn = None
     try:
+        conn = sqlite3.connect(DATABASE_NAME, timeout=30.0)
+        cursor = conn.cursor()
+        
         if table_name == 'case_metadata':
             data_obj = normalized_data
             if not isinstance(data_obj, dict):
@@ -684,7 +690,8 @@ def store_extracted_data(case_id, table_name, data, url):
         logger.debug(f"Data: {data}")
         log_enrichment_activity(case_id, table_name, 'error', f"Failed to store data: {e}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 def main():
     parser = argparse.ArgumentParser(description="Enrich DOJ cases with structured data using an LLM.")
