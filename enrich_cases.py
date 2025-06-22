@@ -726,23 +726,24 @@ def normalize_data_for_table(data, table_name):
         return None
 
 def log_enrichment_activity(case_id, table_name, status, notes, max_retries=3):
+    """Log enrichment activity to the database. Non-blocking - failures don't stop enrichment."""
     from datetime import datetime, UTC
     for attempt in range(max_retries):
         try:
-            conn = sqlite3.connect(DATABASE_NAME, timeout=60.0)
+            # Use a separate connection with immediate mode to avoid locks
+            conn = sqlite3.connect(DATABASE_NAME, timeout=10.0, isolation_level=None)
             cursor = conn.cursor()
             timestamp = datetime.now(UTC).isoformat()
             cursor.execute(
                 "INSERT INTO enrichment_activity_log (timestamp, case_id, table_name, status, notes) VALUES (?, ?, ?, ?, ?)",
                 (timestamp, case_id, table_name, status, notes)
             )
-            conn.commit()
             conn.close()
             return True
         except Exception as e:
             logger.warning(f"Failed to log activity (attempt {attempt+1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)  # Exponential backoff
+                time.sleep(1)  # Shorter backoff
     logger.warning(f"Failed to log activity for case {case_id}, table {table_name} after {max_retries} attempts. Continuing without logging.")
     return False
 
@@ -768,8 +769,7 @@ def store_extracted_data(case_id, table_name, data, url):
             data_obj = normalized_data
             if not isinstance(data_obj, dict):
                 logger.error(f"case_metadata expects a dict, got {type(data_obj)}: {repr(data_obj)}")
-                if not log_enrichment_activity(case_id, table_name, 'error', f'Expected dict, got {type(data_obj)}'):
-                    return
+                log_enrichment_activity(case_id, table_name, 'error', f'Expected dict, got {type(data_obj)}')
                 return
             data_obj['press_release_url'] = url
             columns = ['case_id', 'district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json', 'press_release_url', 'extras_json']
@@ -783,8 +783,6 @@ def store_extracted_data(case_id, table_name, data, url):
             query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
             cursor.execute(query, tuple(values))
             logger.info(f"Successfully stored metadata for case {case_id}.")
-            if not log_enrichment_activity(case_id, table_name, 'success', 'Stored metadata'):
-                return
             
         elif table_name == 'participants':
             for participant in normalized_data:
@@ -795,17 +793,13 @@ def store_extracted_data(case_id, table_name, data, url):
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
             logger.info(f"Successfully stored {len(normalized_data)} participants for case {case_id}.")
-            if not log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} participants"):
-                return
-                
+            
         elif table_name == 'case_agencies':
             skipped = 0
             for agency in normalized_data:
                 if not isinstance(agency, dict):
                     logger.warning(f"Skipping non-dict item in case_agencies: {repr(agency)} (type: {type(agency)})")
                     skipped += 1
-                    if not log_enrichment_activity(case_id, table_name, 'skipped', f"Non-dict item: {repr(agency)}"):
-                        return
                     continue
                 columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
                 values = [case_id]
@@ -813,8 +807,6 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(agency.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored agency: {agency.get('agency_name')}"):
-                    return
             logger.info(f"Successfully stored {len(normalized_data) - skipped} agencies for case {case_id}. Skipped {skipped} non-dict items.")
                 
         elif table_name == 'charges':
@@ -825,8 +817,6 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(charge.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored charge: {charge.get('statute')}"):
-                    return
             logger.info(f"Successfully stored {len(normalized_data)} charges for case {case_id}.")
                 
         elif table_name == 'financial_actions':
@@ -837,8 +827,6 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(action.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored action: {action.get('action_type')}"):
-                    return
             logger.info(f"Successfully stored {len(normalized_data)} financial actions for case {case_id}.")
                 
         elif table_name == 'victims':
@@ -849,8 +837,6 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(victim.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored victim: {victim.get('victim_type')}"):
-                    return
             logger.info(f"Successfully stored {len(normalized_data)} victims for case {case_id}.")
                 
         elif table_name == 'quotes':
@@ -861,8 +847,6 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(quote.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored quote: {quote.get('speaker_name')}"):
-                    return
             logger.info(f"Successfully stored {len(normalized_data)} quotes for case {case_id}.")
                 
         elif table_name == 'themes':
@@ -873,8 +857,6 @@ def store_extracted_data(case_id, table_name, data, url):
                     values.append(theme.get(col))
                 query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
                 cursor.execute(query, tuple(values))
-                if not log_enrichment_activity(case_id, table_name, 'success', f"Stored theme: {theme.get('theme_name')}"):
-                    return
             logger.info(f"Successfully stored {len(normalized_data)} themes for case {case_id}.")
                 
         else:
@@ -886,10 +868,27 @@ def store_extracted_data(case_id, table_name, data, url):
     except sqlite3.Error as e:
         logger.error(f"Failed to store data for case {case_id} in table {table_name}: {e}")
         logger.debug(f"Data: {data}")
-        log_enrichment_activity(case_id, table_name, 'error', f"Failed to store data: {e}")
     finally:
         if conn:
             conn.close()
+    
+    # Log activity after the main database transaction is complete
+    if table_name == 'case_metadata':
+        log_enrichment_activity(case_id, table_name, 'success', 'Stored metadata')
+    elif table_name == 'participants':
+        log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} participants")
+    elif table_name == 'case_agencies':
+        log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} agencies")
+    elif table_name == 'charges':
+        log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} charges")
+    elif table_name == 'financial_actions':
+        log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} financial actions")
+    elif table_name == 'victims':
+        log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} victims")
+    elif table_name == 'quotes':
+        log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} quotes")
+    elif table_name == 'themes':
+        log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} themes")
 
 def main():
     parser = argparse.ArgumentParser(description="Enrich DOJ cases with structured data using an LLM.")
