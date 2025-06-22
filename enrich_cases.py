@@ -219,6 +219,167 @@ You are a legal data extraction expert. Your task is to analyze the following U.
 {body}
 **JSON Output:**
 """
+    elif table_name == 'participants':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all participants mentioned. Return the data as a JSON array of participant objects.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract information about all participants mentioned (defendants, prosecutors, attorneys, etc.).
+3. For each participant, create a JSON object with these fields:
+    * `name`: Full name of the participant
+    * `role`: Their role in the case (e.g., "defendant", "prosecutor", "defense attorney", "judge", "witness")
+    * `title`: Professional title if mentioned (e.g., "U.S. Attorney", "Assistant U.S. Attorney")
+    * `organization`: Organization they represent (e.g., "U.S. Attorney's Office", "FBI")
+    * `location`: Geographic location if mentioned (e.g., "New York", "California")
+    * `age`: Age if mentioned
+    * `nationality`: Nationality if mentioned
+    * `status`: Current status if mentioned (e.g., "sentenced", "pleaded guilty", "indicted")
+4. If a field's value cannot be found, use `null` for that field.
+5. Return as a JSON array: [{{participant1}}, {{participant2}}, ...]
+6. Do not include any explanations or text outside of the JSON array.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
+    elif table_name == 'case_agencies':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all law enforcement agencies involved. Return the data as a JSON array of agency objects.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract information about all law enforcement agencies mentioned.
+3. For each agency, create a JSON object with these fields:
+    * `agency_name`: Full name of the agency (e.g., "Federal Bureau of Investigation", "Drug Enforcement Administration")
+    * `abbreviation`: Common abbreviation if used (e.g., "FBI", "DEA")
+    * `role`: Their role in the case (e.g., "investigation", "arrest", "prosecution")
+    * `office_location`: Specific office location if mentioned (e.g., "New York Field Office")
+    * `agents_mentioned`: Names of specific agents mentioned
+    * `contribution`: Brief description of their contribution to the case
+4. If a field's value cannot be found, use `null` for that field.
+5. Return as a JSON array: [{{agency1}}, {{agency2}}, ...]
+6. Do not include any explanations or text outside of the JSON array.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
+    elif table_name == 'charges':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all criminal charges mentioned. Return the data as a JSON array of charge objects.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract information about all criminal charges mentioned.
+3. For each charge, create a JSON object with these fields:
+    * `charge_description`: Description of the charge (e.g., "Operating an Unlicensed Money Transmitting Business")
+    * `statute`: The specific statute violated (e.g., "18 U.S.C. § 1960")
+    * `severity`: Severity level if mentioned (e.g., "felony", "misdemeanor")
+    * `max_penalty`: Maximum penalty for this charge (e.g., "20 years in prison")
+    * `fine_amount`: Fine amount if mentioned
+    * `defendant`: Name of the defendant charged with this offense
+    * `status`: Status of this charge (e.g., "indicted", "pleaded guilty", "convicted")
+4. If a field's value cannot be found, use `null` for that field.
+5. Return as a JSON array: [{{charge1}}, {{charge2}}, ...]
+6. Do not include any explanations or text outside of the JSON array.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
+    elif table_name == 'financial_actions':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about all financial actions, seizures, forfeitures, and monetary penalties mentioned. Return the data as a JSON array of financial action objects.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract information about all financial actions mentioned (seizures, forfeitures, fines, restitution, etc.).
+3. For each financial action, create a JSON object with these fields:
+    * `action_type`: Type of financial action (e.g., "forfeiture", "fine", "restitution", "seizure")
+    * `amount`: Monetary amount (e.g., "$2.5 million", "€800,000")
+    * `currency`: Currency if specified (e.g., "USD", "EUR")
+    * `description`: Description of what was seized/forfeited/fined
+    * `asset_type`: Type of asset (e.g., "cash", "cryptocurrency", "property", "vehicles")
+    * `defendant`: Name of the defendant associated with this action
+    * `status`: Status of the action (e.g., "ordered", "completed", "pending")
+4. If a field's value cannot be found, use `null` for that field.
+5. Return as a JSON array: [{{action1}}, {{action2}}, ...]
+6. Do not include any explanations or text outside of the JSON array.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
+    elif table_name == 'victims':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract information about any victims mentioned. Return the data as a JSON array of victim objects.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract information about any victims mentioned in the case.
+3. For each victim, create a JSON object with these fields:
+    * `victim_type`: Type of victim (e.g., "individual", "business", "government", "financial institution")
+    * `description`: Description of the victim (e.g., "elderly investors", "small businesses")
+    * `number_affected`: Number of victims if specified
+    * `loss_amount`: Total loss amount if mentioned
+    * `geographic_scope`: Geographic scope of victimization if mentioned
+    * `vulnerability_factors`: Any vulnerability factors mentioned (e.g., "elderly", "immigrants")
+    * `impact_description`: Description of the impact on victims
+4. If a field's value cannot be found, use `null` for that field.
+5. Return as a JSON array: [{{victim1}}, {{victim2}}, ...]
+6. Do not include any explanations or text outside of the JSON array.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
+    elif table_name == 'quotes':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract all significant quotes mentioned. Return the data as a JSON array of quote objects.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract all significant quotes mentioned in the press release.
+3. For each quote, create a JSON object with these fields:
+    * `quote_text`: The exact quote text
+    * `speaker_name`: Name of the person who said the quote
+    * `speaker_title`: Title/position of the speaker (e.g., "U.S. Attorney", "FBI Special Agent")
+    * `speaker_organization`: Organization the speaker represents
+    * `quote_type`: Type of quote (e.g., "statement", "comment", "announcement", "reaction")
+    * `context`: Brief context of when/why the quote was made
+    * `significance`: Why this quote is significant to the case
+4. If a field's value cannot be found, use `null` for that field.
+5. Return as a JSON array: [{{quote1}}, {{quote2}}, ...]
+6. Do not include any explanations or text outside of the JSON array.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
+    elif table_name == 'themes':
+        return f"""
+You are a legal data extraction expert. Your task is to analyze the following U.S. Department of Justice press release and extract key themes and topics. Return the data as a JSON array of theme objects.
+**Instructions:**
+1. Read the entire press release text provided below.
+2. Extract key themes and topics mentioned in the press release.
+3. For each theme, create a JSON object with these fields:
+    * `theme_name`: Name of the theme (e.g., "Money Laundering", "Cryptocurrency", "International Cooperation")
+    * `description`: Description of how this theme appears in the case
+    * `significance`: Why this theme is important to the case
+    * `related_statutes`: Any statutes related to this theme
+    * `geographic_scope`: Geographic scope if relevant to the theme
+    * `temporal_aspects`: Any temporal aspects mentioned (e.g., "ongoing", "historical")
+    * `stakeholders`: Key stakeholders involved in this theme
+4. If a field's value cannot be found, use `null` for that field.
+5. Return as a JSON array: [{{theme1}}, {{theme2}}, ...]
+6. Do not include any explanations or text outside of the JSON array.
+**Press Release Title:**
+{title}
+**Press Release Body:**
+{body}
+**JSON Output:**
+"""
     logger.error(f"No prompt configured for table: {table_name}")
     return None
 
@@ -293,31 +454,127 @@ def store_extracted_data(case_id, table_name, data, url):
     if not data:
         logger.warning(f"No data provided for case {case_id}, skipping storage.")
         return
+    
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    if table_name == 'case_metadata':
-        data['press_release_url'] = url
-        columns = ['case_id', 'district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json', 'press_release_url', 'extras_json']
-        values = [case_id]
-        for col in columns[1:]:
-            value = data.get(col)
-            if col in ['statutes_json', 'timeline_json', 'extras_json'] and value is not None:
-                values.append(json.dumps(value))
-            else:
-                values.append(value)
-        query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
-        try:
+    
+    try:
+        if table_name == 'case_metadata':
+            data['press_release_url'] = url
+            columns = ['case_id', 'district_office', 'usa_name', 'event_type', 'judge_name', 'judge_title', 'case_number', 'max_penalty_text', 'sentence_summary', 'money_amounts', 'crypto_assets', 'statutes_json', 'timeline_json', 'press_release_url', 'extras_json']
+            values = [case_id]
+            for col in columns[1:]:
+                value = data.get(col)
+                if col in ['statutes_json', 'timeline_json', 'extras_json'] and value is not None:
+                    values.append(json.dumps(value))
+                else:
+                    values.append(value)
+            query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
             cursor.execute(query, tuple(values))
-            conn.commit()
             logger.info(f"Successfully stored metadata for case {case_id}.")
-        except sqlite3.Error as e:
-            logger.error(f"Failed to store metadata for case {case_id}: {e}")
-            logger.debug(f"Query: {query}")
-            logger.debug(f"Values: {values}")
-        finally:
-            conn.close()
-    else:
-        logger.error(f"Storage logic for table '{table_name}' is not yet implemented.")
+            
+        elif table_name == 'participants':
+            if isinstance(data, list):
+                for participant in data:
+                    columns = ['case_id', 'name', 'role', 'title', 'organization', 'location', 'age', 'nationality', 'status']
+                    values = [case_id]
+                    for col in columns[1:]:
+                        values.append(participant.get(col))
+                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                    cursor.execute(query, tuple(values))
+                logger.info(f"Successfully stored {len(data)} participants for case {case_id}.")
+            else:
+                logger.warning(f"Expected list for participants data, got {type(data)}")
+                
+        elif table_name == 'case_agencies':
+            if isinstance(data, list):
+                for agency in data:
+                    columns = ['case_id', 'agency_name', 'abbreviation', 'role', 'office_location', 'agents_mentioned', 'contribution']
+                    values = [case_id]
+                    for col in columns[1:]:
+                        values.append(agency.get(col))
+                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                    cursor.execute(query, tuple(values))
+                logger.info(f"Successfully stored {len(data)} agencies for case {case_id}.")
+            else:
+                logger.warning(f"Expected list for case_agencies data, got {type(data)}")
+                
+        elif table_name == 'charges':
+            if isinstance(data, list):
+                for charge in data:
+                    columns = ['case_id', 'charge_description', 'statute', 'severity', 'max_penalty', 'fine_amount', 'defendant', 'status']
+                    values = [case_id]
+                    for col in columns[1:]:
+                        values.append(charge.get(col))
+                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                    cursor.execute(query, tuple(values))
+                logger.info(f"Successfully stored {len(data)} charges for case {case_id}.")
+            else:
+                logger.warning(f"Expected list for charges data, got {type(data)}")
+                
+        elif table_name == 'financial_actions':
+            if isinstance(data, list):
+                for action in data:
+                    columns = ['case_id', 'action_type', 'amount', 'currency', 'description', 'asset_type', 'defendant', 'status']
+                    values = [case_id]
+                    for col in columns[1:]:
+                        values.append(action.get(col))
+                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                    cursor.execute(query, tuple(values))
+                logger.info(f"Successfully stored {len(data)} financial actions for case {case_id}.")
+            else:
+                logger.warning(f"Expected list for financial_actions data, got {type(data)}")
+                
+        elif table_name == 'victims':
+            if isinstance(data, list):
+                for victim in data:
+                    columns = ['case_id', 'victim_type', 'description', 'number_affected', 'loss_amount', 'geographic_scope', 'vulnerability_factors', 'impact_description']
+                    values = [case_id]
+                    for col in columns[1:]:
+                        values.append(victim.get(col))
+                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                    cursor.execute(query, tuple(values))
+                logger.info(f"Successfully stored {len(data)} victims for case {case_id}.")
+            else:
+                logger.warning(f"Expected list for victims data, got {type(data)}")
+                
+        elif table_name == 'quotes':
+            if isinstance(data, list):
+                for quote in data:
+                    columns = ['case_id', 'quote_text', 'speaker_name', 'speaker_title', 'speaker_organization', 'quote_type', 'context', 'significance']
+                    values = [case_id]
+                    for col in columns[1:]:
+                        values.append(quote.get(col))
+                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                    cursor.execute(query, tuple(values))
+                logger.info(f"Successfully stored {len(data)} quotes for case {case_id}.")
+            else:
+                logger.warning(f"Expected list for quotes data, got {type(data)}")
+                
+        elif table_name == 'themes':
+            if isinstance(data, list):
+                for theme in data:
+                    columns = ['case_id', 'theme_name', 'description', 'significance', 'related_statutes', 'geographic_scope', 'temporal_aspects', 'stakeholders']
+                    values = [case_id]
+                    for col in columns[1:]:
+                        values.append(theme.get(col))
+                    query = f"INSERT OR REPLACE INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['?'] * len(columns))})"
+                    cursor.execute(query, tuple(values))
+                logger.info(f"Successfully stored {len(data)} themes for case {case_id}.")
+            else:
+                logger.warning(f"Expected list for themes data, got {type(data)}")
+                
+        else:
+            logger.error(f"Storage logic for table '{table_name}' is not yet implemented.")
+            return
+            
+        conn.commit()
+        
+    except sqlite3.Error as e:
+        logger.error(f"Failed to store data for case {case_id} in table {table_name}: {e}")
+        logger.debug(f"Data: {data}")
+    finally:
+        conn.close()
 
 def main():
     parser = argparse.ArgumentParser(description="Enrich DOJ cases with structured data using an LLM.")
