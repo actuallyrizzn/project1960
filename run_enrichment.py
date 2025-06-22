@@ -87,22 +87,37 @@ def run_enrichment_pass(table_name, limit, dry_run=False, verbose=False):
         start_time = time.time()
         # Pass current environment to subprocess
         env = os.environ.copy()
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600, env=env)  # 1 hour timeout
-        end_time = time.time()
         
-        # Always log the output for debugging
-        if result.stdout:
-            logger.info(f"STDOUT: {result.stdout}")
-        if result.stderr:
-            logger.warning(f"STDERR: {result.stderr}")
-        
-        if result.returncode == 0:
-            logger.info(f"SUCCESS: Completed {table_name} enrichment in {end_time - start_time:.1f}s")
-            return True
+        if verbose:
+            # In verbose mode, run without capturing output so it displays in real-time
+            logger.info("Running in verbose mode - output will display in real-time")
+            result = subprocess.run(cmd, timeout=3600, env=env)  # 1 hour timeout
+            end_time = time.time()
+            
+            if result.returncode == 0:
+                logger.info(f"SUCCESS: Completed {table_name} enrichment in {end_time - start_time:.1f}s")
+                return True
+            else:
+                logger.error(f"FAILED: Failed to enrich {table_name} (return code: {result.returncode})")
+                return False
         else:
-            logger.error(f"FAILED: Failed to enrich {table_name} (return code: {result.returncode})")
-            logger.error(f"Error output: {result.stderr}")
-            return False
+            # In non-verbose mode, capture output for logging
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600, env=env)  # 1 hour timeout
+            end_time = time.time()
+            
+            # Log the output for debugging
+            if result.stdout:
+                logger.info(f"STDOUT: {result.stdout}")
+            if result.stderr:
+                logger.warning(f"STDERR: {result.stderr}")
+            
+            if result.returncode == 0:
+                logger.info(f"SUCCESS: Completed {table_name} enrichment in {end_time - start_time:.1f}s")
+                return True
+            else:
+                logger.error(f"FAILED: Failed to enrich {table_name} (return code: {result.returncode})")
+                logger.error(f"Error output: {result.stderr}")
+                return False
             
     except subprocess.TimeoutExpired:
         logger.error(f"TIMEOUT: Timeout while enriching {table_name}")
