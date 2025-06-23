@@ -1,5 +1,5 @@
 """
-Database connection and schema management for the DOJ cases project.
+Database connection and schema management for the Project1960.
 """
 import sqlite3
 import logging

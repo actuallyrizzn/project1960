@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Modularized 1960 verification script for DOJ cases.
+Modularized 1960 verification script for Project1960.
 Uses the new modular architecture.
 """
 import argparse

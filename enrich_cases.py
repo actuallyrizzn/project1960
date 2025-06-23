@@ -905,7 +905,7 @@ def store_extracted_data(case_id, table_name, data, url):
         log_enrichment_activity(case_id, table_name, 'success', f"Stored {len(normalized_data)} themes")
 
 def main():
-    parser = argparse.ArgumentParser(description="Enrich DOJ cases with structured data using an LLM.")
+    parser = argparse.ArgumentParser(description="Enrich Project1960 with structured data using an LLM.")
     parser.add_argument(
         '--table',
         required=False,

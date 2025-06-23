@@ -1,5 +1,5 @@
 """
-JSON parsing utilities for the DOJ cases project.
+JSON parsing utilities for the Project1960.
 """
 import json
 import re

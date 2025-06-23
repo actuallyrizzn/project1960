@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Progressive Enrichment Runner for DOJ Cases
+Progressive Enrichment Runner for Project1960
 
 This script runs the enrichment process for all tables in the optimal order.
 It's designed to be run via cron to continuously enrich new data as it arrives.

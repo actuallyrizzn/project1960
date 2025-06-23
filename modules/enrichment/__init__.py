@@ -1,3 +1,3 @@
 """
-Enrichment module for extracting structured data from DOJ cases.
+Enrichment module for extracting structured data from Project1960.
 """ 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}DOJ Cases Explorer{% endblock %}</title>
+    <title>{% block title %}Project1960{% endblock %}</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -22,6 +22,14 @@
             --text-color: #333;
             --card-bg: #fff;
             --border-color: #e9ecef;
+            --input-bg: #fff;
+            --input-border: #ced4da;
+            --input-text: #495057;
+            --table-header-bg: #f8f9fa;
+            --table-header-text: #495057;
+            --breadcrumb-bg: #e9ecef;
+            --breadcrumb-text: #6c757d;
+            --progress-bg: #e9ecef;
         }
 
         [data-theme="dark"] {
@@ -31,10 +39,18 @@
             --success-color: #27ae60;
             --warning-color: #f39c12;
             --danger-color: #e74c3c;
-            --bg-color: #1a1a1a;
-            --text-color: #e0e0e0;
-            --card-bg: #2d2d2d;
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --card-bg: #1e1e1e;
             --border-color: #404040;
+            --input-bg: #2d2d2d;
+            --input-border: #404040;
+            --input-text: #e0e0e0;
+            --table-header-bg: #2c3e50;
+            --table-header-text: #ffffff;
+            --breadcrumb-bg: #2d2d2d;
+            --breadcrumb-text: #b0b0b0;
+            --progress-bg: #404040;
         }
         
         body {
@@ -83,6 +99,11 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
+
+        .card-header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
         
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -114,6 +135,16 @@
             background: linear-gradient(135deg, #2980b9, var(--accent-color));
             transform: translateY(-1px);
         }
+
+        .btn-outline-secondary {
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: var(--border-color);
+            color: var(--card-bg);
+        }
         
         .table {
             background-color: var(--card-bg);
@@ -123,8 +154,8 @@
         }
         
         .table thead th {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
+            background: var(--table-header-bg);
+            color: var(--table-header-text);
             border: none;
             font-weight: 600;
         }
@@ -137,6 +168,10 @@
         .table tbody tr:hover {
             background-color: var(--border-color);
         }
+
+        .table-sm td, .table-sm th {
+            padding: 0.5rem;
+        }
         
         .badge {
             font-size: 0.8em;
@@ -144,18 +179,24 @@
             border-radius: 20px;
         }
         
-        .search-box {
-            background-color: var(--card-bg);
-            color: var(--text-color);
-            border-radius: 25px;
-            border: 2px solid var(--border-color);
-            padding: 12px 20px;
+        .search-box, .form-control, .form-select {
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
             transition: all 0.3s;
         }
         
-        .search-box:focus {
+        .search-box:focus, .form-control:focus, .form-select:focus {
+            background-color: var(--input-bg);
+            color: var(--input-text);
             border-color: var(--accent-color);
             box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .form-label {
+            color: var(--text-color);
+            font-weight: 500;
         }
         
         .pagination .page-link {
@@ -171,6 +212,32 @@
             border: none;
         }
 
+        .pagination .page-item.disabled .page-link {
+            background-color: var(--border-color);
+            color: var(--text-color);
+            opacity: 0.6;
+        }
+
+        /* Progress bars */
+        .progress {
+            background-color: var(--progress-bg);
+        }
+
+        /* Breadcrumbs */
+        .breadcrumb {
+            background-color: var(--breadcrumb-bg);
+            border-radius: 8px;
+        }
+
+        .breadcrumb-item a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--breadcrumb-text);
+        }
+
         /* Dark mode specific adjustments */
         [data-theme="dark"] .text-muted {
             color: #a0a0a0 !important;
@@ -178,6 +245,75 @@
 
         [data-theme="dark"] .border {
             border-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .bg-light {
+            background-color: var(--card-bg) !important;
+        }
+
+        [data-theme="dark"] .table-light {
+            background-color: var(--card-bg) !important;
+        }
+
+        [data-theme="dark"] .table-light th {
+            background-color: var(--table-header-bg) !important;
+            color: var(--table-header-text) !important;
+        }
+
+        [data-theme="dark"] .table-light td {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+        }
+
+        /* Form select dropdowns in dark mode */
+        [data-theme="dark"] .form-select option {
+            background-color: var(--input-bg);
+            color: var(--input-text);
+        }
+
+        /* Links in dark mode */
+        [data-theme="dark"] a {
+            color: var(--accent-color);
+        }
+
+        [data-theme="dark"] a:hover {
+            color: #2980b9;
+        }
+
+        /* Text colors in dark mode */
+        [data-theme="dark"] .text-primary {
+            color: var(--accent-color) !important;
+        }
+
+        [data-theme="dark"] .text-success {
+            color: var(--success-color) !important;
+        }
+
+        [data-theme="dark"] .text-warning {
+            color: var(--warning-color) !important;
+        }
+
+        [data-theme="dark"] .text-info {
+            color: var(--accent-color) !important;
+        }
+
+        [data-theme="dark"] .text-danger {
+            color: var(--danger-color) !important;
+        }
+
+        /* Small text in dark mode */
+        [data-theme="dark"] .small {
+            color: #b0b0b0;
+        }
+
+        /* Hover effects for cards in dark mode */
+        [data-theme="dark"] .card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        /* Table hover in dark mode */
+        [data-theme="dark"] .table-hover tbody tr:hover {
+            background-color: #2a2a2a !important;
         }
     </style>
 </head>
@@ -187,7 +323,7 @@
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="bi bi-shield-check me-2"></i>
-                DOJ Cases Explorer
+                Project1960
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -232,7 +368,7 @@
         <div class="container">
             <p class="mb-0">
                 <i class="bi bi-code-slash me-1"></i>
-                DOJ Cases Explorer - Built with Flask & Bootstrap
+                Project1960 - Built with Flask & Bootstrap
             </p>
         </div>
     </footer>

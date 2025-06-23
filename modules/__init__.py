@@ -1,3 +1,3 @@
 """
-Domain-specific modules for the DOJ cases project.
+Domain-specific modules for the Project1960.
 """ 

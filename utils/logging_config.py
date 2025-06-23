@@ -1,5 +1,5 @@
 """
-Logging configuration for the DOJ cases project.
+Logging configuration for the Project1960.
 """
 import logging
 from .config import Config

@@ -1,5 +1,5 @@
 """
-Verification process orchestration for DOJ cases.
+Verification process orchestration for Project1960.
 """
 import logging
 from typing import List, Optional, Dict, Any
@@ -10,7 +10,7 @@ from modules.verification.classifier import classify_case, store_classification
 logger = get_logger(__name__)
 
 class VerificationOrchestrator:
-    """Orchestrates the verification process for DOJ cases."""
+    """Orchestrates the verification process for Project1960."""
     
     def __init__(self):
         """Initialize the verification orchestrator."""

@@ -1,5 +1,5 @@
 """
-Centralized configuration management for the DOJ cases project.
+Centralized configuration management for the Project1960.
 """
 import os
 from dotenv import load_dotenv

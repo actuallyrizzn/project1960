@@ -1,5 +1,5 @@
 """
-AI prompt templates for data extraction from DOJ cases.
+AI prompt templates for data extraction from Project1960.
 """
 from typing import Dict, Any
 

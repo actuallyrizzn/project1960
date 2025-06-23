@@ -1,5 +1,5 @@
 """
-1960 verification classifier for DOJ cases.
+1960 verification classifier for Project1960.
 """
 import logging
 from typing import Optional, Dict, Any

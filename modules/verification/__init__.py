@@ -1,3 +1,3 @@
 """
-Verification module for 1960 classification of DOJ cases.
+Verification module for 1960 classification of Project1960.
 """ 

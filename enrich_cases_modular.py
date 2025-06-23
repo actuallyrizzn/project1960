@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Modularized enrichment script for DOJ cases.
+Modularized enrichment script for Project1960.
 Uses the new modular architecture.
 """
 import argparse
@@ -62,7 +62,7 @@ def main():
     logger = logging.getLogger(__name__)
     
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Enrich DOJ cases with structured data')
+    parser = argparse.ArgumentParser(description='Enrich Project1960 with structured data')
     parser.add_argument('--table', choices=[
         'case_metadata', 'participants', 'case_agencies', 'charges', 
         'financial_actions', 'victims', 'quotes', 'themes'

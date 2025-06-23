@@ -181,4 +181,4 @@ tail -f logs/enrichment_$(date +%Y%m%d)*.log
 - **Progress monitoring**: Real-time visibility into enrichment operations
 - **Modular architecture**: Clean, maintainable codebase
 
-This setup will automatically enrich your DOJ cases database as new data arrives, maintaining a continuously updated structured dataset for analysis. 
+This setup will automatically enrich your Project1960 database as new data arrives, maintaining a continuously updated structured dataset for analysis. 

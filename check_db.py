@@ -66,7 +66,7 @@ def check_database(query=None, rebuild=False):
     conn.close()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Check the status of the DOJ cases database.')
+    parser = argparse.ArgumentParser(description='Check the status of the Project1960 database.')
     parser.add_argument('--query', type=str, help='Execute a raw SQL query against the database.')
     parser.add_argument('--rebuild', action='store_true', help='Drop and rebuild all enrichment tables.')
     args = parser.parse_args()

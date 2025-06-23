@@ -1,3 +1,3 @@
 """
-Utility modules for the DOJ cases project.
+Utility modules for the Project1960.
 """ 

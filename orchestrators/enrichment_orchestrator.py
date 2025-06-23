@@ -1,5 +1,5 @@
 """
-Enrichment process orchestration for DOJ cases.
+Enrichment process orchestration for Project1960.
 """
 import logging
 from typing import List, Optional, Dict, Any
@@ -14,7 +14,7 @@ from modules.enrichment.storage import store_extracted_data
 logger = get_logger(__name__)
 
 class EnrichmentOrchestrator:
-    """Orchestrates the enrichment process for DOJ cases."""
+    """Orchestrates the enrichment process for Project1960."""
     
     def __init__(self):
         """Initialize the enrichment orchestrator."""
