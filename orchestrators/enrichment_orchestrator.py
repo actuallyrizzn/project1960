@@ -31,26 +31,16 @@ class EnrichmentOrchestrator:
         schemas = get_all_schemas()
         self.db_manager.create_tables(schemas)
         
-    def get_cases_for_enrichment(self, table_name: str, limit: int = 100) -> List[tuple]:
+    def get_cases_for_enrichment(self, table_name: str, limit: int = 100, verified_1960_only: bool = False) -> List[tuple]:
         """
         Get cases that need enrichment for a specific table.
-        
-        Args:
-            table_name: The table to enrich
-            limit: Maximum number of cases to process
-            
-        Returns:
-            List of (case_id, title, body, url) tuples
+        Optionally filter for 1960-verified cases only.
         """
-        # Check if enrichment activity log exists
         if not self.db_manager.table_exists('enrichment_activity_log'):
-            # Create the log table if it doesn't exist
             log_schema = self.get_all_schemas()['enrichment_activity_log']
             self.db_manager.execute_query(log_schema)
-        
-        # Get cases that haven't been successfully enriched for this table
-        # Use a subquery to get the most recent status for each case
-        query = """
+
+        base_query = """
             SELECT c.id, c.title, c.body, c.url
             FROM cases c
             LEFT JOIN (
@@ -59,13 +49,15 @@ class EnrichmentOrchestrator:
                 FROM enrichment_activity_log
                 WHERE table_name = ?
             ) latest_status ON c.id = latest_status.case_id AND latest_status.rn = 1
-            WHERE latest_status.status IS NULL OR latest_status.status != 'success'
-            ORDER BY c.created DESC
-            LIMIT ?
+            WHERE (latest_status.status IS NULL OR latest_status.status != 'success')
         """
-        
+        params = [table_name]
+        if verified_1960_only:
+            base_query += " AND c.classification = 'yes' "
+        base_query += " ORDER BY c.created DESC LIMIT ?"
+        params.append(limit)
         try:
-            results = self.db_manager.execute_query(query, (table_name, limit))
+            results = self.db_manager.execute_query(base_query, tuple(params))
             logger.info(f"Found {len(results)} cases to process for '{table_name}'.")
             return results
         except Exception as e:
@@ -196,33 +188,38 @@ class EnrichmentOrchestrator:
             ]
         return None
     
-    def run_enrichment(self, table_name: str, limit: int = 100, dry_run: bool = False, case_number: Optional[str] = None) -> Dict[str, Any]:
+    def _has_1960_verified_cases_to_enrich(self, table_name: str) -> bool:
+        """
+        Return True if there are any 1960-verified cases that do not have a row in the enrichment table.
+        """
+        # Assume enrichment tables have a 'case_id' column
+        query = f'''
+            SELECT 1 FROM cases c
+            LEFT JOIN {table_name} t ON c.id = t.case_id
+            WHERE c.classification = 'yes' AND t.case_id IS NULL
+            LIMIT 1
+        '''
+        try:
+            result = self.db_manager.execute_query(query)
+            return bool(result)
+        except Exception as e:
+            logger.error(f"Failed to check for 1960-verified cases to enrich in {table_name}: {e}")
+            return False
+
+    def run_enrichment(self, table_name: str, limit: int = 100, dry_run: bool = False, case_number: Optional[str] = None, verified_1960_only: bool = False) -> Dict[str, Any]:
         """
         Run enrichment for a specific table.
-        
-        Args:
-            table_name: The table to enrich
-            limit: Maximum number of cases to process
-            dry_run: If True, simulate the enrichment without making API calls
-            case_number: If provided, enrich only this specific case number.
-            
-        Returns:
-            Dictionary with results summary
+        Optionally filter for 1960-verified cases only.
         """
         logger.info(f"Starting enrichment process for table: '{table_name}'")
         if dry_run:
             logger.info("DRY RUN MODE: No actual API calls or database changes will be made")
-        
-        # Setup tables if needed
         if not dry_run:
             self.setup_enrichment_tables()
-        
-        # Get cases to process
         if case_number:
             cases = self.get_case_by_id(case_number)
         else:
-            cases = self.get_cases_for_enrichment(table_name, limit)
-        
+            cases = self.get_cases_for_enrichment(table_name, limit, verified_1960_only=verified_1960_only)
         if not cases:
             logger.info("No cases found for enrichment.")
             return {
@@ -233,23 +230,17 @@ class EnrichmentOrchestrator:
                 'success_rate': 0.0,
                 'dry_run': dry_run
             }
-        
-        # Process cases
         successful = 0
         failed = 0
-        
         for case_id, title, body, url in cases:
             if self.enrich_case(case_id, title, body, url, table_name, dry_run=dry_run):
                 successful += 1
             else:
                 failed += 1
-        
         total = successful + failed
         success_rate = (successful / total * 100) if total > 0 else 0
-        
         logger.info(f"Enrichment run complete.")
         logger.info(f"Results: {successful} successful, {failed} failed ({success_rate:.1f}% success rate)")
-        
         return {
             'table_name': table_name,
             'total_cases': total,
@@ -261,22 +252,18 @@ class EnrichmentOrchestrator:
     
     def run_all_enrichment(self, limit: int = 100, dry_run: bool = False) -> Dict[str, Any]:
         """
-        Run enrichment for all tables sequentially.
-        
-        Args:
-            limit: Maximum number of cases to process per table
-            dry_run: If True, simulate the enrichment without making API calls
-            
-        Returns:
-            Dictionary with a comprehensive results summary for all tables.
+        Run enrichment for all tables sequentially, prioritizing 1960-verified cases. If none remain, process all cases.
         """
         all_tables = list(get_all_schemas().keys())
-        # We don't enrich the activity log itself
         if 'enrichment_activity_log' in all_tables:
             all_tables.remove('enrichment_activity_log')
-            
         logger.info(f"Starting enrichment for all tables: {all_tables}")
-
+        # Check if any 1960-verified cases remain to enrich for any table (by direct join)
+        any_1960_left = False
+        for table_name in all_tables:
+            if self._has_1960_verified_cases_to_enrich(table_name):
+                any_1960_left = True
+                break
         overall_results = {
             'total_tables': 0,
             'total_cases': 0,
@@ -285,19 +272,20 @@ class EnrichmentOrchestrator:
             'table_results': {},
             'dry_run': dry_run
         }
-
         for table_name in all_tables:
             logger.info(f"--- Processing table: {table_name} ---")
-            result = self.run_enrichment(table_name, limit=limit, dry_run=dry_run)
-            
+            result = self.run_enrichment(
+                table_name,
+                limit=limit,
+                dry_run=dry_run,
+                verified_1960_only=any_1960_left
+            )
             overall_results['table_results'][table_name] = result
             overall_results['total_tables'] += 1
             overall_results['total_cases'] += result['total_cases']
             overall_results['total_successful'] += result['successful']
             overall_results['total_failed'] += result['failed']
-
         total_processed = overall_results['total_successful'] + overall_results['total_failed']
         overall_results['overall_success_rate'] = (overall_results['total_successful'] / total_processed * 100) if total_processed > 0 else 0
-        
         logger.info("--- Completed enrichment for all tables ---")
         return overall_results 

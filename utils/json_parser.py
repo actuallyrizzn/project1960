@@ -6,6 +6,11 @@ import re
 import logging
 from typing import Optional, Any, Dict, List
 
+try:
+    import dirtyjson
+except ImportError:
+    dirtyjson = None
+
 logger = logging.getLogger(__name__)
 
 def clean_json_string(json_str: str) -> Optional[str]:
@@ -146,7 +151,7 @@ def clean_and_parse_json(raw_text: str) -> Optional[Any]:
 
     This function first tries to find a JSON object or array that might be
     wrapped in markdown or other text. It greedily looks for the largest
-line-spanning text between `{...}` or `[...]`.
+    line-spanning text between `{...}` or `[...]`.
 
     Args:
         raw_text: The raw string response from the AI.
@@ -156,54 +161,65 @@ line-spanning text between `{...}` or `[...]`.
         could be extracted.
     """
     if not isinstance(raw_text, str):
+        logger.debug("Input is not a string.")
         return None
 
-    # Strategy 1: Find JSON within markdown code blocks.
-    # This is often the most reliable way to get clean JSON from LLMs.
-    match = re.search(r'```(json)?\s*([\s\S]*?)\s*```', raw_text)
-    if match:
-        potential_json = match.group(2).strip()
+    def try_parse_json(json_str: str) -> Optional[Any]:
+        """Try to parse JSON using dirtyjson first, then standard json as fallback."""
+        if not json_str or not json_str.strip():
+            return None
+            
+        # Try dirtyjson first (more robust for malformed JSON)
+        if dirtyjson:
+            try:
+                result = dirtyjson.loads(json_str)
+                logger.debug(f"dirtyjson successfully parsed: {result}")
+                # Convert AttributedDict to regular dict if needed
+                if hasattr(result, '__dict__') and hasattr(result, 'items'):
+                    # This is likely an AttributedDict, convert to regular dict
+                    result = dict(result)
+                return result
+            except Exception as e:
+                logger.debug(f"dirtyjson failed: {e}")
+        
+        # Fallback to standard json
         try:
-            return json.loads(potential_json)
-        except json.JSONDecodeError:
-            logger.warning(f"Failed to decode JSON from markdown block: {potential_json[:200]}...")
+            result = json.loads(json_str)
+            logger.debug(f"standard json successfully parsed: {result}")
+            return result
+        except Exception as e:
+            logger.debug(f"standard json failed: {e}")
+            return None
 
-    # Strategy 2: Find the last complete JSON object or array in the text.
-    # This is more robust than a simple greedy search, as it respects nesting.
-    json_pattern = re.compile(
-        r"""
-        (
-            \{
-                [^{}]*
-                (?:
-                    \{ [^{}]* \}
-                    [^{}]*
-                )*
-            \}
-            |
-            \[
-                [^[\]]*
-                (?:
-                    \[ [^[]]* \]
-                    [^[\]]*
-                )*
-            \]
-        )
-        """, re.VERBOSE
-    )
+    # 1. If markdown code block is found, strip all code block markers and try to parse the content.
+    code_block = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', raw_text)
+    if code_block:
+        potential_json = code_block.group(1).strip()
+        logger.debug(f"Trying to parse JSON from markdown code block: {potential_json}")
+        result = try_parse_json(potential_json)
+        if result is not None:
+            return result
 
+    # 2. Use a greedy regex to find all {...} and [...] blocks, including across newlines, and try to parse each, returning the last valid one.
+    json_pattern = re.compile(r'(\{[\s\S]*?\}|\[[\s\S]*?\])', re.DOTALL)
     matches = json_pattern.findall(raw_text)
+    last_valid = None
+    for match in matches:
+        logger.debug(f"Trying to parse JSON from match: {match}")
+        result = try_parse_json(match)
+        if result is not None:
+            last_valid = result
+    if last_valid is not None:
+        logger.debug(f"Returning last valid JSON object/array: {last_valid}")
+        return last_valid
 
-    if not matches:
-        logger.warning("No complete JSON object or array found in the text.")
-        return None
-
-    # The last match is the most likely candidate for the final, correct output.
-    last_match = matches[-1]
-    logger.debug(f"Found potential JSON in last match: {last_match[:200]}...")
-
-    try:
-        return json.loads(last_match)
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to decode the last found JSON object/array: {e}")
-        return None
+    # 3. If all else fails, find the first '{' or '[', slice from there, and try to parse.
+    brace_idx = min([i for i in [raw_text.find('{'), raw_text.find('[')] if i != -1], default=-1)
+    if brace_idx != -1:
+        logger.debug(f"Trying to parse JSON from first brace/bracket at index {brace_idx}")
+        result = try_parse_json(raw_text[brace_idx:])
+        if result is not None:
+            return result
+            
+    logger.debug("No valid JSON found in input.")
+    return None

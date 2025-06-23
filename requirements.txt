@@ -4,4 +4,5 @@ rapidfuzz==3.5.2
 flask==3.0.0
 python-dotenv==1.0.0
 rich==13.7.1
-pandas 
+pandas
+dirtyjson==1.0.8 

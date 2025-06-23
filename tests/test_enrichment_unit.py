@@ -6,18 +6,19 @@ import os
 from unittest.mock import Mock, patch, MagicMock
 import sys
 import os
+from orchestrators.enrichment_orchestrator import EnrichmentOrchestrator
 
 # Add the current directory to the path so we can import our modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from enrich_cases import (
     get_extraction_prompt,
-    clean_and_parse_json,
     store_extracted_data,
     setup_enrichment_tables,
     get_cases_to_enrich,
     call_venice_api
 )
+from utils.json_parser import clean_and_parse_json
 
 @pytest.fixture
 def temp_db():
@@ -167,9 +168,9 @@ class TestExtractionPrompts:
         assert "Cryptocurrency" in prompt
     
     def test_invalid_table_prompt(self):
-        """Test that invalid table returns None."""
-        prompt = get_extraction_prompt('invalid_table', "title", "body")
-        assert prompt is None
+        """Test that invalid table raises ValueError."""
+        with pytest.raises(ValueError):
+            get_extraction_prompt('invalid_table', "title", "body")
 
 class TestJSONParsing:
     """Test the JSON parsing and cleaning functionality."""
@@ -454,6 +455,107 @@ class TestCaseQueries:
             cases = get_cases_to_enrich('case_metadata', 1)
             
             assert len(cases) == 1
+
+class TestEnrichmentOrchestrator1960Logic:
+    @pytest.fixture
+    def temp_db_with_enrichment_tables(self):
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+            db_path = f.name
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        # Create cases table
+        cursor.execute('''
+            CREATE TABLE cases (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                body TEXT,
+                url TEXT,
+                classification TEXT
+            )
+        ''')
+        # Create a sample enrichment table
+        cursor.execute('''
+            CREATE TABLE participants (
+                participant_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id TEXT,
+                name TEXT
+            )
+        ''')
+        conn.commit()
+        yield db_path
+        try:
+            if os.path.exists(db_path):
+                os.unlink(db_path)
+        except PermissionError:
+            pass
+
+    def test_has_1960_verified_cases_to_enrich_true(self, temp_db_with_enrichment_tables):
+        orchestrator = EnrichmentOrchestrator()
+        orchestrator.db_manager.db_path = temp_db_with_enrichment_tables
+        # Insert a 1960-verified case with no enrichment row
+        conn = sqlite3.connect(temp_db_with_enrichment_tables)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO cases (id, title, body, url, classification) VALUES (?, ?, ?, ?, ?)",
+                       ("case1", "Title", "Body", "url", "yes"))
+        conn.commit()
+        conn.close()
+        assert orchestrator._has_1960_verified_cases_to_enrich('participants') is True
+
+    def test_has_1960_verified_cases_to_enrich_false(self, temp_db_with_enrichment_tables):
+        orchestrator = EnrichmentOrchestrator()
+        orchestrator.db_manager.db_path = temp_db_with_enrichment_tables
+        # Insert a 1960-verified case with enrichment row
+        conn = sqlite3.connect(temp_db_with_enrichment_tables)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO cases (id, title, body, url, classification) VALUES (?, ?, ?, ?, ?)",
+                       ("case1", "Title", "Body", "url", "yes"))
+        cursor.execute("INSERT INTO participants (case_id, name) VALUES (?, ?)", ("case1", "John Doe"))
+        conn.commit()
+        conn.close()
+        assert orchestrator._has_1960_verified_cases_to_enrich('participants') is False
+
+    def test_run_all_enrichment_prioritizes_1960(self, temp_db_with_enrichment_tables):
+        orchestrator = EnrichmentOrchestrator()
+        orchestrator.db_manager.db_path = temp_db_with_enrichment_tables
+        # Insert a 1960-verified case and a non-1960 case
+        conn = sqlite3.connect(temp_db_with_enrichment_tables)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO cases (id, title, body, url, classification) VALUES (?, ?, ?, ?, ?)",
+                       ("case1", "Title", "Body", "url", "yes"))
+        cursor.execute("INSERT INTO cases (id, title, body, url, classification) VALUES (?, ?, ?, ?, ?)",
+                       ("case2", "Title2", "Body2", "url2", "no"))
+        conn.commit()
+        conn.close()
+        # Patch run_enrichment to record the verified_1960_only flag
+        called_flags = []
+        def fake_run_enrichment(table_name, limit, dry_run, verified_1960_only, case_number=None):
+            called_flags.append(verified_1960_only)
+            return {'table_name': table_name, 'total_cases': 0, 'successful': 0, 'failed': 0, 'success_rate': 0.0, 'dry_run': dry_run}
+        with patch.object(orchestrator, 'run_enrichment', side_effect=fake_run_enrichment):
+            with patch('orchestrators.enrichment_orchestrator.get_all_schemas', return_value={'participants': '', 'enrichment_activity_log': ''}):
+                orchestrator.run_all_enrichment()
+        # Should prioritize 1960-verified cases (verified_1960_only True)
+        assert any(called_flags)
+
+    def test_run_all_enrichment_fallback_to_all(self, temp_db_with_enrichment_tables):
+        orchestrator = EnrichmentOrchestrator()
+        orchestrator.db_manager.db_path = temp_db_with_enrichment_tables
+        # Insert only a non-1960-verified case
+        conn = sqlite3.connect(temp_db_with_enrichment_tables)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO cases (id, title, body, url, classification) VALUES (?, ?, ?, ?, ?)",
+                       ("case2", "Title2", "Body2", "url2", "no"))
+        conn.commit()
+        conn.close()
+        called_flags = []
+        def fake_run_enrichment(table_name, limit, dry_run, verified_1960_only, case_number=None):
+            called_flags.append(verified_1960_only)
+            return {'table_name': table_name, 'total_cases': 0, 'successful': 0, 'failed': 0, 'success_rate': 0.0, 'dry_run': dry_run}
+        with patch.object(orchestrator, 'run_enrichment', side_effect=fake_run_enrichment):
+            with patch('orchestrators.enrichment_orchestrator.get_all_schemas', return_value={'participants': '', 'enrichment_activity_log': ''}):
+                orchestrator.run_all_enrichment()
+        # Should fallback to all cases (verified_1960_only False)
+        assert not any(called_flags)
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"]) 
