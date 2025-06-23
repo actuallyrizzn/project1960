@@ -112,11 +112,6 @@ def _store_case_metadata(db_manager: DatabaseManager, case_id: str, data_obj: Di
 
 def _store_participants(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
     """Store participants data."""
-    if not isinstance(data, list):
-        logger.error(f"participants expects a list, got {type(data)}")
-        log_enrichment_activity(case_id, 'participants', 'error', f'Expected list, got {type(data)}')
-        return False
-            
     # Clear existing data for this case
     db_manager.execute_query("DELETE FROM participants WHERE case_id = ?", (case_id,))
     
@@ -139,11 +134,6 @@ def _store_participants(db_manager: DatabaseManager, case_id: str, data: List[Di
 
 def _store_case_agencies(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
     """Store case agencies data."""
-    if not isinstance(data, list):
-        logger.error(f"case_agencies expects a list, got {type(data)}")
-        log_enrichment_activity(case_id, 'case_agencies', 'error', f'Expected list, got {type(data)}')
-        return False
-            
     # Clear existing data for this case
     db_manager.execute_query("DELETE FROM case_agencies WHERE case_id = ?", (case_id,))
     
@@ -176,11 +166,6 @@ def _store_case_agencies(db_manager: DatabaseManager, case_id: str, data: List[D
 
 def _store_charges(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
     """Store charges data."""
-    if not isinstance(data, list):
-        logger.error(f"charges expects a list, got {type(data)}")
-        log_enrichment_activity(case_id, 'charges', 'error', f'Expected list, got {type(data)}')
-        return False
-            
     # Clear existing data for this case
     db_manager.execute_query("DELETE FROM charges WHERE case_id = ?", (case_id,))
     
@@ -209,11 +194,6 @@ def _store_charges(db_manager: DatabaseManager, case_id: str, data: List[Dict[st
 
 def _store_financial_actions(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
     """Store financial actions data."""
-    if not isinstance(data, list):
-        logger.error(f"financial_actions expects a list, got {type(data)}")
-        log_enrichment_activity(case_id, 'financial_actions', 'error', f'Expected list, got {type(data)}')
-        return False
-            
     # Clear existing data for this case
     db_manager.execute_query("DELETE FROM financial_actions WHERE case_id = ?", (case_id,))
     
@@ -242,11 +222,6 @@ def _store_financial_actions(db_manager: DatabaseManager, case_id: str, data: Li
 
 def _store_victims(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
     """Store victims data."""
-    if not isinstance(data, list):
-        logger.error(f"victims expects a list, got {type(data)}")
-        log_enrichment_activity(case_id, 'victims', 'error', f'Expected list, got {type(data)}')
-        return False
-            
     # Clear existing data for this case
     db_manager.execute_query("DELETE FROM victims WHERE case_id = ?", (case_id,))
     
@@ -275,11 +250,6 @@ def _store_victims(db_manager: DatabaseManager, case_id: str, data: List[Dict[st
 
 def _store_quotes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
     """Store quotes data."""
-    if not isinstance(data, list):
-        logger.error(f"quotes expects a list, got {type(data)}")
-        log_enrichment_activity(case_id, 'quotes', 'error', f'Expected list, got {type(data)}')
-        return False
-            
     # Clear existing data for this case
     db_manager.execute_query("DELETE FROM quotes WHERE case_id = ?", (case_id,))
     
@@ -308,11 +278,6 @@ def _store_quotes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str
 
 def _store_themes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
     """Store themes data."""
-    if not isinstance(data, list):
-        logger.error(f"themes expects a list, got {type(data)}")
-        log_enrichment_activity(case_id, 'themes', 'error', f'Expected list, got {type(data)}')
-        return False
-            
     # Clear existing data for this case
     db_manager.execute_query("DELETE FROM themes WHERE case_id = ?", (case_id,))
     
