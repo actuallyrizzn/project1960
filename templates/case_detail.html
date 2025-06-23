@@ -165,30 +165,33 @@
                     <!-- Participants -->
                     {% if enrichment.participants %}
                     <div class="mb-4">
-                        <h5 class="fw-bold mb-3">
+                        <h5 class="fw-bold mb-3" data-bs-toggle="collapse" href="#collapseParticipants" role="button" aria-expanded="false" aria-controls="collapseParticipants" style="cursor:pointer;">
                             <i class="bi bi-people me-2"></i>
                             Participants ({{ enrichment.participants|length }})
+                            <i class="bi bi-chevron-down ms-2"></i>
                         </h5>
-                        <div class="row">
-                            {% for participant in enrichment.participants %}
-                            <div class="col-md-6 mb-3">
-                                <div class="card border">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ participant.name or 'Unknown' }}</h6>
-                                        <p class="card-text">
-                                            <span class="badge bg-secondary me-1">{{ participant.role or 'Unknown' }}</span>
-                                            {% if participant.title %}<span class="badge bg-info me-1">{{ participant.title }}</span>{% endif %}
-                                        </p>
-                                        {% if participant.organization %}
-                                        <small class="text-muted">{{ participant.organization }}</small><br>
-                                        {% endif %}
-                                        {% if participant.location %}
-                                        <small class="text-muted">{{ participant.location }}</small>
-                                        {% endif %}
+                        <div class="collapse" id="collapseParticipants">
+                            <div class="row">
+                                {% for participant in enrichment.participants %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ participant.name or 'Unknown' }}</h6>
+                                            <p class="card-text">
+                                                <span class="badge bg-secondary me-1">{{ participant.role or 'Unknown' }}</span>
+                                                {% if participant.title %}<span class="badge bg-info me-1">{{ participant.title }}</span>{% endif %}
+                                            </p>
+                                            {% if participant.organization %}
+                                            <small class="text-muted">{{ participant.organization }}</small><br>
+                                            {% endif %}
+                                            {% if participant.location %}
+                                            <small class="text-muted">{{ participant.location }}</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                     {% endif %}
@@ -196,29 +199,32 @@
                     <!-- Agencies -->
                     {% if enrichment.agencies %}
                     <div class="mb-4">
-                        <h5 class="fw-bold mb-3">
+                        <h5 class="fw-bold mb-3" data-bs-toggle="collapse" href="#collapseAgencies" role="button" aria-expanded="false" aria-controls="collapseAgencies" style="cursor:pointer;">
                             <i class="bi bi-building me-2"></i>
                             Law Enforcement Agencies ({{ enrichment.agencies|length }})
+                            <i class="bi bi-chevron-down ms-2"></i>
                         </h5>
-                        <div class="row">
-                            {% for agency in enrichment.agencies %}
-                            <div class="col-md-6 mb-3">
-                                <div class="card border">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ agency.agency_name or 'Unknown Agency' }}</h6>
-                                        {% if agency.abbreviation %}
-                                        <p class="card-text">
-                                            <span class="badge bg-primary me-1">{{ agency.abbreviation }}</span>
-                                            {% if agency.role %}<span class="badge bg-secondary">{{ agency.role }}</span>{% endif %}
-                                        </p>
-                                        {% endif %}
-                                        {% if agency.contribution %}
-                                        <small class="text-muted">{{ agency.contribution }}</small>
-                                        {% endif %}
+                        <div class="collapse" id="collapseAgencies">
+                            <div class="row">
+                                {% for agency in enrichment.agencies %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ agency.agency_name or 'Unknown Agency' }}</h6>
+                                            {% if agency.abbreviation %}
+                                            <p class="card-text">
+                                                <span class="badge bg-primary me-1">{{ agency.abbreviation }}</span>
+                                                {% if agency.role %}<span class="badge bg-secondary">{{ agency.role }}</span>{% endif %}
+                                            </p>
+                                            {% endif %}
+                                            {% if agency.contribution %}
+                                            <small class="text-muted">{{ agency.contribution }}</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                     {% endif %}
@@ -226,28 +232,31 @@
                     <!-- Charges -->
                     {% if enrichment.charges %}
                     <div class="mb-4">
-                        <h5 class="fw-bold mb-3">
+                        <h5 class="fw-bold mb-3" data-bs-toggle="collapse" href="#collapseCharges" role="button" aria-expanded="false" aria-controls="collapseCharges" style="cursor:pointer;">
                             <i class="bi bi-exclamation-triangle me-2"></i>
                             Charges ({{ enrichment.charges|length }})
+                            <i class="bi bi-chevron-down ms-2"></i>
                         </h5>
-                        <div class="row">
-                            {% for charge in enrichment.charges %}
-                            <div class="col-12 mb-3">
-                                <div class="card border">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ charge.charge_description or 'Unknown Charge' }}</h6>
-                                        <p class="card-text">
-                                            {% if charge.statute %}<span class="badge bg-danger me-1">{{ charge.statute }}</span>{% endif %}
-                                            {% if charge.severity %}<span class="badge bg-warning me-1">{{ charge.severity }}</span>{% endif %}
-                                            {% if charge.max_penalty %}<span class="badge bg-info me-1">{{ charge.max_penalty }}</span>{% endif %}
-                                        </p>
-                                        {% if charge.defendant %}
-                                        <small class="text-muted">Defendant: {{ charge.defendant }}</small>
-                                        {% endif %}
+                        <div class="collapse" id="collapseCharges">
+                            <div class="row">
+                                {% for charge in enrichment.charges %}
+                                <div class="col-12 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ charge.charge_description or 'Unknown Charge' }}</h6>
+                                            <p class="card-text">
+                                                {% if charge.statute %}<span class="badge bg-danger me-1">{{ charge.statute }}</span>{% endif %}
+                                                {% if charge.severity %}<span class="badge bg-warning me-1">{{ charge.severity }}</span>{% endif %}
+                                                {% if charge.max_penalty %}<span class="badge bg-info me-1">{{ charge.max_penalty }}</span>{% endif %}
+                                            </p>
+                                            {% if charge.defendant %}
+                                            <small class="text-muted">Defendant: {{ charge.defendant }}</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                     {% endif %}
@@ -255,27 +264,30 @@
                     <!-- Financial Actions -->
                     {% if enrichment.financial_actions %}
                     <div class="mb-4">
-                        <h5 class="fw-bold mb-3">
+                        <h5 class="fw-bold mb-3" data-bs-toggle="collapse" href="#collapseFinancialActions" role="button" aria-expanded="false" aria-controls="collapseFinancialActions" style="cursor:pointer;">
                             <i class="bi bi-cash-stack me-2"></i>
                             Financial Actions ({{ enrichment.financial_actions|length }})
+                            <i class="bi bi-chevron-down ms-2"></i>
                         </h5>
-                        <div class="row">
-                            {% for action in enrichment.financial_actions %}
-                            <div class="col-md-6 mb-3">
-                                <div class="card border">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ action.action_type or 'Unknown Action' }}</h6>
-                                        <p class="card-text">
-                                            {% if action.amount %}<span class="badge bg-success me-1">{{ action.amount }}</span>{% endif %}
-                                            {% if action.currency %}<span class="badge bg-info me-1">{{ action.currency }}</span>{% endif %}
-                                        </p>
-                                        {% if action.description %}
-                                        <small class="text-muted">{{ action.description }}</small>
-                                        {% endif %}
+                        <div class="collapse" id="collapseFinancialActions">
+                            <div class="row">
+                                {% for action in enrichment.financial_actions %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ action.action_type or 'Unknown Action' }}</h6>
+                                            <p class="card-text">
+                                                {% if action.amount %}<span class="badge bg-success me-1">{{ action.amount }}</span>{% endif %}
+                                                {% if action.currency %}<span class="badge bg-info me-1">{{ action.currency }}</span>{% endif %}
+                                            </p>
+                                            {% if action.description %}
+                                            <small class="text-muted">{{ action.description }}</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                     {% endif %}
@@ -283,26 +295,29 @@
                     <!-- Victims -->
                     {% if enrichment.victims %}
                     <div class="mb-4">
-                        <h5 class="fw-bold mb-3">
+                        <h5 class="fw-bold mb-3" data-bs-toggle="collapse" href="#collapseVictims" role="button" aria-expanded="false" aria-controls="collapseVictims" style="cursor:pointer;">
                             <i class="bi bi-heart-broken me-2"></i>
                             Victims ({{ enrichment.victims|length }})
+                            <i class="bi bi-chevron-down ms-2"></i>
                         </h5>
-                        <div class="row">
-                            {% for victim in enrichment.victims %}
-                            <div class="col-md-6 mb-3">
-                                <div class="card border">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ victim.victim_type or 'Unknown Victim Type' }}</h6>
-                                        {% if victim.description %}
-                                        <p class="card-text">{{ victim.description }}</p>
-                                        {% endif %}
-                                        {% if victim.loss_amount %}
-                                        <small class="text-muted">Loss: {{ victim.loss_amount }}</small>
-                                        {% endif %}
+                        <div class="collapse" id="collapseVictims">
+                            <div class="row">
+                                {% for victim in enrichment.victims %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ victim.victim_type or 'Unknown Victim Type' }}</h6>
+                                            {% if victim.description %}
+                                            <p class="card-text">{{ victim.description }}</p>
+                                            {% endif %}
+                                            {% if victim.loss_amount %}
+                                            <small class="text-muted">Loss: {{ victim.loss_amount }}</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                     {% endif %}
@@ -310,50 +325,56 @@
                     <!-- Quotes -->
                     {% if enrichment.quotes %}
                     <div class="mb-4">
-                        <h5 class="fw-bold mb-3">
+                        <h5 class="fw-bold mb-3" data-bs-toggle="collapse" href="#collapseQuotes" role="button" aria-expanded="false" aria-controls="collapseQuotes" style="cursor:pointer;">
                             <i class="bi bi-chat-quote me-2"></i>
                             Notable Quotes ({{ enrichment.quotes|length }})
+                            <i class="bi bi-chevron-down ms-2"></i>
                         </h5>
-                        {% for quote in enrichment.quotes %}
-                        <div class="card border mb-3">
-                            <div class="card-body">
-                                <blockquote class="blockquote mb-2">
-                                    <p class="mb-0">"{{ quote.quote_text }}"</p>
-                                </blockquote>
-                                <footer class="blockquote-footer">
-                                    {% if quote.speaker_name %}{{ quote.speaker_name }}{% endif %}
-                                    {% if quote.speaker_title %}, {{ quote.speaker_title }}{% endif %}
-                                    {% if quote.speaker_organization %}, {{ quote.speaker_organization }}{% endif %}
-                                </footer>
+                        <div class="collapse" id="collapseQuotes">
+                            {% for quote in enrichment.quotes %}
+                            <div class="card border mb-3">
+                                <div class="card-body">
+                                    <blockquote class="blockquote mb-2">
+                                        <p class="mb-0">"{{ quote.quote_text }}"</p>
+                                    </blockquote>
+                                    <footer class="blockquote-footer">
+                                        {% if quote.speaker_name %}{{ quote.speaker_name }}{% endif %}
+                                        {% if quote.speaker_title %}, {{ quote.speaker_title }}{% endif %}
+                                        {% if quote.speaker_organization %}, {{ quote.speaker_organization }}{% endif %}
+                                    </footer>
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
                     {% endif %}
 
                     <!-- Themes -->
                     {% if enrichment.themes %}
                     <div class="mb-4">
-                        <h5 class="fw-bold mb-3">
+                        <h5 class="fw-bold mb-3" data-bs-toggle="collapse" href="#collapseThemes" role="button" aria-expanded="false" aria-controls="collapseThemes" style="cursor:pointer;">
                             <i class="bi bi-tags me-2"></i>
                             Themes ({{ enrichment.themes|length }})
+                            <i class="bi bi-chevron-down ms-2"></i>
                         </h5>
-                        <div class="row">
-                            {% for theme in enrichment.themes %}
-                            <div class="col-md-6 mb-3">
-                                <div class="card border">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ theme.theme_name or 'Unknown Theme' }}</h6>
-                                        {% if theme.description %}
-                                        <p class="card-text">{{ theme.description }}</p>
-                                        {% endif %}
-                                        {% if theme.significance %}
-                                        <small class="text-muted">{{ theme.significance }}</small>
-                                        {% endif %}
+                        <div class="collapse" id="collapseThemes">
+                            <div class="row">
+                                {% for theme in enrichment.themes %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ theme.theme_name or 'Unknown Theme' }}</h6>
+                                            {% if theme.description %}
+                                            <p class="card-text">{{ theme.description }}</p>
+                                            {% endif %}
+                                            {% if theme.significance %}
+                                            <small class="text-muted">{{ theme.significance }}</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                     {% endif %}
