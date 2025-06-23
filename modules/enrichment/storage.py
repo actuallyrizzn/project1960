@@ -22,13 +22,29 @@ def store_extracted_data(case_id: str, table_name: str, normalized_data: Any, ur
     Returns:
         True if successful, False otherwise
     """
-    # Centralized validation before dispatching to the storage function
-    expected_type = list if table_name != 'case_metadata' else dict
-    if not isinstance(normalized_data, expected_type):
-        error_msg = f"Invalid data type for {table_name}. Expected {expected_type.__name__}, but got {type(normalized_data).__name__}."
-        logger.error(f"{error_msg} Case ID: {case_id}, Data: {repr(normalized_data)}")
-        log_enrichment_activity(case_id, table_name, 'error', error_msg)
+    # Handle None data
+    if normalized_data is None:
+        logger.warning(f"No data to store for {table_name}. Case ID: {case_id}")
+        log_enrichment_activity(case_id, table_name, 'error', 'No data received from AI')
         return False
+    
+    # Handle data type conversion for list-based tables
+    if table_name != 'case_metadata':
+        if isinstance(normalized_data, dict):
+            logger.info(f"Converting single dict to list for {table_name}. Case ID: {case_id}")
+            normalized_data = [normalized_data]
+        elif not isinstance(normalized_data, list):
+            error_msg = f"Invalid data type for {table_name}. Expected list or dict, but got {type(normalized_data).__name__}."
+            logger.error(f"{error_msg} Case ID: {case_id}, Data: {repr(normalized_data)}")
+            log_enrichment_activity(case_id, table_name, 'error', error_msg)
+            return False
+    else:
+        # case_metadata expects a dict
+        if not isinstance(normalized_data, dict):
+            error_msg = f"Invalid data type for {table_name}. Expected dict, but got {type(normalized_data).__name__}."
+            logger.error(f"{error_msg} Case ID: {case_id}, Data: {repr(normalized_data)}")
+            log_enrichment_activity(case_id, table_name, 'error', error_msg)
+            return False
         
     try:
         db_manager = DatabaseManager()
@@ -95,11 +111,7 @@ def _store_case_metadata(db_manager: DatabaseManager, case_id: str, data_obj: Di
         return False
 
 def _store_participants(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
-    """Store participants data, wrapping a single dict in a list if needed."""
-    if isinstance(data, dict):
-        logger.warning("Received a dict for participants, wrapping in a list.")
-        data = [data]
-
+    """Store participants data."""
     if not isinstance(data, list):
         logger.error(f"participants expects a list, got {type(data)}")
         log_enrichment_activity(case_id, 'participants', 'error', f'Expected list, got {type(data)}')
@@ -126,11 +138,7 @@ def _store_participants(db_manager: DatabaseManager, case_id: str, data: List[Di
     return True
 
 def _store_case_agencies(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
-    """Store case agencies data, wrapping a single dict in a list if needed."""
-    if isinstance(data, dict):
-        logger.warning("Received a dict for case_agencies, wrapping in a list.")
-        data = [data]
-
+    """Store case agencies data."""
     if not isinstance(data, list):
         logger.error(f"case_agencies expects a list, got {type(data)}")
         log_enrichment_activity(case_id, 'case_agencies', 'error', f'Expected list, got {type(data)}')
@@ -167,11 +175,7 @@ def _store_case_agencies(db_manager: DatabaseManager, case_id: str, data: List[D
     return True
 
 def _store_charges(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
-    """Store charges data, wrapping a single dict in a list if needed."""
-    if isinstance(data, dict):
-        logger.warning("Received a dict for charges, wrapping in a list.")
-        data = [data]
-
+    """Store charges data."""
     if not isinstance(data, list):
         logger.error(f"charges expects a list, got {type(data)}")
         log_enrichment_activity(case_id, 'charges', 'error', f'Expected list, got {type(data)}')
@@ -204,11 +208,7 @@ def _store_charges(db_manager: DatabaseManager, case_id: str, data: List[Dict[st
     return True
 
 def _store_financial_actions(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
-    """Store financial actions data, wrapping a single dict in a list if needed."""
-    if isinstance(data, dict):
-        logger.warning("Received a dict for financial_actions, wrapping in a list.")
-        data = [data]
-
+    """Store financial actions data."""
     if not isinstance(data, list):
         logger.error(f"financial_actions expects a list, got {type(data)}")
         log_enrichment_activity(case_id, 'financial_actions', 'error', f'Expected list, got {type(data)}')
@@ -241,11 +241,7 @@ def _store_financial_actions(db_manager: DatabaseManager, case_id: str, data: Li
     return True
 
 def _store_victims(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
-    """Store victims data, wrapping a single dict in a list if needed."""
-    if isinstance(data, dict):
-        logger.warning("Received a dict for victims, wrapping in a list.")
-        data = [data]
-
+    """Store victims data."""
     if not isinstance(data, list):
         logger.error(f"victims expects a list, got {type(data)}")
         log_enrichment_activity(case_id, 'victims', 'error', f'Expected list, got {type(data)}')
@@ -278,11 +274,7 @@ def _store_victims(db_manager: DatabaseManager, case_id: str, data: List[Dict[st
     return True
 
 def _store_quotes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
-    """Store quotes data, wrapping a single dict in a list if needed."""
-    if isinstance(data, dict):
-        logger.warning("Received a dict for quotes, wrapping in a list.")
-        data = [data]
-
+    """Store quotes data."""
     if not isinstance(data, list):
         logger.error(f"quotes expects a list, got {type(data)}")
         log_enrichment_activity(case_id, 'quotes', 'error', f'Expected list, got {type(data)}')
@@ -315,11 +307,7 @@ def _store_quotes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str
     return True
 
 def _store_themes(db_manager: DatabaseManager, case_id: str, data: List[Dict[str, Any]]) -> bool:
-    """Store themes data, wrapping a single dict in a list if needed."""
-    if isinstance(data, dict):
-        logger.warning("Received a dict for themes, wrapping in a list.")
-        data = [data]
-
+    """Store themes data."""
     if not isinstance(data, list):
         logger.error(f"themes expects a list, got {type(data)}")
         log_enrichment_activity(case_id, 'themes', 'error', f'Expected list, got {type(data)}')
