@@ -1,4 +1,4 @@
-# DOJ Case Analysis Project
+# project1960
 
 A comprehensive system for scraping, analyzing, and exploring Department of Justice press releases, with a focus on 18 USC 1960 (money transmission) and cryptocurrency-related cases.
 
