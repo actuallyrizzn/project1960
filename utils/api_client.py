@@ -444,3 +444,22 @@ class VeniceAPIClient:
         timeout = timeout_config.get(model, 120)  # Default to 120 seconds
         logger.debug(f"Using timeout of {timeout} seconds for model {model}")
         return timeout 
+
+import requests
+
+def debug_doj_api():
+    DOJ_API_URL = "https://www.justice.gov/api/v1/press_releases.json"
+    params = {"pagesize": 50, "page": 1}
+    response = requests.get(DOJ_API_URL, params=params, timeout=30)
+    print(f"Status code: {response.status_code}")
+    data = response.json()
+    print(f"Keys in response: {list(data.keys())}")
+    print(f"Number of results in first page: {len(data.get('results', []))}")
+    if 'total' in data:
+        print(f"Total results reported by API: {data['total']}")
+    else:
+        print("No 'total' key in API response.")
+    print(f"Sample result: {data.get('results', [{}])[0]}")
+
+if __name__ == "__main__":
+    debug_doj_api() 

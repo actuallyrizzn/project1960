@@ -169,23 +169,46 @@ def store_case(item):
 def fetch_all(wait_sec=2):
     """
     Fetch results from the DOJ API (pagesize=50), page by page.
-    Stop when we hit an empty 'results' or when we reach already-scraped content.
+    Stop only when we hit an empty 'results' or a request error.
     Each page is locally filtered for 1960/crypto mentions before storing.
     """
     page = 1
     total_fetched = 0
     total_stored = 0
-    
-    # Get the most recent date to determine where to start
-    most_recent_date = get_most_recent_date()
-    
+    oldest_date = None
+    newest_date = None
+
     print(f"Starting scrape from page 1...")
-    if most_recent_date:
-        print(f"Will stop when reaching content from {most_recent_date} or earlier")
 
     while True:
         params = {"pagesize": 50, "page": page}
-        response = requests.get(DOJ_API_URL, params=params)
+        
+        # Add timeout and retry logic
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                print(f"Fetching page {page} (attempt {retry_count + 1}/{max_retries})...")
+                response = requests.get(DOJ_API_URL, params=params, timeout=30)
+                break  # Success, exit retry loop
+            except requests.exceptions.Timeout:
+                retry_count += 1
+                if retry_count < max_retries:
+                    print(f"Timeout on page {page}, retrying in 5 seconds... (attempt {retry_count + 1}/{max_retries})")
+                    time.sleep(5)
+                else:
+                    print(f"Failed to fetch page {page} after {max_retries} attempts due to timeout")
+                    return
+            except requests.exceptions.RequestException as e:
+                retry_count += 1
+                if retry_count < max_retries:
+                    print(f"Request error on page {page}: {e}, retrying in 5 seconds... (attempt {retry_count + 1}/{max_retries})")
+                    time.sleep(5)
+                else:
+                    print(f"Failed to fetch page {page} after {max_retries} attempts: {e}")
+                    return
+        
         if response.status_code != 200:
             print(f"Error fetching page {page}: {response.status_code}")
             break
@@ -199,29 +222,22 @@ def fetch_all(wait_sec=2):
         total_fetched += len(results)
         print(f"Fetched {len(results)} results on page {page} (total fetched: {total_fetched})")
 
-        # Check if we've reached already-scraped content
-        page_stored = 0
-        reached_existing_content = False
-
+        # Track oldest/newest dates
         for item in results:
-            item_date = item.get("date", "")
-            
-            # If we have a most recent date and this item is older or equal, stop
-            if most_recent_date and item_date and item_date <= most_recent_date:
-                print(f"Reached existing content (date: {item_date}). Stopping scrape.")
-                reached_existing_content = True
-                break
-            
-            # Store the case if it matches our criteria
+            item_date = item.get("date", None)
+            if item_date:
+                if not oldest_date or item_date < oldest_date:
+                    oldest_date = item_date
+                if not newest_date or item_date > newest_date:
+                    newest_date = item_date
+
+        # Store cases if they match our criteria
+        page_stored = 0
+        for item in results:
             if store_case(item):
                 page_stored += 1
                 total_stored += 1
-        
         print(f"Stored {page_stored} new matches from page {page}")
-        
-        # If we reached existing content, stop the crawl
-        if reached_existing_content:
-            break
 
         page += 1
         # Polite wait to avoid hitting the API too fast
@@ -230,6 +246,8 @@ def fetch_all(wait_sec=2):
     print(f"\nCrawl complete!")
     print(f"Total items fetched: {total_fetched}")
     print(f"Total new matches stored: {total_stored}")
+    print(f"Oldest date seen: {oldest_date}")
+    print(f"Newest date seen: {newest_date}")
     if total_stored == 0:
         print("No new matching content found.")
     else:
