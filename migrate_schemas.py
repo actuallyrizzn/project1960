@@ -1,11 +1,31 @@
 #!/usr/bin/env python3
 """
 Database schema migration script for enrichment tables.
-Safely adds missing columns without destroying existing data.
+Safely creates all required tables and adds missing columns without destroying existing data.
 """
 import sqlite3
 import logging
 from utils.logging_config import setup_logging
+from modules.enrichment.schemas import get_all_schemas
+
+# Schema for the 'cases' table (from scraper.py)
+CASES_TABLE_SCHEMA = '''
+CREATE TABLE IF NOT EXISTS cases (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    date TEXT,
+    body TEXT,
+    url TEXT,
+    teaser TEXT,
+    number TEXT,
+    component TEXT,
+    topic TEXT,
+    changed TEXT,
+    created TEXT,
+    mentions_1960 BOOLEAN,
+    mentions_crypto BOOLEAN
+);
+'''
 
 def migrate_schemas():
     """Migrate existing enrichment tables to the new schema."""
@@ -14,8 +34,20 @@ def migrate_schemas():
     
     conn = sqlite3.connect('doj_cases.db')
     cursor = conn.cursor()
-    
-    # Define the migrations needed
+
+    # 1. Create the 'cases' table if it does not exist
+    logger.info("Ensuring 'cases' table exists...")
+    cursor.execute(CASES_TABLE_SCHEMA)
+    logger.info("'cases' table checked/created.")
+
+    # 2. Create all enrichment tables and activity log if missing
+    schemas = get_all_schemas()
+    for table_name, create_stmt in schemas.items():
+        logger.info(f"Ensuring '{table_name}' table exists...")
+        cursor.execute(create_stmt)
+        logger.info(f"'{table_name}' table checked/created.")
+
+    # 3. Perform column migrations (legacy logic)
     migrations = [
         {
             'table': 'participants',
@@ -31,7 +63,7 @@ def migrate_schemas():
         }
     ]
     
-    logger.info("Starting schema migration...")
+    logger.info("Starting column migration checks...")
     
     for migration in migrations:
         table = migration['table']
