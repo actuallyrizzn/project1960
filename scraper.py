@@ -163,22 +163,68 @@ def store_case(item):
     conn.close()
     return stored
 
+def get_last_processed_page():
+    """Get the last page number that was successfully processed."""
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    
+    # Check if we have a last_page table
+    cursor.execute("""
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='scraper_state'
+    """)
+    
+    if not cursor.fetchone():
+        # Create the table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE scraper_state (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        return 0
+    
+    cursor.execute('SELECT value FROM scraper_state WHERE key = "last_page"')
+    result = cursor.fetchone()
+    last_page = int(result[0]) if result and result[0] else 0
+    
+    conn.close()
+    return last_page
+
+def save_last_processed_page(page):
+    """Save the last page number that was successfully processed."""
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT OR REPLACE INTO scraper_state (key, value) 
+        VALUES (?, ?)
+    ''', ('last_page', str(page)))
+    
+    conn.commit()
+    conn.close()
+
 ##################################
 # Full Crawl with Indefinite Pagination
 ##################################
 def fetch_all(wait_sec=2):
     """
     Fetch results from the DOJ API (pagesize=50), page by page.
+    Start from the last processed page to avoid re-processing.
     Stop only when we hit an empty 'results' or a request error.
     Each page is locally filtered for 1960/crypto mentions before storing.
     """
-    page = 1
+    # Start from the last processed page + 1
+    start_page = get_last_processed_page() + 1
+    page = start_page
     total_fetched = 0
     total_stored = 0
     oldest_date = None
     newest_date = None
 
-    print(f"Starting scrape from page 1...")
+    print(f"Starting scrape from page {start_page} (last processed: {start_page - 1})...")
 
     while True:
         params = {"pagesize": 50, "page": page}
@@ -199,6 +245,7 @@ def fetch_all(wait_sec=2):
                     time.sleep(5)
                 else:
                     print(f"Failed to fetch page {page} after {max_retries} attempts due to timeout")
+                    print(f"Stopping crawl due to persistent timeout.")
                     return
             except requests.exceptions.RequestException as e:
                 retry_count += 1
@@ -207,10 +254,13 @@ def fetch_all(wait_sec=2):
                     time.sleep(5)
                 else:
                     print(f"Failed to fetch page {page} after {max_retries} attempts: {e}")
+                    print(f"Stopping crawl due to persistent request error.")
                     return
         
         if response.status_code != 200:
             print(f"Error fetching page {page}: {response.status_code}")
+            print(f"Response content: {response.text[:200]}...")
+            print(f"Stopping crawl due to API error.")
             break
 
         data = response.json()
@@ -238,6 +288,9 @@ def fetch_all(wait_sec=2):
                 page_stored += 1
                 total_stored += 1
         print(f"Stored {page_stored} new matches from page {page}")
+        
+        # Save this page as successfully processed
+        save_last_processed_page(page)
 
         page += 1
         # Polite wait to avoid hitting the API too fast
@@ -248,6 +301,7 @@ def fetch_all(wait_sec=2):
     print(f"Total new matches stored: {total_stored}")
     print(f"Oldest date seen: {oldest_date}")
     print(f"Newest date seen: {newest_date}")
+    print(f"Last page processed: {page - 1}")
     if total_stored == 0:
         print("No new matching content found.")
     else:
@@ -255,8 +309,14 @@ def fetch_all(wait_sec=2):
 
 def main():
     setup_database()
-    fetch_all(wait_sec=2)
-    print("\nCrawl complete. Check your doj_cases.db for stored matches!")
+    try:
+        fetch_all(wait_sec=2)
+        print("\nCrawl complete. Check your doj_cases.db for stored matches!")
+    except Exception as e:
+        print(f"\nCRITICAL ERROR: Scraper failed with exception: {e}")
+        import traceback
+        traceback.print_exc()
+        print(f"\nScraper stopped due to unhandled exception.")
 
 if __name__ == "__main__":
     main()
