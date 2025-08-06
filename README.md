@@ -2,6 +2,8 @@
 
 A comprehensive system for scraping, analyzing, and exploring Department of Justice press releases, with a focus on 18 USC 1960 (money transmission) and cryptocurrency-related cases.
 
+<img width="1280" height="592" alt="image" src="https://github.com/user-attachments/assets/c28f43da-1b7f-48cf-84a5-f15122743165" />
+
 ## Features
 
 - **Web Scraper**: Automatically scrapes DOJ press releases with idempotent operation
