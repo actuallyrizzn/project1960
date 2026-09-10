@@ -26,6 +26,9 @@ final class SchemaFixtureTest extends TestCase
         self::assertContains('scraper_state', $tables);
         self::assertContains('courtlistener_dockets', $tables);
         self::assertContains('case_courtlistener_links', $tables);
+        self::assertContains('courtlistener_documents', $tables);
+        self::assertContains('courtlistener_document_pages', $tables);
+        self::assertContains('courtlistener_document_text', $tables);
         unlink($path);
     }
 
