@@ -160,5 +160,68 @@ final class Schema
                 FOREIGN KEY(cl_document_id) REFERENCES courtlistener_documents(cl_document_id)
             )'
         );
+
+        // CL-S3 — CL extract people (parallel to press-release participants)
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cl_persons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                normalized_name TEXT NOT NULL,
+                display_name TEXT,
+                role TEXT NOT NULL DEFAULT \'other\',
+                organization TEXT,
+                source_document_id INTEGER,
+                confidence REAL,
+                raw_json TEXT,
+                updated_at TEXT,
+                CHECK (role IN (\'defendant\', \'attorney\', \'judge\', \'witness\', \'other\')),
+                FOREIGN KEY(source_document_id) REFERENCES courtlistener_documents(cl_document_id)
+            )'
+        );
+
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_cl_persons_normalized
+             ON cl_persons(normalized_name)'
+        );
+
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_cl_persons_role
+             ON cl_persons(role)'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cl_person_aliases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person_id INTEGER NOT NULL,
+                alias_normalized TEXT NOT NULL,
+                alias_display TEXT,
+                UNIQUE(person_id, alias_normalized),
+                FOREIGN KEY(person_id) REFERENCES cl_persons(id)
+            )'
+        );
+
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_cl_person_aliases_norm
+             ON cl_person_aliases(alias_normalized)'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cl_person_case_edges (
+                person_id INTEGER NOT NULL,
+                case_id TEXT NOT NULL,
+                role TEXT,
+                confidence REAL,
+                source_document_id INTEGER,
+                updated_at TEXT,
+                PRIMARY KEY (person_id, case_id),
+                FOREIGN KEY(person_id) REFERENCES cl_persons(id),
+                FOREIGN KEY(case_id) REFERENCES cases(id),
+                FOREIGN KEY(source_document_id) REFERENCES courtlistener_documents(cl_document_id)
+            )'
+        );
+
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_cl_person_case_edges_case
+             ON cl_person_case_edges(case_id)'
+        );
     }
 }
