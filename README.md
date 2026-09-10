@@ -47,6 +47,41 @@ Design smoke (Playwright, ephemeral `php -S`):
 python3 tools/design-smoke/verify.py
 ```
 
+Live admin smoke (AD-U1):
+
+```bash
+BASE_URL=https://project1960.rizzn.net python3 tools/design-smoke/verify_admin.py
+```
+
+## Admin (`/admin`)
+
+Session operator console on the live host: https://project1960.rizzn.net/admin/
+
+| Area | Path | Notes |
+|------|------|--------|
+| Login / logout | `/admin/login/`, `/admin/logout/` | CSRF + `p1960_admin` session cookie |
+| Home | `/admin/` | Stats + enrichment cohort table + shortcuts |
+| Users | `/admin/users/` | Create / disable / reset password |
+| API keys | `/admin/api-keys/` | Mint once (plaintext shown once), revoke |
+| Pipeline | `/admin/pipeline/` | Status + dry-run / enqueue_dry only (no UI burn) |
+| Appearance | `/admin/appearance/` | Skin Lab + site name |
+| Help | `/admin/help/` | Topics: bootstrap, api-scopes, enrichment-math, pipeline-cli |
+
+**Bootstrap first operator** (multihost, secrets out-of-band — never commit):
+
+```bash
+php bin/bootstrap-admin.php --dry-run --pass-file=~/.ssh/project1960-admin.pass
+php bin/bootstrap-admin.php --pass-file=~/.ssh/project1960-admin.pass
+```
+
+Pass file vars: `P1960_ADMIN_USERNAME`, `P1960_ADMIN_EMAIL`, `P1960_ADMIN_PASSWORD`, optional `P1960_ADMIN_ROLE`.
+
+**API key scopes** (lean pack): `stats:read`, `cases:read`, `enrichment:read`, `patterns:read`, `admin:read`, `admin:users`, `admin:keys`, `admin:settings`, `pipeline:status`, `pipeline:enqueue`.
+
+**Live burn:** not wired from admin UI. Requires `P1960_PIPELINE_ALLOW_BURN=1` **and** Mark go, then host CLIs.
+
+Slice map: [Doc #1315](https://tasks.decisionsciencecorp.com/admin/doc.php?id=1315).
+
 ## CourtListener (Phase 2)
 
 Uses existing SDK: [actuallyrizzn/courtlistener-sdk](https://github.com/actuallyrizzn/courtlistener-sdk) (PHP path dependency). Do not reinvent the HTTP client. Matcher + ingest + OCR + Venice people extract + patterns UI ship in this repo.
