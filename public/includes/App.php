@@ -90,6 +90,34 @@ final class App
                 'currentPath' => '/cases',
                 'case' => $loaded['case'],
                 'enrichment' => $loaded['enrichment'],
+                'courtlistener' => $loaded['courtlistener'] ?? [
+                    'dockets' => [],
+                    'documents' => [],
+                    'people' => [],
+                    'charges' => [],
+                    'outcomes' => [],
+                ],
+            ]));
+        });
+
+        $this->router->get('/patterns', static function (Request $request) use ($view, $pdo): Response {
+            $q = trim($request->query('q'));
+            $results = [];
+            $multi = [];
+            if ($pdo instanceof PDO) {
+                $pq = new \Project1960\CourtListener\PatternQueries($pdo);
+                if ($q !== '') {
+                    $results = $pq->casesForPersonName($q);
+                }
+                $multi = $pq->multiCasePersons(2, 50);
+            }
+
+            return Response::html($view->renderInLayout('pages/patterns', [
+                'title' => 'Patterns — Project 1960',
+                'currentPath' => $request->path,
+                'q' => $q,
+                'results' => $results,
+                'multi' => $multi,
             ]));
         });
 

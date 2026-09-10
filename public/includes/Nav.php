@@ -11,6 +11,7 @@ final class Nav
         return [
             ['href' => '/', 'label' => 'Dashboard', 'icon' => 'bi-house'],
             ['href' => '/cases', 'label' => 'Cases', 'icon' => 'bi-list-ul'],
+            ['href' => '/patterns', 'label' => 'Patterns', 'icon' => 'bi-diagram-3'],
             ['href' => '/enrichment', 'label' => 'Enrichment', 'icon' => 'bi-database'],
             ['href' => '/about', 'label' => 'About', 'icon' => ''],
         ];

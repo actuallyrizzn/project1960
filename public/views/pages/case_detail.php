@@ -101,3 +101,92 @@ foreach ($sections as $key => $label):
         </div>
     </div>
 <?php endforeach; ?>
+
+<?php
+$cl = $courtlistener ?? [
+    'dockets' => [],
+    'documents' => [],
+    'people' => [],
+    'charges' => [],
+    'outcomes' => [],
+];
+$clEmpty = ($cl['dockets'] ?? []) === []
+    && ($cl['documents'] ?? []) === []
+    && ($cl['people'] ?? []) === [];
+?>
+<div class="card mb-4" id="courtlistener-panel">
+    <div class="card-header">
+        <h2 class="h5 mb-0">CourtListener / RECAP</h2>
+    </div>
+    <div class="card-body">
+        <?php if ($clEmpty): ?>
+            <p class="text-muted mb-0">No linked CourtListener docket yet.</p>
+        <?php else: ?>
+            <h3 class="h6">Linked dockets</h3>
+            <?php if (($cl['dockets'] ?? []) === []): ?>
+                <p class="text-muted">None.</p>
+            <?php else: ?>
+                <ul class="list-unstyled">
+                    <?php foreach ($cl['dockets'] as $d): ?>
+                        <li class="mb-1">
+                            CL #<?= $e($d['cl_docket_id'] ?? '') ?>
+                            <?= $e($d['docket_number'] ?? $d['cl_case_name'] ?? '') ?>
+                            <?php if (!empty($d['court_id'])): ?>
+                                <span class="text-muted">(<?= $e($d['court_id']) ?>)</span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
+            <h3 class="h6 mt-3">Documents</h3>
+            <?php if (($cl['documents'] ?? []) === []): ?>
+                <p class="text-muted">None ingested.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>ID</th><th>Description</th><th>OCR</th><th>Download</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($cl['documents'] as $doc): ?>
+                            <tr>
+                                <td><?= $e($doc['cl_document_id'] ?? '') ?></td>
+                                <td><?= $e($doc['description'] ?? '') ?></td>
+                                <td><?= $e($doc['ocr_status'] ?? '') ?></td>
+                                <td><?= $e($doc['download_status'] ?? '') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+            <h3 class="h6 mt-3">Extracted people</h3>
+            <?php if (($cl['people'] ?? []) === []): ?>
+                <p class="text-muted mb-0">None yet.</p>
+            <?php else: ?>
+                <ul class="mb-0">
+                    <?php foreach ($cl['people'] as $p): ?>
+                        <li>
+                            <?= $e($p['display_name'] ?? '') ?>
+                            <span class="badge bg-secondary"><?= $e($p['role'] ?? '') ?></span>
+                            <?php if (!empty($p['organization'])): ?>
+                                — <?= $e($p['organization']) ?>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
+            <?php if (($cl['charges'] ?? []) !== []): ?>
+                <h3 class="h6 mt-3">CL charges</h3>
+                <ul>
+                    <?php foreach ($cl['charges'] as $ch): ?>
+                        <li><?= $e($ch['charge_description'] ?? '') ?>
+                            <?php if (!empty($ch['statute'])): ?>(<?= $e($ch['statute']) ?>)<?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</div>

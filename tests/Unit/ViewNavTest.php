@@ -43,13 +43,13 @@ final class ViewNavTest extends TestCase
         self::assertFalse(Nav::isActive('/', '/cases'));
         self::assertTrue(Nav::isActive('/cases', '/cases'));
         self::assertTrue(Nav::isActive('/cases', '/cases/abc'));
-        self::assertCount(4, Nav::items());
+        self::assertCount(5, Nav::items());
     }
 
     public function testShellRoutesRenderNav(): void
     {
         $app = new \Project1960\App();
-        foreach (['/cases', '/enrichment', '/about'] as $path) {
+        foreach (['/cases', '/patterns', '/enrichment', '/about'] as $path) {
             $response = $app->handle(new \Project1960\Request('GET', $path));
             self::assertSame(200, $response->status);
             self::assertStringContainsString('navbar', $response->body);

@@ -24,7 +24,7 @@ final class CaseDetailLoader
     }
 
     /**
-     * @return array{case: array<string, mixed>, enrichment: array<string, mixed>}|null
+     * @return array{case: array<string, mixed>, enrichment: array<string, mixed>, courtlistener: array<string, mixed>}|null
      */
     public function load(string $caseId): ?array
     {
@@ -38,6 +38,7 @@ final class CaseDetailLoader
         return [
             'case' => $case,
             'enrichment' => $this->enrichmentFor($caseId),
+            'courtlistener' => (new CaseClPanel($this->pdo))->forCase($caseId),
         ];
     }
 
