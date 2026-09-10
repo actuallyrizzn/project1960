@@ -1,10 +1,11 @@
 {
     "name": "actuallyrizzn/project1960",
-    "description": "Project 1960 — §1960 / DOJ case explorer (PHP multihost)",
+    "description": "Project 1960 \u2014 \u00a71960 / DOJ case explorer (PHP multihost)",
     "type": "project",
     "license": "CC-BY-SA-4.0",
     "require": {
-        "php": ">=8.1"
+        "php": ">=8.1",
+        "courtlistener/sdk-php": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5"
@@ -17,6 +18,22 @@
     "autoload-dev": {
         "psr-4": {
             "Project1960\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../courtlistener-sdk/php",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "audit": {
+            "block-insecure": false
         }
     }
 }
