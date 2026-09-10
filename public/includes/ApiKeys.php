@@ -231,16 +231,34 @@ final class ApiKeys
     /** @return list<array<string, mixed>> */
     public function listForUser(int $userId, bool $includeRevoked = false): array
     {
-        $sql = 'SELECT * FROM api_keys WHERE user_id = :uid';
+        $sql = 'SELECT ak.*, u.username
+                FROM api_keys ak
+                JOIN admin_users u ON u.id = ak.user_id
+                WHERE ak.user_id = :uid';
         if (!$includeRevoked) {
-            $sql .= ' AND revoked_at IS NULL';
+            $sql .= ' AND ak.revoked_at IS NULL';
         }
-        $sql .= ' ORDER BY id DESC';
+        $sql .= ' ORDER BY ak.id DESC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':uid' => $userId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(fn (array $r): array => $this->publicize($r), $rows);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function listAll(bool $includeRevoked = false): array
+    {
+        $sql = 'SELECT ak.*, u.username
+                FROM api_keys ak
+                JOIN admin_users u ON u.id = ak.user_id';
+        if (!$includeRevoked) {
+            $sql .= ' WHERE ak.revoked_at IS NULL';
+        }
+        $sql .= ' ORDER BY ak.id DESC';
+        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn (array $r): array => $this->publicize($r), $rows ?: []);
     }
 
     /** @return list<string> */

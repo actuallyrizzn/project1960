@@ -278,6 +278,27 @@ final class App
                 return $usersCtl->pagePost($request->post);
             });
 
+            $keysCtl = new AdminApiKeysController($pdo, $view);
+            $this->router->get('/admin/api-keys', static function (Request $request) use ($keysCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+                unset($request);
+
+                return $keysCtl->pageGet();
+            });
+            $this->router->post('/admin/api-keys', static function (Request $request) use ($keysCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $keysCtl->pagePost($request->post);
+            });
+
             $gateAdmin = ApiGate::fromEnv($pdo);
             $this->router->get('/api/admin/users', static function (Request $request) use ($usersCtl, $gateAdmin): Response {
                 $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_ADMIN_USERS, $request->server);
@@ -294,6 +315,32 @@ final class App
                 }
 
                 return $usersCtl->apiCreate($request->post);
+            });
+            $this->router->get('/api/admin/keys', static function (Request $request) use ($keysCtl, $gateAdmin): Response {
+                $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_ADMIN_KEYS, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $keysCtl->apiList();
+            });
+            $this->router->post('/api/admin/keys', static function (Request $request) use ($keysCtl, $gateAdmin, $pdo): Response {
+                $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_ADMIN_KEYS, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+                $row = (new ApiKeys($pdo))->authenticateFromHeaders($request->server);
+                $actorId = is_array($row) ? (int) $row['user_id'] : 0;
+
+                return $keysCtl->apiMint($request->post, $actorId);
+            });
+            $this->router->post('/api/admin/keys/revoke', static function (Request $request) use ($keysCtl, $gateAdmin): Response {
+                $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_ADMIN_KEYS, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $keysCtl->apiRevoke((int) ($request->post['key_id'] ?? 0));
             });
         }
     }
