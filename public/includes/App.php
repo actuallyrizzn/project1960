@@ -51,12 +51,27 @@ final class App
             return Response::html($html);
         });
 
-        $this->router->get('/cases', static function (Request $request) use ($view): Response {
-            return Response::html($view->renderInLayout('pages/shell', [
+        $this->router->get('/cases', static function (Request $request) use ($view, $pdo): Response {
+            if (!$pdo instanceof PDO) {
+                return Response::html($view->renderInLayout('pages/shell', [
+                    'title' => 'Cases — Project 1960',
+                    'currentPath' => $request->path,
+                    'heading' => 'Cases',
+                    'blurb' => 'Database not configured.',
+                ]));
+            }
+
+            $filters = CaseListFilters::fromRequest($request);
+            $result = (new CaseRepository($pdo))->list($filters);
+
+            return Response::html($view->renderInLayout('pages/cases', [
                 'title' => 'Cases — Project 1960',
                 'currentPath' => $request->path,
-                'heading' => 'Cases',
-                'blurb' => 'Case list arrives in a later slice.',
+                'cases' => $result['cases'],
+                'total' => $result['total'],
+                'page' => $result['page'],
+                'total_pages' => $result['total_pages'],
+                'filters' => $result['filters'],
             ]));
         });
 
