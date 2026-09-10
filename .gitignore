@@ -68,3 +68,7 @@ enrichment.lock
 
 # Local tooling
 .otto-githooks-installed
+
+# Live / local SQLite (keep db/README.md)
+db/*.db
+db/*.db-*
