@@ -9,25 +9,32 @@ use Project1960\View;
 /** @var string $currentPath */
 /** @var list<array{key: string, label: string, href: string, icon: string}> $adminNav */
 /** @var array<string, mixed>|null $adminUser */
+/** @var string $skinSlug */
+/** @var string $bsTheme */
+/** @var string $siteBrand */
 $title = $title ?? 'Admin';
 $currentPath = $currentPath ?? '/admin';
 $adminNav = $adminNav ?? AdminShell::navItems();
 $adminUser = $adminUser ?? null;
+$skinSlug = $skinSlug ?? 'hey';
+$bsTheme = $bsTheme ?? 'dark';
+$siteBrand = $siteBrand ?? 'Project 1960';
 ?>
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-bs-theme="<?= View::e($bsTheme) ?>" data-skin="<?= View::e($skinSlug) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= View::e($title) ?> · Project 1960 Admin</title>
+    <title><?= View::e($title) ?> · <?= View::e($siteBrand) ?> Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/assets/css/app.css" rel="stylesheet">
+    <link href="/assets/css/skins.css" rel="stylesheet">
 </head>
-<body class="bg-dark text-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-secondary mb-4">
+<body class="admin-body skin-<?= View::e($skinSlug) ?>">
+<nav class="navbar navbar-expand-lg border-bottom mb-4 admin-navbar">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/admin">Project 1960 Admin</a>
+        <a class="navbar-brand" href="/admin"><?= View::e($siteBrand) ?> Admin</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>

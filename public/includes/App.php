@@ -231,7 +231,7 @@ final class App
                     'title' => 'Home',
                     'currentPath' => $request->path,
                     'adminUser' => $auth->user(),
-                ]);
+                ], $pdo);
             });
             $login = new AdminLogin($pdo, $view);
             $this->router->get('/admin/login', static function (Request $request) use ($login, $pdo): Response {
@@ -276,6 +276,27 @@ final class App
                 }
 
                 return $usersCtl->pagePost($request->post);
+            });
+
+            $appearanceCtl = new AdminAppearanceController($pdo, $view);
+            $this->router->get('/admin/appearance', static function (Request $request) use ($appearanceCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+                unset($request);
+
+                return $appearanceCtl->pageGet();
+            });
+            $this->router->post('/admin/appearance', static function (Request $request) use ($appearanceCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $appearanceCtl->pagePost($request->post);
             });
 
             $keysCtl = new AdminApiKeysController($pdo, $view);

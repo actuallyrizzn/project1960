@@ -42,9 +42,25 @@ final class AdminShell
         return new Response('', 302, ['Location' => '/admin/login']);
     }
 
-    /** @param array<string, mixed> $data */
-    public static function renderPage(View $view, string $pageTemplate, array $data): Response
+    /**
+     * @param array<string, mixed> $data
+     * @param \PDO|null $pdo When set, inject Skin Lab chrome from site_settings.
+     */
+    public static function renderPage(View $view, string $pageTemplate, array $data, ?\PDO $pdo = null): Response
     {
+        if ($pdo instanceof \PDO) {
+            $lab = new SkinLab($pdo);
+            $skin = $lab->effectiveSlug(
+                isset($data['previewSkin']) && is_string($data['previewSkin']) ? $data['previewSkin'] : null
+            );
+            $data['skinSlug'] = $skin;
+            $data['bsTheme'] = SkinLab::bootstrapTheme($skin);
+            $data['siteBrand'] = $lab->siteName();
+        } else {
+            $data['skinSlug'] = $data['skinSlug'] ?? 'hey';
+            $data['bsTheme'] = $data['bsTheme'] ?? SkinLab::bootstrapTheme((string) $data['skinSlug']);
+            $data['siteBrand'] = $data['siteBrand'] ?? 'Project 1960';
+        }
         $data['adminNav'] = self::navItems();
         $data['content'] = $view->render($pageTemplate, $data);
 

@@ -1,0 +1,58 @@
+/* Skin Lab family chrome for /admin (AD-A5) */
+.admin-body.skin-hey {
+  --admin-accent: #0d6efd;
+  background: #f4f6fb;
+  color: #1a1a1a;
+}
+.admin-body.skin-hey .admin-navbar {
+  background: #fff;
+  border-color: #dde3ef !important;
+}
+
+.admin-body.skin-ledger {
+  --admin-accent: #5c6b4a;
+  background: #f7f3e8;
+  color: #2b2a26;
+}
+.admin-body.skin-ledger .admin-navbar {
+  background: #efe9d8;
+  border-color: #d2c7a8 !important;
+}
+.admin-body.skin-ledger .navbar-brand,
+.admin-body.skin-ledger .nav-link,
+.admin-body.skin-ledger .navbar-text {
+  color: #2b2a26 !important;
+}
+
+.admin-body.skin-brutalist {
+  --admin-accent: #111;
+  background: #fff;
+  color: #000;
+  font-family: "Courier New", Courier, monospace;
+}
+.admin-body.skin-brutalist .admin-navbar {
+  background: #fff;
+  border-color: #000 !important;
+  border-width: 2px !important;
+}
+.admin-body.skin-brutalist .navbar-brand,
+.admin-body.skin-brutalist .nav-link,
+.admin-body.skin-brutalist .navbar-text {
+  color: #000 !important;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-body.skin-obsidian {
+  --admin-accent: #9b8cff;
+  background: #0b0d12;
+  color: #e8e6f2;
+}
+.admin-body.skin-obsidian .admin-navbar {
+  background: #12151e;
+  border-color: #2a2f3d !important;
+}
+
+.admin-body .navbar-brand {
+  color: var(--admin-accent);
+}
