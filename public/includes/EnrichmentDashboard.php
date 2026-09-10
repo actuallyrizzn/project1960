@@ -121,7 +121,8 @@ final class EnrichmentDashboard
     }
 
     /**
-     * Progress % of enrichment rows vs verified_yes (legacy formula).
+     * Progress % for a table: verified cases with enrichment ÷ verified_yes.
+     * Caps at 100 so UI bars never overflow if data drifts.
      *
      * @param array{verified_yes: int, enrichment: array<string, int>} $stats
      */
@@ -132,8 +133,12 @@ final class EnrichmentDashboard
             return 0.0;
         }
         $count = (int) ($stats['enrichment'][$tableKey] ?? 0);
+        $pct = ($count / $verified) * 100;
+        if ($pct > 100.0) {
+            $pct = 100.0;
+        }
 
-        return round(($count / $verified) * 100, 1);
+        return round($pct, 1);
     }
 
     /**
