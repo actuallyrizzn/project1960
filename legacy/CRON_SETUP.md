@@ -20,17 +20,17 @@ Add one of these schedules:
 
 #### Option A: Run every 6 hours
 ```bash
-0 */6 * * * cd /path/to/your/project && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
+0 */6 * * * cd /path/to/project1960/legacy1960/legacy && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 #### Option B: Run twice daily (6 AM and 6 PM)
 ```bash
-0 6,18 * * * cd /path/to/your/project && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
+0 6,18 * * * cd /path/to/project1960/legacy1960/legacy && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 #### Option C: Run daily at 2 AM
 ```bash
-0 2 * * * cd /path/to/your/project && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
+0 2 * * * cd /path/to/project1960/legacy1960/legacy && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 ## Lock File Protection
@@ -100,21 +100,21 @@ conn.close()
 ### Run specific tables
 ```bash
 # Process different tables on different schedules
-0 */6 * * * cd /path/to/project && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/case_metadata_$(date +\%Y\%m\%d).log 2>&1
-0 */8 * * * cd /path/to/project && python3 enrich_cases_modular.py --table participants --limit 15 >> logs/participants_$(date +\%Y\%m\%d).log 2>&1
-0 */12 * * * cd /path/to/project && python3 enrich_cases_modular.py --table charges --limit 10 >> logs/charges_$(date +\%Y\%m\%d).log 2>&1
+0 */6 * * * cd /path/to/project1960/legacy && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/case_metadata_$(date +\%Y\%m\%d).log 2>&1
+0 */8 * * * cd /path/to/project1960/legacy && python3 enrich_cases_modular.py --table participants --limit 15 >> logs/participants_$(date +\%Y\%m\%d).log 2>&1
+0 */12 * * * cd /path/to/project1960/legacy && python3 enrich_cases_modular.py --table charges --limit 10 >> logs/charges_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 ### Environment-specific settings
 
 #### Development (small batches, frequent runs)
 ```bash
-*/30 * * * * cd /path/to/project && python3 enrich_cases_modular.py --table case_metadata --limit 5 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
+*/30 * * * * cd /path/to/project1960/legacy && python3 enrich_cases_modular.py --table case_metadata --limit 5 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 #### Production (larger batches, less frequent)
 ```bash
-0 */4 * * * cd /path/to/project && python3 enrich_cases_modular.py --table case_metadata --limit 30 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
+0 */4 * * * cd /path/to/project1960/legacy && python3 enrich_cases_modular.py --table case_metadata --limit 30 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 ## Troubleshooting
@@ -156,7 +156,7 @@ grep "Successfully completed" logs/enrichment_*.log | tail -10
 
 ```bash
 # 1. Navigate to project directory
-cd /path/to/your/project
+cd /path/to/project1960/legacy1960/legacy
 
 # 2. Set up environment
 cp env.example .env
@@ -167,7 +167,7 @@ python3 enrich_cases_modular.py --table case_metadata --limit 5 --dry-run
 
 # 4. Add to crontab
 crontab -e
-# Add: 0 */6 * * * cd /path/to/your/project && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
+# Add: 0 */6 * * * cd /path/to/project1960/legacy1960/legacy && python3 enrich_cases_modular.py --table case_metadata --limit 20 >> logs/enrichment_$(date +\%Y\%m\%d).log 2>&1
 
 # 5. Monitor
 tail -f logs/enrichment_$(date +%Y%m%d)*.log
