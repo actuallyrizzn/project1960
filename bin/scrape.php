@@ -13,6 +13,7 @@ declare(strict_types=1);
 use Project1960\Config;
 use Project1960\Database;
 use Project1960\Schema;
+use Project1960\Scraper\CaseStore;
 use Project1960\Scraper\CurlTransport;
 use Project1960\Scraper\DojClient;
 use Project1960\Scraper\FetchLoop;
@@ -57,8 +58,22 @@ $loop = new FetchLoop(
             sleep($seconds);
         }
     },
-    onPage: static function (int $page, array $results) use ($dryRun): void {
-        fwrite(STDOUT, ($dryRun ? '[dry-run] ' : '') . "page {$page}: " . count($results) . " items\n");
+    onPage: static function (int $page, array $results) use ($dryRun, $pdo): void {
+        $prefix = $dryRun ? '[dry-run] ' : '';
+        if ($dryRun) {
+            fwrite(STDOUT, $prefix . "page {$page}: " . count($results) . " items (not stored)\n");
+            return;
+        }
+        $counts = (new CaseStore($pdo))->storeAll($results);
+        fwrite(STDOUT, sprintf(
+            "%spage %d: fetched=%d stored=%d duplicate=%d no_match=%d\n",
+            $prefix,
+            $page,
+            count($results),
+            $counts['stored'],
+            $counts['duplicate'],
+            $counts['no_match']
+        ));
     }
 );
 
