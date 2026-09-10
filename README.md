@@ -2,35 +2,50 @@
 
 Data journalism on **18 U.S.C. § 1960** / DOJ press releases (Operation Chokepoint 2.0 / crypto-adjacent money-transmission cases).
 
-**Public site (target):** `https://project1960.rizzn.net` — PHP explorer + PHP scraper on multihost.  
-**Board:** [DSC Tasks #65](https://tasks.decisionsciencecorp.com/admin/project.php?id=65) · slice map [Doc #1308](https://tasks.decisionsciencecorp.com/admin/doc.php?id=1308)
+**Live site:** https://project1960.rizzn.net  
+**Board:** [DSC Tasks #65](https://tasks.decisionsciencecorp.com/admin/project.php?id=65) · slice map [Doc #1308](https://tasks.decisionsciencecorp.com/admin/doc.php?id=1308) · ops [Doc #1307](https://tasks.decisionsciencecorp.com/admin/doc.php?id=1307)
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| `public/` | Multihost PHP docroot (`index.php`, `includes/`, `assets/`) |
-| `legacy/` | Previous Python Flask app, DOJ scraper, Venice enrich/verify |
-| `LICENSE` | CC BY-SA 4.0 |
-| `env.example` | Shared env hints (Venice, DB path, CourtListener) |
+| `public/` | Multihost PHP docroot (`index.php`, `includes/`, `assets/`, directory entrypoints) |
+| `bin/` | CLI: `scrape.php`, `match.php`, `ingest-docs.php`, `download-docs.php`, `ocr-docs.php`, `extract-people.php`, `recap-fetch.php`, `patterns-export.php` |
+| `legacy/` | Previous Python Flask app + Venice enrich/verify (kept until soak) |
+| `docs/` | `courtlistener.md`, `ocr.md`, `scraper.md` |
+| `env.example` | Venice, DB path, CourtListener token hints |
 
-Until cutover, the live Flask explorer still runs from the NewDev copy (`/root/justice`). This repo’s **`legacy/`** tree is the canonical Python source after R0.
-
-## Legacy Python (interim)
+## PHP app (primary)
 
 ```bash
-cd legacy
-pip install -r requirements.txt
-cp ../env.example .env   # or symlink
-python scraper.py
-python app.py
+composer install
+# sibling checkout: ../courtlistener-sdk (path repo in composer.json)
+cp env.example .env   # set DATABASE_PATH / COURTLISTENER_API_TOKEN / VENICE_API_KEY as needed
+
+./vendor/bin/phpunit
+php -S 127.0.0.1:8080 -t public   # local only; prod is multihost
+
+# Slow-drip CL pipeline (prefer --limit / --wait — do not burn the API)
+php bin/match.php --limit=5 --wait=10
+php bin/ingest-docs.php --limit=5 --wait=5
+php bin/download-docs.php --limit=5 --wait=2
+php bin/ocr-docs.php --limit=5 --metrics   # needs tesseract+poppler (see docs/ocr.md)
+php bin/extract-people.php --limit=3 --wait=2
 ```
 
-Full legacy docs: [`legacy/README.md`](legacy/README.md) and [`legacy/docs/`](legacy/docs/).
+Design smoke (Playwright, ephemeral `php -S`):
+
+```bash
+python3 tools/design-smoke/verify.py
+```
 
 ## CourtListener (Phase 2)
 
-Deep-enrich uses the existing SDK: [actuallyrizzn/courtlistener-sdk](https://github.com/actuallyrizzn/courtlistener-sdk) (PHP + Python). Do not reinvent the HTTP client.
+Uses existing SDK: [actuallyrizzn/courtlistener-sdk](https://github.com/actuallyrizzn/courtlistener-sdk) (PHP path dependency). Do not reinvent the HTTP client. Matcher + ingest + OCR + Venice people extract + patterns UI ship in this repo.
+
+## Legacy Python (enrich backlog)
+
+Venice verify/enrich for press-release tables can still run from `legacy/` on NewDev writing the same SQLite. See `legacy/README.md`.
 
 ## License
 

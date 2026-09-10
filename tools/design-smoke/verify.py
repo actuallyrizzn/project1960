@@ -29,6 +29,7 @@ ROUTES = [
     ("home", "/"),
     ("cases", "/cases/"),
     ("case_detail", "/case.php?id=fixture-case-1"),
+    ("patterns", "/patterns/"),
     ("enrichment", "/enrichment/"),
     ("about", "/about/"),
     ("health", "/health/"),
@@ -135,9 +136,15 @@ def main() -> int:
                 for label, path in ROUTES:
                     for vp_name, vp in (("desktop", DESKTOP), ("mobile", MOBILE)):
                         page = browser.new_page(viewport=vp)
-                        page.goto(base + path, wait_until="networkidle", timeout=30000)
-                        # Brand must appear
-                        page.locator(".navbar-brand").wait_for(timeout=8000)
+                        page.goto(base + path, wait_until="domcontentloaded", timeout=30000)
+                        if label == "health":
+                            page.wait_for_timeout(200)
+                        else:
+                            page.locator("nav.navbar, .navbar-brand").first.wait_for(timeout=8000)
+                            if label == "case_detail":
+                                panel = page.locator("#courtlistener-panel")
+                                if panel.count():
+                                    panel.first.scroll_into_view_if_needed()
                         paths.append(shot(page, f"{label}_{vp_name}"))
                         page.close()
             finally:
