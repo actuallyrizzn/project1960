@@ -27,13 +27,14 @@ class VeniceAPIClient:
         
         # Fallback models ordered by context size (largest first) and reasoning capability
         # Prioritize reasoning models (supportsReasoning: true) for better JSON extraction
+        # Fallback models (verified live on Venice 2026-09-10). Prefer thinking/large context.
         self.fallback_models = [
-            "qwen3-235b",      # 131,072 tokens - Venice Large ($1.5/$6) - reasoning ✅
-            "deepseek-r1-671b", # 131,072 tokens - DeepSeek R1 671B ($3.5/$14) - reasoning ✅
-            "llama-3.2-3b",    # 131,072 tokens - Llama 3.2 3B ($0.15/$0.6) - reasoning ❌ (last resort)
-            "mistral-31-24b",  # 131,072 tokens - Venice Medium ($0.5/$2) - reasoning ❌ (last resort)
-            "llama-3.3-70b",   # 65,536 tokens - Llama 3.3 70B ($0.7/$2.8) - reasoning ❌ (last resort)
-            "llama-3.1-405b",  # 65,536 tokens - Llama 3.1 405B ($1.5/$6) - reasoning ❌ (last resort)
+            "qwen3-vl-235b-a22b",                 # large multimodal / long context
+            "qwen3-next-80b",                     # strong general mid-tier
+            "deepseek-v3.2",                      # capable general
+            "hermes-3-llama-3.1-405b",            # large llama-family
+            "llama-3.3-70b",                      # mid llama
+            "llama-3.2-3b",                       # last resort / cost floor
         ]
         
         # Skip availability check in production - use all models and let the API tell us which ones work
@@ -72,13 +73,13 @@ class VeniceAPIClient:
     def _truncate_prompt(self, prompt: str, model: str) -> str:
         """Truncate prompt to fit within model context limits."""
         context_limits = {
-            "qwen-2.5-qwq-32b": 32768,
-            "mistral-31-24b": 131072,
+            "qwen3-235b-a22b-thinking-2507": 131072,
+            "qwen3-vl-235b-a22b": 131072,
+            "qwen3-next-80b": 131072,
+            "deepseek-v3.2": 131072,
+            "hermes-3-llama-3.1-405b": 131072,
             "llama-3.2-3b": 131072,
-            "qwen3-235b": 131072,
-            "deepseek-r1-671b": 131072,
             "llama-3.3-70b": 65536,
-            "llama-3.1-405b": 65536,
         }
         
         context_limit = context_limits.get(model, 32768)
@@ -133,13 +134,13 @@ class VeniceAPIClient:
         """Adjust max_tokens based on model context limits and prompt size."""
         # Model context limits (from actual API data)
         context_limits = {
-            "qwen-2.5-qwq-32b": 32768,
-            "mistral-31-24b": 131072,
+            "qwen3-235b-a22b-thinking-2507": 131072,
+            "qwen3-vl-235b-a22b": 131072,
+            "qwen3-next-80b": 131072,
+            "deepseek-v3.2": 131072,
+            "hermes-3-llama-3.1-405b": 131072,
             "llama-3.2-3b": 131072,
-            "qwen3-235b": 131072,
-            "deepseek-r1-671b": 131072,
             "llama-3.3-70b": 65536,
-            "llama-3.1-405b": 65536,
         }
         
         context_limit = context_limits.get(model, 32768)
@@ -425,20 +426,13 @@ class VeniceAPIClient:
         """Get appropriate timeout for a model based on its size and complexity."""
         # Timeout configuration based on model size and complexity
         timeout_config = {
-            # Primary model - fast
-            "qwen-2.5-qwq-32b": 120,
-            
-            # Large reasoning models - need more time
-            "qwen3-235b": 300,      # 235B parameters, reasoning model
-            "deepseek-r1-671b": 600, # 671B parameters, reasoning model - very slow
-            
-            # Large non-reasoning models - moderate time
-            "llama-3.2-3b": 180,    # 3B parameters but 131k context
-            "mistral-31-24b": 240,  # 24B parameters, 131k context
-            
-            # Medium models - standard time
-            "llama-3.3-70b": 180,   # 70B parameters, 65k context
-            "llama-3.1-405b": 300,  # 405B parameters, 65k context
+            "qwen3-235b-a22b-thinking-2507": 300,
+            "qwen3-vl-235b-a22b": 300,
+            "qwen3-next-80b": 180,
+            "deepseek-v3.2": 180,
+            "hermes-3-llama-3.1-405b": 300,
+            "llama-3.2-3b": 180,
+            "llama-3.3-70b": 180,
         }
         
         timeout = timeout_config.get(model, 120)  # Default to 120 seconds

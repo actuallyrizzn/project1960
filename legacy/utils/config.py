@@ -13,7 +13,7 @@ class Config:
     # API Configuration
     VENICE_API_KEY = os.getenv("VENICE_API_KEY")
     VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions"
-    MODEL_NAME = "qwen-2.5-qwq-32b"
+    MODEL_NAME = "qwen3-235b-a22b-thinking-2507"
     
     # Database Configuration
     DATABASE_NAME = os.getenv("DATABASE_NAME", "doj_cases.db")

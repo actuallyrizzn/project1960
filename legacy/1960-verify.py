@@ -14,7 +14,7 @@ load_dotenv()
 
 VENICE_API_KEY = os.getenv("VENICE_API_KEY")
 VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions"
-MODEL_NAME = "qwen-2.5-qwq-32b"
+MODEL_NAME = "qwen3-235b-a22b-thinking-2507"
 PROCESSING_LIMIT = 100  # Changed to 3 for testing
 
 # Set up logging

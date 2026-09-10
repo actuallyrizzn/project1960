@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 VENICE_API_KEY = os.getenv("VENICE_API_KEY")
 VENICE_API_URL = "https://api.venice.ai/api/v1/chat/completions"
-MODEL_NAME = "qwen-2.5-qwq-32b"
+MODEL_NAME = "qwen3-235b-a22b-thinking-2507"
 DATABASE_NAME = os.getenv("DATABASE_NAME", "doj_cases.db")
 TABLE_CHOICES = [
     'case_metadata', 'participants', 'case_agencies', 'charges', 
