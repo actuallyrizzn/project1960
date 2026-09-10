@@ -328,6 +328,15 @@ final class App
 
                 return $pipelineCtl->pageGet();
             });
+            $this->router->post('/admin/pipeline', static function (Request $request) use ($pipelineCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $pipelineCtl->pagePost($request->post);
+            });
 
             $keysCtl = new AdminApiKeysController($pdo, $view);
             $this->router->get('/admin/api-keys', static function (Request $request) use ($keysCtl, $pdo): Response {
@@ -374,6 +383,14 @@ final class App
                 }
 
                 return $pipelineCtl->apiStatus();
+            });
+            $this->router->post('/api/admin/pipeline', static function (Request $request) use ($pipelineCtl, $gateAdmin): Response {
+                $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_PIPELINE_ENQUEUE, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $pipelineCtl->apiEnqueue($request->post);
             });
             $this->router->get('/api/admin/keys', static function (Request $request) use ($keysCtl, $gateAdmin): Response {
                 $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_ADMIN_KEYS, $request->server);
