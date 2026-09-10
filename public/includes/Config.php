@@ -43,6 +43,18 @@ final class Config
         return $root . DIRECTORY_SEPARATOR . 'db';
     }
 
+    /** Outside public/ — CL document bytes (CL-I3). */
+    public static function clDocsDir(?string $projectRoot = null): string
+    {
+        $root = $projectRoot ?? self::defaultProjectRoot();
+        $fromEnv = getenv('CL_DOCS_PATH') ?: null;
+        if (is_string($fromEnv) && $fromEnv !== '') {
+            return self::absolutize($fromEnv, $root);
+        }
+
+        return $root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cl-docs';
+    }
+
     public static function defaultProjectRoot(): string
     {
         // public/includes → public → repo root

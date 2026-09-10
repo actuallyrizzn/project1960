@@ -160,6 +160,8 @@ final class Schema
             )'
         );
 
+        self::ensureDocumentDownloadColumns($pdo);
+
         // CL-S3 — CL extract people (parallel to press-release participants)
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS cl_persons (
@@ -251,6 +253,24 @@ final class Schema
                     updated_at TEXT,
                     CHECK (status IN (\'pending\', \'resolved\', \'skipped\'))
                 )'
+            );
+        }
+    }
+
+    /** CL-I3 — local file path + hash for downloaded free docs */
+    private static function ensureDocumentDownloadColumns(PDO $pdo): void
+    {
+        $cols = $pdo->query('PRAGMA table_info(courtlistener_documents)')->fetchAll(PDO::FETCH_ASSOC);
+        $names = array_map(static fn (array $c): string => (string) $c['name'], $cols);
+        if (!in_array('local_path', $names, true)) {
+            $pdo->exec('ALTER TABLE courtlistener_documents ADD COLUMN local_path TEXT');
+        }
+        if (!in_array('content_sha256', $names, true)) {
+            $pdo->exec('ALTER TABLE courtlistener_documents ADD COLUMN content_sha256 TEXT');
+        }
+        if (!in_array('download_status', $names, true)) {
+            $pdo->exec(
+                "ALTER TABLE courtlistener_documents ADD COLUMN download_status TEXT NOT NULL DEFAULT 'none'"
             );
         }
     }

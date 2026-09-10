@@ -53,7 +53,15 @@ php bin/ingest-docs.php --limit=5 --wait=5 --dry-run --verbose
 php bin/ingest-docs.php --limit=10 --wait=5 --verbose
 ```
 
-Pulls DocketEntries + RecapDocuments for rows in `case_courtlistener_links`, upserts into `courtlistener_documents` (idempotent by `cl_document_id`).
+## Document download CLI (CL-I3)
+
+```bash
+php bin/download-docs.php --limit=10 --wait=2 --dry-run --verbose
+php bin/download-docs.php --limit=10 --wait=2 --verbose
+```
+
+Writes free HTTPS CourtListener/IA files under `storage/cl-docs/` (or `CL_DOCS_PATH`). Records `local_path` + `content_sha256`. PACER-only / relative paths → `download_status=skipped_pacer` (CL-I4).
+
 
 ## Multihost
 

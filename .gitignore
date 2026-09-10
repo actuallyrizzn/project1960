@@ -72,3 +72,6 @@ enrichment.lock
 # Live / local SQLite (keep db/README.md)
 db/*.db
 db/*.db-*
+
+# CL document bytes (CL-I3)
+storage/cl-docs/
