@@ -223,5 +223,18 @@ final class Schema
             'CREATE INDEX IF NOT EXISTS idx_cl_person_case_edges_case
              ON cl_person_case_edges(case_id)'
         );
+
+        // CL-M1 — ambiguous / low-confidence match review queue
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cl_match_reviews (
+                case_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL DEFAULT \'pending\',
+                reason TEXT,
+                candidates_json TEXT,
+                updated_at TEXT,
+                CHECK (status IN (\'pending\', \'resolved\', \'skipped\')),
+                FOREIGN KEY(case_id) REFERENCES cases(id)
+            )'
+        );
     }
 }

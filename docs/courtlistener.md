@@ -27,6 +27,18 @@ $r = $c->dockets->listDockets(["page_size" => 1]);
 echo "ok keys=" . implode(",", array_keys($r)) . "\n";'
 ```
 
+## Match CLI (CL-M1)
+
+```bash
+set -a && . ~/.ssh/courtlistener-api.pass && set +a
+# Dry-run first (no DB writes for links/reviews)
+php bin/match.php --limit=5 --dry-run --verbose
+# Persist best matches + flag ambiguous into cl_match_reviews
+php bin/match.php --limit=25 --verbose
+```
+
+Uses `CourtListener\CourtListenerClient` Search (`type=d`) via `SdkSearchGateway` — no hand-rolled HTTP.
+
 ## Multihost
 
 On multihost SRC_DIR (`/root/repos/project1960.rizzn.net`):
