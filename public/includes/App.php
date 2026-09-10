@@ -176,17 +176,35 @@ final class App
         });
 
         $api = new Api($pdo);
-        $this->router->get('/api/stats', static function (Request $request) use ($api): Response {
-            unset($request);
+        $gate = $pdo instanceof PDO ? ApiGate::fromEnv($pdo) : null;
+        $this->router->get('/api/stats', static function (Request $request) use ($api, $gate): Response {
+            if ($gate instanceof ApiGate) {
+                $deny = $gate->authorizePublic($request->path, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+            }
 
             return $api->stats();
         });
-        $this->router->get('/api/cases', static function (Request $request) use ($api): Response {
-            unset($request);
+        $this->router->get('/api/cases', static function (Request $request) use ($api, $gate): Response {
+            if ($gate instanceof ApiGate) {
+                $deny = $gate->authorizePublic($request->path, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+            }
 
             return $api->cases();
         });
-        $this->router->get('/api/enrichment/{id}', static function (Request $request) use ($api): Response {
+        $this->router->get('/api/enrichment/{id}', static function (Request $request) use ($api, $gate): Response {
+            if ($gate instanceof ApiGate) {
+                $deny = $gate->authorizePublic($request->path, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+            }
+
             return $api->enrichment($request->attr('id'));
         });
 

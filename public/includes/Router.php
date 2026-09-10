@@ -49,7 +49,7 @@ final class Router
             foreach ($route['keys'] as $i => $key) {
                 $attrs[$key] = rawurldecode((string) ($matches[$i + 1] ?? ''));
             }
-            $matched = new Request($request->method, $request->path, $request->query, $attrs);
+            $matched = new Request($request->method, $request->path, $request->query, $attrs, $request->server);
 
             return ($route['handler'])($matched);
         }

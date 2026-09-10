@@ -8,12 +8,14 @@ final class Request
     /**
      * @param array<string, string> $query
      * @param array<string, string> $attrs
+     * @param array<string, mixed> $server
      */
     public function __construct(
         public readonly string $method,
         public readonly string $path,
         public readonly array $query = [],
         public readonly array $attrs = [],
+        public readonly array $server = [],
     ) {
     }
 
@@ -64,6 +66,6 @@ final class Request
             }
         }
 
-        return new self($method, $path, $query);
+        return new self($method, $path, $query, [], $server);
     }
 }
