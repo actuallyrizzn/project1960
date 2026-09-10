@@ -217,5 +217,22 @@ final class App
                 'host' => 'project1960.rizzn.net',
             ]);
         });
+
+        // AD-A1 — admin shell (auth stub; login page in AD-A2)
+        if ($pdo instanceof PDO) {
+            $this->router->get('/admin', static function (Request $request) use ($view, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return AdminShell::renderPage($view, 'admin/home', [
+                    'title' => 'Home',
+                    'currentPath' => $request->path,
+                    'adminUser' => $auth->user(),
+                ]);
+            });
+        }
     }
 }
