@@ -256,6 +256,45 @@ final class App
 
                 return $login->logout();
             });
+
+            $usersCtl = new AdminUsersController($pdo, $view);
+            $this->router->get('/admin/users', static function (Request $request) use ($usersCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+                unset($request);
+
+                return $usersCtl->pageGet();
+            });
+            $this->router->post('/admin/users', static function (Request $request) use ($usersCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $usersCtl->pagePost($request->post);
+            });
+
+            $gateAdmin = ApiGate::fromEnv($pdo);
+            $this->router->get('/api/admin/users', static function (Request $request) use ($usersCtl, $gateAdmin): Response {
+                $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_ADMIN_USERS, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $usersCtl->apiList();
+            });
+            $this->router->post('/api/admin/users', static function (Request $request) use ($usersCtl, $gateAdmin): Response {
+                $deny = $gateAdmin->authorizeAdmin(ApiKeys::SCOPE_ADMIN_USERS, $request->server);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $usersCtl->apiCreate($request->post);
+            });
         }
     }
 }
