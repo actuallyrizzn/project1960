@@ -5,9 +5,13 @@ namespace Project1960;
 
 final class App
 {
-    public function __construct(
-        private readonly Router $router = new Router(),
-    ) {
+    private Router $router;
+    private View $view;
+
+    public function __construct(?Router $router = null, ?View $view = null)
+    {
+        $this->router = $router ?? new Router();
+        $this->view = $view ?? new View();
         $this->registerRoutes();
     }
 
@@ -18,17 +22,42 @@ final class App
 
     private function registerRoutes(): void
     {
-        $this->router->get('/', static function (Request $request): Response {
-            unset($request);
+        $view = $this->view;
 
-            return Response::html(
-                '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
-                . '<title>Project 1960</title></head><body>'
-                . '<h1>Project 1960</h1>'
-                . '<p>PHP scaffold for project1960.rizzn.net — explorer coming in later slices.</p>'
-                . '<p><a href="/health">health</a></p>'
-                . '</body></html>'
-            );
+        $this->router->get('/', static function (Request $request) use ($view): Response {
+            $html = $view->renderInLayout('pages/home', [
+                'title' => 'Dashboard — Project 1960',
+                'currentPath' => $request->path,
+            ]);
+
+            return Response::html($html);
+        });
+
+        $this->router->get('/cases', static function (Request $request) use ($view): Response {
+            return Response::html($view->renderInLayout('pages/shell', [
+                'title' => 'Cases — Project 1960',
+                'currentPath' => $request->path,
+                'heading' => 'Cases',
+                'blurb' => 'Case list arrives in a later slice.',
+            ]));
+        });
+
+        $this->router->get('/enrichment', static function (Request $request) use ($view): Response {
+            return Response::html($view->renderInLayout('pages/shell', [
+                'title' => 'Enrichment — Project 1960',
+                'currentPath' => $request->path,
+                'heading' => 'Enrichment',
+                'blurb' => 'Enrichment dashboard arrives in a later slice.',
+            ]));
+        });
+
+        $this->router->get('/about', static function (Request $request) use ($view): Response {
+            return Response::html($view->renderInLayout('pages/shell', [
+                'title' => 'About — Project 1960',
+                'currentPath' => $request->path,
+                'heading' => 'About',
+                'blurb' => 'About page content arrives in a later slice.',
+            ]));
         });
 
         $this->router->get('/health', static function (Request $request): Response {
