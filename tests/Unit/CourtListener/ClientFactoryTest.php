@@ -16,10 +16,48 @@ final class ClientFactoryTest extends TestCase
         self::assertSame('tok_test', $token);
     }
 
+    public function testApiTokenAliasCourlistenerToken(): void
+    {
+        $token = ClientFactory::apiToken(['COURTLISTENER_TOKEN' => 'alias_tok']);
+        self::assertSame('alias_tok', $token);
+    }
+
+    public function testApiTokenFromPutenv(): void
+    {
+        $prev = getenv('COURTLISTENER_API_TOKEN');
+        putenv('COURTLISTENER_API_TOKEN=from_putenv');
+        try {
+            self::assertSame('from_putenv', ClientFactory::apiToken([]));
+        } finally {
+            if ($prev === false) {
+                putenv('COURTLISTENER_API_TOKEN');
+            } else {
+                putenv('COURTLISTENER_API_TOKEN=' . $prev);
+            }
+        }
+    }
+
     public function testApiTokenMissingThrows(): void
     {
-        $this->expectException(RuntimeException::class);
-        ClientFactory::apiToken(['COURTLISTENER_API_TOKEN' => '']);
+        $prevA = getenv('COURTLISTENER_API_TOKEN');
+        $prevB = getenv('COURTLISTENER_TOKEN');
+        putenv('COURTLISTENER_API_TOKEN');
+        putenv('COURTLISTENER_TOKEN');
+        try {
+            $this->expectException(RuntimeException::class);
+            ClientFactory::apiToken([]);
+        } finally {
+            if ($prevA === false) {
+                putenv('COURTLISTENER_API_TOKEN');
+            } else {
+                putenv('COURTLISTENER_API_TOKEN=' . $prevA);
+            }
+            if ($prevB === false) {
+                putenv('COURTLISTENER_TOKEN');
+            } else {
+                putenv('COURTLISTENER_TOKEN=' . $prevB);
+            }
+        }
     }
 
     public function testMakeUsesInjectedFactory(): void
@@ -37,5 +75,14 @@ final class ClientFactoryTest extends TestCase
         self::assertSame($fake, $client);
         self::assertSame('abc123', $seen['api_token'] ?? null);
         self::assertSame(5, $seen['timeout'] ?? null);
+    }
+
+    public function testMakeDefaultConstructsSdkClient(): void
+    {
+        $client = ClientFactory::make(
+            [],
+            ['COURTLISTENER_API_TOKEN' => 'unit_test_token_not_used'],
+        );
+        self::assertInstanceOf(CourtListenerClient::class, $client);
     }
 }
