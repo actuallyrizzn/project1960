@@ -224,6 +224,42 @@ final class Schema
              ON cl_person_case_edges(case_id)'
         );
 
+        // CL-X3 — structured filing facts (charges / outcomes / money)
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cl_extract_charges (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id TEXT NOT NULL,
+                source_document_id INTEGER,
+                charge_description TEXT,
+                statute TEXT,
+                defendant TEXT,
+                raw_json TEXT,
+                updated_at TEXT
+            )'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_cl_extract_charges_case
+             ON cl_extract_charges(case_id)'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cl_extract_outcomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id TEXT NOT NULL,
+                source_document_id INTEGER,
+                outcome_type TEXT,
+                description TEXT,
+                amount TEXT,
+                currency TEXT,
+                defendant TEXT,
+                raw_json TEXT,
+                updated_at TEXT
+            )'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_cl_extract_outcomes_case
+             ON cl_extract_outcomes(case_id)'
+        );
+
         // CL-M1 — ambiguous / low-confidence match review queue
         // No FK to cases: live doj_cases.db legacy `cases` may lack a PK SQLite accepts for FK.
         self::ensureMatchReviewsTable($pdo);
