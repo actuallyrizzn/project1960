@@ -263,6 +263,61 @@ final class Schema
         // CL-M1 — ambiguous / low-confidence match review queue
         // No FK to cases: live doj_cases.db legacy `cases` may lack a PK SQLite accepts for FK.
         self::ensureMatchReviewsTable($pdo);
+
+        // AD-S1 — operator control dashboard (Environment-shaped; no secrets seeded)
+        self::ensureAdminControlTables($pdo);
+    }
+
+    /**
+     * Admin users, scoped API keys, and site settings for /admin.
+     * Patterns: sanctum-environment users + api_keys (no habitat/world domain).
+     */
+    private static function ensureAdminControlTables(PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS admin_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT \'operator\'
+                    CHECK (role IN (\'operator\', \'readonly\')),
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+                updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+            )'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+                key_name TEXT NOT NULL,
+                api_key_hash TEXT NOT NULL UNIQUE,
+                key_preview TEXT NOT NULL DEFAULT \'\',
+                scopes_json TEXT NOT NULL DEFAULT \'[]\',
+                created_by_user_id INTEGER REFERENCES admin_users(id),
+                created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+                last_used_at TEXT,
+                revoked_at TEXT
+            )'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_api_keys_user_revoked
+             ON api_keys(user_id, revoked_at)'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_api_keys_hash
+             ON api_keys(api_key_hash)'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS site_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL DEFAULT \'\',
+                updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+            )'
+        );
     }
 
     private static function ensureMatchReviewsTable(PDO $pdo): void

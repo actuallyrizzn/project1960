@@ -33,6 +33,40 @@ final class SchemaFixtureTest extends TestCase
         self::assertContains('cl_person_aliases', $tables);
         self::assertContains('cl_person_case_edges', $tables);
         self::assertContains('cl_match_reviews', $tables);
+        self::assertContains('admin_users', $tables);
+        self::assertContains('api_keys', $tables);
+        self::assertContains('site_settings', $tables);
+        unlink($path);
+    }
+
+    public function testAdminControlTablesAcceptRows(): void
+    {
+        $path = sys_get_temp_dir() . '/p1960_admin_' . bin2hex(random_bytes(4)) . '.db';
+        $pdo = new PDO('sqlite:' . $path);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        Schema::migrate($pdo);
+
+        $pdo->exec(
+            "INSERT INTO admin_users (username, email, password_hash, role)
+             VALUES ('ops', 'ops@example.com', 'hash', 'operator')"
+        );
+        $uid = (int) $pdo->query('SELECT id FROM admin_users')->fetchColumn();
+        $pdo->prepare(
+            'INSERT INTO api_keys (user_id, key_name, api_key_hash, key_preview, scopes_json)
+             VALUES (?, ?, ?, ?, ?)'
+        )->execute([$uid, 'test', 'hashhex', 'p1960_xxxx', '["stats:read"]']);
+        $pdo->exec(
+            "INSERT INTO site_settings (key, value) VALUES ('appearance.skin', 'default')"
+        );
+
+        self::assertSame(1, (int) $pdo->query('SELECT COUNT(*) FROM admin_users')->fetchColumn());
+        self::assertSame(1, (int) $pdo->query('SELECT COUNT(*) FROM api_keys')->fetchColumn());
+        self::assertSame(
+            'default',
+            $pdo->query("SELECT value FROM site_settings WHERE key = 'appearance.skin'")->fetchColumn()
+        );
+
+        Schema::migrate($pdo); // idempotent
         unlink($path);
     }
 
