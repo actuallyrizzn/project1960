@@ -107,12 +107,6 @@ final class AdminAuth
 
     private function ensureSession(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_name('p1960_admin');
-            session_start([
-                'cookie_httponly' => true,
-                'cookie_samesite' => 'Lax',
-            ]);
-        }
+        AdminSession::start();
     }
 }

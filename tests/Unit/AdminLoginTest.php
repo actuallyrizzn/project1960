@@ -58,11 +58,11 @@ final class AdminLoginTest extends TestCase
             'password' => 'long-enough-secret',
         ]);
         self::assertSame(302, $ok->status);
-        self::assertSame('/admin', $ok->headers['Location']);
+        self::assertSame('/admin/', $ok->headers['Location']);
 
         $out = $login->logout();
         self::assertSame(302, $out->status);
-        self::assertSame('/admin/login', $out->headers['Location']);
+        self::assertSame('/admin/login/', $out->headers['Location']);
     }
 
     public function testLoginFailsBadPasswordAndBadCsrf(): void

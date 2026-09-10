@@ -57,7 +57,7 @@ final class AdminShellTest extends TestCase
         $deny = AdminShell::requireAuth($auth);
         self::assertNotNull($deny);
         self::assertSame(302, $deny->status);
-        self::assertSame('/admin/login', $deny->headers['Location']);
+        self::assertSame('/admin/login/', $deny->headers['Location']);
     }
 
     public function testRenderPageWhenAuthed(): void
@@ -74,6 +74,15 @@ final class AdminShellTest extends TestCase
         self::assertStringContainsString('Project 1960 Admin', $resp->body);
         self::assertStringContainsString('API Keys', $resp->body);
         self::assertStringContainsString('ops', $resp->body);
+
+        $withPdo = AdminShell::renderPage(new View(), 'admin/home', [
+            'title' => 'Home',
+            'currentPath' => '/admin',
+            'adminUser' => $auth->user(),
+            'previewSkin' => 'hey',
+        ], $this->pdo);
+        self::assertSame(200, $withPdo->status);
+        self::assertStringContainsString('data-skin', $withPdo->body);
     }
 
     public function testAppAdminRedirectsWhenAnonymous(): void

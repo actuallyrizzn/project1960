@@ -22,7 +22,7 @@ $error = $error ?? null;
     <?php if (is_string($error) && $error !== ''): ?>
         <div class="alert alert-danger"><?= View::e($error) ?></div>
     <?php endif; ?>
-    <form method="post" action="/admin/login" class="card card-body bg-black border-secondary">
+    <form method="post" action="/admin/login/" class="card card-body bg-black border-secondary">
         <?= Csrf::inputField() ?>
         <div class="mb-3">
             <label class="form-label" for="username">Username or email</label>

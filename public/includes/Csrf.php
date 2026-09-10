@@ -60,11 +60,6 @@ final class Csrf
 
     private static function ensureSession(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start([
-                'cookie_httponly' => true,
-                'cookie_samesite' => 'Lax',
-            ]);
-        }
+        AdminSession::start();
     }
 }

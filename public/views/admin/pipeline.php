@@ -55,7 +55,7 @@ $error = $error ?? null;
 
 <div class="row g-4">
     <div class="col-lg-6">
-        <form method="post" action="/admin/pipeline" class="card card-body bg-black border-secondary">
+        <form method="post" action="/admin/pipeline/" class="card card-body bg-black border-secondary">
             <h2 class="h6">Dry-run</h2>
             <?= Csrf::inputField() ?>
             <input type="hidden" name="mode" value="dry_run">
@@ -78,7 +78,7 @@ $error = $error ?? null;
         <?php endif; ?>
     </div>
     <div class="col-lg-6">
-        <form method="post" action="/admin/pipeline" class="card card-body bg-black border-secondary">
+        <form method="post" action="/admin/pipeline/" class="card card-body bg-black border-secondary">
             <h2 class="h6">Enqueue (dry intent)</h2>
             <?= Csrf::inputField() ?>
             <input type="hidden" name="mode" value="enqueue">

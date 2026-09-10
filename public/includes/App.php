@@ -234,7 +234,7 @@ final class App
             $this->router->get('/admin/login', static function (Request $request) use ($login, $pdo): Response {
                 $auth = new AdminAuth($pdo);
                 if ($auth->check()) {
-                    return new Response('', 302, ['Location' => '/admin']);
+                    return new Response('', 302, ['Location' => '/admin/']);
                 }
                 unset($request);
 

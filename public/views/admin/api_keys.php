@@ -55,7 +55,7 @@ $error = $error ?? null;
                         <td><?= !empty($k['revoked_at']) ? View::e((string) $k['revoked_at']) : '—' ?></td>
                         <td>
                             <?php if (empty($k['revoked_at'])): ?>
-                                <form method="post" action="/admin/api-keys" class="d-inline">
+                                <form method="post" action="/admin/api-keys/" class="d-inline">
                                     <?= Csrf::inputField() ?>
                                     <input type="hidden" name="action" value="revoke">
                                     <input type="hidden" name="key_id" value="<?= View::e((string) $k['id']) ?>">
@@ -70,7 +70,7 @@ $error = $error ?? null;
         </div>
     </div>
     <div class="col-lg-5">
-        <form method="post" action="/admin/api-keys" class="card card-body bg-black border-secondary">
+        <form method="post" action="/admin/api-keys/" class="card card-body bg-black border-secondary">
             <h2 class="h6">Mint key</h2>
             <?= Csrf::inputField() ?>
             <input type="hidden" name="action" value="mint">

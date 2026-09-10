@@ -42,7 +42,7 @@ $error = $error ?? null;
                         <td><?= View::e((string) $u['role']) ?></td>
                         <td><?= ((int) $u['is_active'] === 1) ? 'yes' : 'no' ?></td>
                         <td class="text-nowrap">
-                            <form method="post" action="/admin/users" class="d-inline">
+                            <form method="post" action="/admin/users/" class="d-inline">
                                 <?= Csrf::inputField() ?>
                                 <input type="hidden" name="action" value="toggle">
                                 <input type="hidden" name="user_id" value="<?= View::e((string) $u['id']) ?>">
@@ -59,7 +59,7 @@ $error = $error ?? null;
         </div>
     </div>
     <div class="col-lg-5">
-        <form method="post" action="/admin/users" class="card card-body bg-black border-secondary">
+        <form method="post" action="/admin/users/" class="card card-body bg-black border-secondary">
             <h2 class="h6">Create user</h2>
             <?= Csrf::inputField() ?>
             <input type="hidden" name="action" value="create">
@@ -84,7 +84,7 @@ $error = $error ?? null;
             </div>
             <button class="btn btn-primary" type="submit">Create</button>
         </form>
-        <form method="post" action="/admin/users" class="card card-body bg-black border-secondary mt-3">
+        <form method="post" action="/admin/users/" class="card card-body bg-black border-secondary mt-3">
             <h2 class="h6">Reset password</h2>
             <?= Csrf::inputField() ?>
             <input type="hidden" name="action" value="reset_password">

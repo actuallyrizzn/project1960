@@ -40,7 +40,7 @@ final class AdminApiKeysController
         $keys = new ApiKeys($this->pdo);
         $uid = (new AdminAuth($this->pdo))->userId();
         if ($uid === null) {
-            return new Response('', 302, ['Location' => '/admin/login']);
+            return new Response('', 302, ['Location' => '/admin/login/']);
         }
         try {
             $action = (string) ($post['action'] ?? '');

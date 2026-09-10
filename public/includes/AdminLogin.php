@@ -37,7 +37,7 @@ final class AdminLogin
             return $this->show('Invalid username or password.');
         }
 
-        return new Response('', 302, ['Location' => '/admin']);
+        return new Response('', 302, ['Location' => '/admin/']);
     }
 
     public function logout(): Response
@@ -45,6 +45,6 @@ final class AdminLogin
         $auth = new AdminAuth($this->pdo);
         $auth->logout();
 
-        return new Response('', 302, ['Location' => '/admin/login']);
+        return new Response('', 302, ['Location' => '/admin/login/']);
     }
 }

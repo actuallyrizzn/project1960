@@ -39,7 +39,7 @@ final class AdminShell
             return null;
         }
 
-        return new Response('', 302, ['Location' => '/admin/login']);
+        return new Response('', 302, ['Location' => '/admin/login/']);
     }
 
     /**

@@ -24,7 +24,7 @@ $error = $error ?? null;
     <div class="alert alert-danger"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<form method="post" action="/admin/appearance" class="card card-body bg-black border-secondary col-lg-7">
+<form method="post" action="/admin/appearance/" class="card card-body bg-black border-secondary col-lg-7">
     <?= Csrf::inputField() ?>
     <input type="hidden" name="action" value="save">
     <div class="mb-3">

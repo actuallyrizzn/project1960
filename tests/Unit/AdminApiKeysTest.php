@@ -182,7 +182,7 @@ final class AdminApiKeysTest extends TestCase
         $app = new App(null, null, $this->pdo);
         $deny = $app->handle(new Request('GET', '/admin/api-keys'));
         self::assertSame(302, $deny->status);
-        self::assertSame('/admin/login', $deny->headers['Location'] ?? null);
+        self::assertSame('/admin/login/', $deny->headers['Location'] ?? null);
     }
 
     public function testPagePostWithoutSessionRedirects(): void
@@ -196,7 +196,7 @@ final class AdminApiKeysTest extends TestCase
             'key_name' => 'orphan',
         ]);
         self::assertSame(302, $resp->status);
-        self::assertSame('/admin/login', $resp->headers['Location'] ?? null);
+        self::assertSame('/admin/login/', $resp->headers['Location'] ?? null);
     }
 
     public function testMintEmptyScopesAndApiEdgePaths(): void
