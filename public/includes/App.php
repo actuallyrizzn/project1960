@@ -93,12 +93,34 @@ final class App
             ]));
         });
 
-        $this->router->get('/enrichment', static function (Request $request) use ($view): Response {
-            return Response::html($view->renderInLayout('pages/shell', [
+        $this->router->get('/enrichment', static function (Request $request) use ($view, $pdo): Response {
+            if ($pdo instanceof PDO) {
+                $dash = (new EnrichmentDashboard($pdo))->collect();
+            } else {
+                $dash = [
+                    'stats' => [
+                        'total_cases' => 0,
+                        'mentions_1960' => 0,
+                        'mentions_crypto' => 0,
+                        'verified_yes' => 0,
+                        'verified_no' => 0,
+                        'unprocessed_1960' => 0,
+                        'enrichment' => [],
+                    ],
+                    'activity_log' => [],
+                    'cards' => array_map(
+                        static fn (array $card): array => $card + ['count' => 0, 'percent' => 0.0],
+                        EnrichmentDashboard::TABLE_CARDS
+                    ),
+                ];
+            }
+
+            return Response::html($view->renderInLayout('pages/enrichment', [
                 'title' => 'Enrichment — Project 1960',
                 'currentPath' => $request->path,
-                'heading' => 'Enrichment',
-                'blurb' => 'Enrichment dashboard arrives in a later slice.',
+                'stats' => $dash['stats'],
+                'activity_log' => $dash['activity_log'],
+                'cards' => $dash['cards'],
             ]));
         });
 
