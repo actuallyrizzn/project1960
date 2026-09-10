@@ -32,6 +32,7 @@ final class SchemaFixtureTest extends TestCase
         self::assertContains('cl_persons', $tables);
         self::assertContains('cl_person_aliases', $tables);
         self::assertContains('cl_person_case_edges', $tables);
+        self::assertContains('cl_match_reviews', $tables);
         unlink($path);
     }
 
