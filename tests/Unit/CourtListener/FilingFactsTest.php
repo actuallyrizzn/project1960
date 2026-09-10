@@ -48,6 +48,10 @@ final class FilingFactsTest extends TestCase
         self::assertSame('forfeiture', $n['outcomes'][0]['outcome_type']);
         self::assertSame('other', $n['outcomes'][1]['outcome_type']);
         self::assertStringContainsString('charges', FilingFactsPrompt::build('text', 'c1'));
+        $empty = FilingFactsPrompt::normalize(['charges' => 'bad', 'financial' => [['amount' => '1', 'type' => 'fine']]]);
+        self::assertSame([], $empty['charges']);
+        self::assertCount(1, $empty['outcomes']);
+        self::assertSame('fine', $empty['outcomes'][0]['outcome_type']);
     }
 
     public function testStoreReplaceAndExtract(): void

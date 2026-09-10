@@ -145,7 +145,10 @@ def main() -> int:
                                 panel = page.locator("#courtlistener-panel")
                                 if panel.count():
                                     panel.first.scroll_into_view_if_needed()
-                        paths.append(shot(page, f"{label}_{vp_name}"))
+                        dest = OUT / f"{label}_{vp_name}.png"
+                        page.screenshot(path=str(dest), full_page=(label == "case_detail"))
+                        print(f"shot {dest}")
+                        paths.append(dest)
                         page.close()
             finally:
                 browser.close()
