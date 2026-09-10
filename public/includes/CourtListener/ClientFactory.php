@@ -17,9 +17,11 @@ final class ClientFactory
      */
     public static function apiToken(array $env = []): string
     {
-        $token = $env['COURTLISTENER_API_TOKEN']
-            ?? (getenv('COURTLISTENER_API_TOKEN') ?: null)
-            ?? ($env['COURTLISTENER_TOKEN'] ?? (getenv('COURTLISTENER_TOKEN') ?: null));
+        if ($env !== []) {
+            $token = $env['COURTLISTENER_API_TOKEN'] ?? $env['COURTLISTENER_TOKEN'] ?? null;
+        } else {
+            $token = getenv('COURTLISTENER_API_TOKEN') ?: (getenv('COURTLISTENER_TOKEN') ?: null);
+        }
         if (!is_string($token) || trim($token) === '') {
             throw new RuntimeException(
                 'COURTLISTENER_API_TOKEN missing. Load ~/.ssh/courtlistener-api.pass (see Doc #1310).'

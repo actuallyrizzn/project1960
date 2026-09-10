@@ -101,7 +101,6 @@ final class Schema
                 raw_json TEXT,
                 updated_at TEXT,
                 PRIMARY KEY (case_id, cl_docket_id),
-                FOREIGN KEY(case_id) REFERENCES cases(id),
                 FOREIGN KEY(cl_docket_id) REFERENCES courtlistener_dockets(cl_docket_id)
             )'
         );
@@ -214,7 +213,6 @@ final class Schema
                 updated_at TEXT,
                 PRIMARY KEY (person_id, case_id),
                 FOREIGN KEY(person_id) REFERENCES cl_persons(id),
-                FOREIGN KEY(case_id) REFERENCES cases(id),
                 FOREIGN KEY(source_document_id) REFERENCES courtlistener_documents(cl_document_id)
             )'
         );
@@ -225,16 +223,35 @@ final class Schema
         );
 
         // CL-M1 — ambiguous / low-confidence match review queue
-        $pdo->exec(
-            'CREATE TABLE IF NOT EXISTS cl_match_reviews (
-                case_id TEXT PRIMARY KEY,
-                status TEXT NOT NULL DEFAULT \'pending\',
-                reason TEXT,
-                candidates_json TEXT,
-                updated_at TEXT,
-                CHECK (status IN (\'pending\', \'resolved\', \'skipped\')),
-                FOREIGN KEY(case_id) REFERENCES cases(id)
-            )'
-        );
+        // No FK to cases: live doj_cases.db legacy `cases` may lack a PK SQLite accepts for FK.
+        self::ensureMatchReviewsTable($pdo);
+    }
+
+    private static function ensureMatchReviewsTable(PDO $pdo): void
+    {
+        $exists = (int) $pdo->query(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='cl_match_reviews'"
+        )->fetchColumn();
+        if ($exists > 0) {
+            $fkCount = (int) $pdo->query(
+                "SELECT COUNT(*) FROM pragma_foreign_key_list('cl_match_reviews')"
+            )->fetchColumn();
+            if ($fkCount > 0) {
+                $pdo->exec('DROP TABLE cl_match_reviews');
+                $exists = 0;
+            }
+        }
+        if ($exists === 0) {
+            $pdo->exec(
+                'CREATE TABLE cl_match_reviews (
+                    case_id TEXT PRIMARY KEY,
+                    status TEXT NOT NULL DEFAULT \'pending\',
+                    reason TEXT,
+                    candidates_json TEXT,
+                    updated_at TEXT,
+                    CHECK (status IN (\'pending\', \'resolved\', \'skipped\'))
+                )'
+            );
+        }
     }
 }

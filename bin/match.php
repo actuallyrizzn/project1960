@@ -3,16 +3,18 @@
 declare(strict_types=1);
 
 /**
- * Match DOJ seed cases → CourtListener dockets (CL-M1).
+ * Match DOJ seed cases → CourtListener dockets (CL-M1/M2).
  *
- *   php bin/match.php [--limit=N] [--dry-run] [--verbose] [--all]
+ *   php bin/match.php [--limit=N] [--wait=2] [--dry-run] [--verbose] [--all]
  *
  * See docs/courtlistener.md
  */
 
+use CourtListener\Exceptions\RateLimitException;
 use Project1960\Config;
 use Project1960\CourtListener\ClientFactory;
 use Project1960\CourtListener\DocketMatcher;
+use Project1960\CourtListener\MatchBatchStats;
 use Project1960\CourtListener\MatchCliOptions;
 use Project1960\CourtListener\SdkSearchGateway;
 use Project1960\CourtListenerDocketStore;
@@ -57,37 +59,39 @@ $matcher = new DocketMatcher(
 
 $seeds = $matcher->loadSeeds($options->limit, verifiedOnly: !$options->allCases);
 fwrite(STDOUT, sprintf(
-    "Matching %d seed(s)%s…\n",
+    "Matching %d seed(s)%s wait=%ds…\n",
     count($seeds),
-    $options->dryRun ? ' [dry-run]' : ''
+    $options->dryRun ? ' [dry-run]' : '',
+    $options->waitSeconds
 ));
 
-$counts = ['matched' => 0, 'ambiguous' => 0, 'no_match' => 0];
-foreach ($seeds as $seed) {
-    $result = $matcher->matchOne($seed, dryRun: $options->dryRun);
-    $out = $result['outcome'];
-    if (str_contains($out, 'matched')) {
-        $counts['matched']++;
-    } elseif (str_contains($out, 'ambiguous')) {
-        $counts['ambiguous']++;
-    } else {
-        $counts['no_match']++;
+$stats = new MatchBatchStats();
+foreach ($seeds as $i => $seed) {
+    if ($i > 0 && $options->waitSeconds > 0) {
+        sleep($options->waitSeconds);
     }
-    if ($options->verbose) {
-        fwrite(STDOUT, sprintf(
-            "  %s → %s conf=%.3f cl=%s\n",
-            $seed['case_id'],
-            $out,
-            $result['confidence'],
-            $result['cl_docket_id'] !== null ? (string) $result['cl_docket_id'] : '-'
-        ));
+    try {
+        $result = $matcher->matchOne($seed, dryRun: $options->dryRun);
+        $stats->record($result['outcome']);
+        if ($options->verbose) {
+            fwrite(STDOUT, sprintf(
+                "  %s → %s conf=%.3f cl=%s\n",
+                $seed['case_id'],
+                $result['outcome'],
+                $result['confidence'],
+                $result['cl_docket_id'] !== null ? (string) $result['cl_docket_id'] : '-'
+            ));
+        }
+    } catch (RateLimitException $e) {
+        $stats->recordError();
+        fwrite(STDERR, 'Rate limited on ' . $seed['case_id'] . ': ' . $e->getMessage() . "\n");
+        fwrite(STDERR, "Backing off 30s then continuing…\n");
+        sleep(30);
+    } catch (Throwable $e) {
+        $stats->recordError();
+        fwrite(STDERR, 'Error on ' . $seed['case_id'] . ': ' . $e->getMessage() . "\n");
     }
 }
 
-fwrite(STDOUT, sprintf(
-    "Done: matched=%d ambiguous=%d no_match=%d\n",
-    $counts['matched'],
-    $counts['ambiguous'],
-    $counts['no_match']
-));
-exit(0);
+fwrite(STDOUT, $stats->summaryLine() . "\n");
+exit($stats->toArray()['errors'] > 0 ? 2 : 0);

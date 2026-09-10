@@ -135,7 +135,8 @@ final class DocketMatcher
      */
     public function loadSeeds(int $limit, bool $verifiedOnly = true): array
     {
-        $sql = 'SELECT c.id AS case_id, c.title, c.date, m.case_number, m.district_office
+        $sql = 'SELECT c.id AS case_id, c.title, c.date, c.number AS case_number_fallback,
+                       m.case_number, m.district_office
                 FROM cases c
                 LEFT JOIN case_metadata m ON m.case_id = c.id';
         if ($verifiedOnly) {
@@ -155,10 +156,13 @@ final class DocketMatcher
             $parties->bindValue(':id', $row['case_id']);
             $parties->execute();
             $names = $parties->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            $caseNumber = $row['case_number'] !== null && trim((string) $row['case_number']) !== ''
+                ? (string) $row['case_number']
+                : ($row['case_number_fallback'] !== null ? (string) $row['case_number_fallback'] : null);
             $out[] = [
                 'case_id' => (string) $row['case_id'],
                 'title' => $row['title'] !== null ? (string) $row['title'] : null,
-                'case_number' => $row['case_number'] !== null ? (string) $row['case_number'] : null,
+                'case_number' => $caseNumber,
                 'district_office' => $row['district_office'] !== null ? (string) $row['district_office'] : null,
                 'date' => $row['date'] !== null ? (string) $row['date'] : null,
                 'party_names' => array_map('strval', $names),
@@ -174,13 +178,20 @@ final class DocketMatcher
     public function buildQuery(array $seed): string
     {
         $parts = [];
-        if (!empty($seed['case_number'])) {
-            $parts[] = trim((string) $seed['case_number']);
+        $caseNumber = trim((string) ($seed['case_number'] ?? ''));
+        if ($caseNumber !== '' && $this->looksLikeCourtDocketNumber($caseNumber)) {
+            $parts[] = $caseNumber;
         }
         if (!empty($seed['party_names'][0])) {
             $parts[] = trim((string) $seed['party_names'][0]);
         } elseif (!empty($seed['title'])) {
-            $parts[] = trim((string) $seed['title']);
+            // Strip long press-release titles — use last segment after "v."
+            $title = trim((string) $seed['title']);
+            if (preg_match('/\bv\.?\s+(.+)$/i', $title, $m)) {
+                $parts[] = trim($m[1]);
+            } else {
+                $parts[] = mb_substr($title, 0, 80);
+            }
         }
         if (!empty($seed['district_office'])) {
             $parts[] = trim((string) $seed['district_office']);
@@ -188,6 +199,11 @@ final class DocketMatcher
         $q = trim(implode(' ', $parts));
 
         return $q !== '' ? $q : '1960';
+    }
+
+    public function looksLikeCourtDocketNumber(string $n): bool
+    {
+        return (bool) preg_match('/\d+:\d+|\d+\s*[- ]?\s*(cr|cv|misc|md)/i', $n);
     }
 
     /**

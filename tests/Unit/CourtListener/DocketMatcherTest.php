@@ -189,9 +189,11 @@ final class DocketMatcherTest extends TestCase
         self::assertSame(3, $o->limit);
         self::assertTrue($o->dryRun);
         self::assertTrue($o->verbose);
+        self::assertSame(2, $o->waitSeconds);
 
-        $o2 = MatchCliOptions::fromArgv(['match.php', '--limit', '7', '--all', '--help']);
+        $o2 = MatchCliOptions::fromArgv(['match.php', '--limit', '7', '--wait=5', '--all', '--help']);
         self::assertSame(7, $o2->limit);
+        self::assertSame(5, $o2->waitSeconds);
         self::assertTrue($o2->allCases);
         self::assertTrue($o2->help);
 

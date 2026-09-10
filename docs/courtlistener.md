@@ -27,17 +27,21 @@ $r = $c->dockets->listDockets(["page_size" => 1]);
 echo "ok keys=" . implode(",", array_keys($r)) . "\n";'
 ```
 
-## Match CLI (CL-M1)
+## Match CLI (CL-M1 / CL-M2)
 
 ```bash
 set -a && . ~/.ssh/courtlistener-api.pass && set +a
 # Dry-run first (no DB writes for links/reviews)
-php bin/match.php --limit=5 --dry-run --verbose
+php bin/match.php --limit=5 --wait=5 --dry-run --verbose
 # Persist best matches + flag ambiguous into cl_match_reviews
-php bin/match.php --limit=25 --verbose
+php bin/match.php --limit=50 --wait=5 --verbose
 ```
 
 Uses `CourtListener\CourtListenerClient` Search (`type=d`) via `SdkSearchGateway` — no hand-rolled HTTP.
+
+**Live DB note:** prod `cases` has no SQLite PRIMARY KEY on `id` (legacy). CL tables that touch `case_id` omit FKs to `cases` so inserts work.
+
+**Rate limits:** default `--wait=2`; raise to 5–10s on token 429s. CLI backs off 30s on `RateLimitException` and continues.
 
 ## Multihost
 

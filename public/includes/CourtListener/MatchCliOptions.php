@@ -3,11 +3,12 @@ declare(strict_types=1);
 
 namespace Project1960\CourtListener;
 
-/** Parsed CLI options for bin/match.php (CL-M1). */
+/** Parsed CLI options for bin/match.php (CL-M1/M2). */
 final class MatchCliOptions
 {
     public function __construct(
         public readonly int $limit,
+        public readonly int $waitSeconds,
         public readonly bool $dryRun,
         public readonly bool $verbose,
         public readonly bool $allCases,
@@ -21,9 +22,11 @@ final class MatchCliOptions
     public static function fromGetopt(array $opts): self
     {
         $limit = self::optionalInt($opts, 'limit') ?? 25;
+        $wait = self::optionalInt($opts, 'wait') ?? 2;
 
         return new self(
             limit: max(1, $limit),
+            waitSeconds: max(0, $wait),
             dryRun: array_key_exists('dry-run', $opts),
             verbose: array_key_exists('verbose', $opts),
             allCases: array_key_exists('all', $opts),
@@ -61,15 +64,18 @@ final class MatchCliOptions
                 $i++;
                 continue;
             }
-            if (str_starts_with($arg, '--limit=')) {
-                $opts['limit'] = substr($arg, strlen('--limit='));
-                $i++;
-                continue;
-            }
-            if ($arg === '--limit') {
-                $opts['limit'] = $args[$i + 1] ?? '';
-                $i += 2;
-                continue;
+            foreach (['limit', 'wait'] as $key) {
+                $prefix = '--' . $key . '=';
+                if (str_starts_with($arg, $prefix)) {
+                    $opts[$key] = substr($arg, strlen($prefix));
+                    $i++;
+                    continue 2;
+                }
+                if ($arg === '--' . $key) {
+                    $opts[$key] = $args[$i + 1] ?? '';
+                    $i += 2;
+                    continue 2;
+                }
             }
             $i++;
         }
@@ -86,6 +92,7 @@ Match verified_1960 seed cases to CourtListener dockets via courtlistener-sdk Se
 
 Options:
   --limit=N     Max cases to process (default 25)
+  --wait=N      Seconds between CL searches (default 2; raise if rate-limited)
   --dry-run     Search + score only; do not write dockets/links/reviews
   --all         Include cases that are not verified_1960
   --verbose     Extra logging
@@ -96,7 +103,7 @@ Env:
   DATABASE_PATH            SQLite path (same as site)
 
 Cron example (dry-run first):
-  php bin/match.php --limit=10 --dry-run --verbose
+  php bin/match.php --limit=10 --wait=3 --dry-run --verbose
 
 TXT;
     }
