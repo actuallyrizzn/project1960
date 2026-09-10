@@ -299,6 +299,27 @@ final class App
                 return $appearanceCtl->pagePost($request->post);
             });
 
+            $helpCtl = new AdminHelpController($pdo, $view);
+            $this->router->get('/admin/help', static function (Request $request) use ($helpCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+                unset($request);
+
+                return $helpCtl->index();
+            });
+            $this->router->get('/admin/help/{slug}', static function (Request $request) use ($helpCtl, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                $deny = AdminShell::requireAuth($auth);
+                if ($deny instanceof Response) {
+                    return $deny;
+                }
+
+                return $helpCtl->show($request->attr('slug'));
+            });
+
             $keysCtl = new AdminApiKeysController($pdo, $view);
             $this->router->get('/admin/api-keys', static function (Request $request) use ($keysCtl, $pdo): Response {
                 $auth = new AdminAuth($pdo);
