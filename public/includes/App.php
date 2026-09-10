@@ -3,15 +3,19 @@ declare(strict_types=1);
 
 namespace Project1960;
 
+use PDO;
+
 final class App
 {
     private Router $router;
     private View $view;
+    private ?PDO $pdo;
 
-    public function __construct(?Router $router = null, ?View $view = null)
+    public function __construct(?Router $router = null, ?View $view = null, ?PDO $pdo = null)
     {
         $this->router = $router ?? new Router();
         $this->view = $view ?? new View();
+        $this->pdo = $pdo;
         $this->registerRoutes();
     }
 
@@ -23,11 +27,25 @@ final class App
     private function registerRoutes(): void
     {
         $view = $this->view;
+        $pdo = $this->pdo;
 
-        $this->router->get('/', static function (Request $request) use ($view): Response {
+        $this->router->get('/', static function (Request $request) use ($view, $pdo): Response {
+            $stats = $pdo instanceof PDO
+                ? Stats::collect($pdo)
+                : [
+                    'total_cases' => 0,
+                    'mentions_1960' => 0,
+                    'mentions_crypto' => 0,
+                    'verified_yes' => 0,
+                    'verified_no' => 0,
+                    'unprocessed_1960' => 0,
+                    'enrichment' => array_fill_keys(Stats::ENRICHMENT_TABLES, 0),
+                ];
+
             $html = $view->renderInLayout('pages/home', [
                 'title' => 'Dashboard — Project 1960',
                 'currentPath' => $request->path,
+                'stats' => $stats,
             ]);
 
             return Response::html($html);
