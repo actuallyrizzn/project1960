@@ -5,17 +5,26 @@ namespace Project1960;
 
 final class Request
 {
-    /** @param array<string, string> $query */
+    /**
+     * @param array<string, string> $query
+     * @param array<string, string> $attrs
+     */
     public function __construct(
         public readonly string $method,
         public readonly string $path,
         public readonly array $query = [],
+        public readonly array $attrs = [],
     ) {
     }
 
     public function query(string $key, string $default = ''): string
     {
         return $this->query[$key] ?? $default;
+    }
+
+    public function attr(string $key, string $default = ''): string
+    {
+        return $this->attrs[$key] ?? $default;
     }
 
     public function queryInt(string $key, int $default): int

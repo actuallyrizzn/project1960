@@ -59,4 +59,29 @@ final class RouterTest extends TestCase
 
         self::assertSame('home', $response->body);
     }
+
+    public function testParamRouteExtractsAttrs(): void
+    {
+        $router = new Router();
+        $router->get('/case/{id}', static function (Request $r): Response {
+            return Response::text($r->attr('id'));
+        });
+
+        $response = $router->dispatch(new Request('GET', '/case/fixture-case-1'));
+
+        self::assertSame(200, $response->status);
+        self::assertSame('fixture-case-1', $response->body);
+    }
+
+    public function testParamRouteDecodesUrlEncoding(): void
+    {
+        $router = new Router();
+        $router->get('/case/{id}', static function (Request $r): Response {
+            return Response::text($r->attr('id'));
+        });
+
+        $response = $router->dispatch(new Request('GET', '/case/abc%20def'));
+
+        self::assertSame('abc def', $response->body);
+    }
 }

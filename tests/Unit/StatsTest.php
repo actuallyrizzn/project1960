@@ -24,7 +24,7 @@ final class StatsTest extends TestCase
         self::assertSame(0, $stats['unprocessed_1960']);
         self::assertSame(1, $stats['enrichment']['case_metadata']);
         self::assertSame(1, $stats['enrichment']['participants']);
-        self::assertSame(0, $stats['enrichment']['charges']);
+        self::assertSame(1, $stats['enrichment']['charges']);
 
         $fixture->destroy();
     }

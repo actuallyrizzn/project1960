@@ -5,22 +5,56 @@ namespace Project1960;
 
 final class Router
 {
-    /** @var array<string, callable(Request): Response> */
+    /** @var list<array{method: string, pattern: string, regex: string, keys: list<string>, handler: callable}> */
     private array $routes = [];
 
     public function get(string $path, callable $handler): void
     {
-        $this->routes['GET ' . $this->normalize($path)] = $handler;
+        $this->add('GET', $path, $handler);
+    }
+
+    public function add(string $method, string $path, callable $handler): void
+    {
+        $normalized = $this->normalize($path);
+        $keys = [];
+        $regex = preg_replace_callback(
+            '/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/',
+            static function (array $m) use (&$keys): string {
+                $keys[] = $m[1];
+
+                return '([^/]+)';
+            },
+            $normalized
+        );
+        $this->routes[] = [
+            'method' => strtoupper($method),
+            'pattern' => $normalized,
+            'regex' => '#^' . $regex . '$#',
+            'keys' => $keys,
+            'handler' => $handler,
+        ];
     }
 
     public function dispatch(Request $request): Response
     {
-        $key = $request->method . ' ' . $this->normalize($request->path);
-        if (!isset($this->routes[$key])) {
-            return Response::text('Not Found', 404);
+        $path = $this->normalize($request->path);
+        foreach ($this->routes as $route) {
+            if ($route['method'] !== $request->method) {
+                continue;
+            }
+            if (!preg_match($route['regex'], $path, $matches)) {
+                continue;
+            }
+            $attrs = [];
+            foreach ($route['keys'] as $i => $key) {
+                $attrs[$key] = rawurldecode((string) ($matches[$i + 1] ?? ''));
+            }
+            $matched = new Request($request->method, $request->path, $request->query, $attrs);
+
+            return ($route['handler'])($matched);
         }
 
-        return ($this->routes[$key])($request);
+        return Response::text('Not Found', 404);
     }
 
     private function normalize(string $path): string

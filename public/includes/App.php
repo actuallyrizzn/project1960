@@ -75,6 +75,24 @@ final class App
             ]));
         });
 
+        $this->router->get('/case/{id}', static function (Request $request) use ($view, $pdo): Response {
+            if (!$pdo instanceof PDO) {
+                return Response::text('Database not configured', 503);
+            }
+            $id = $request->attr('id');
+            $loaded = (new CaseDetailLoader($pdo))->load($id);
+            if ($loaded === null) {
+                return Response::text('Case not found', 404);
+            }
+
+            return Response::html($view->renderInLayout('pages/case_detail', [
+                'title' => ($loaded['case']['title'] ?? 'Case') . ' — Project 1960',
+                'currentPath' => '/cases',
+                'case' => $loaded['case'],
+                'enrichment' => $loaded['enrichment'],
+            ]));
+        });
+
         $this->router->get('/enrichment', static function (Request $request) use ($view): Response {
             return Response::html($view->renderInLayout('pages/shell', [
                 'title' => 'Enrichment — Project 1960',
