@@ -63,7 +63,6 @@ enrichment.lock
 
 # PHP / Composer (foundation+)
 /vendor/
-composer.lock.phpunit*
 .phpunit.cache/
 .phpunit.result.cache
 

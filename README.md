@@ -9,7 +9,7 @@ Data journalism on **18 U.S.C. § 1960** / DOJ press releases (Operation Chokepo
 
 | Path | Role |
 |------|------|
-| `public/` | Multihost PHP docroot (added in foundation slices) |
+| `public/` | Multihost PHP docroot (`index.php`, `includes/`, `assets/`) |
 | `legacy/` | Previous Python Flask app, DOJ scraper, Venice enrich/verify |
 | `LICENSE` | CC BY-SA 4.0 |
 | `env.example` | Shared env hints (Venice, DB path, CourtListener) |
