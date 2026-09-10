@@ -37,8 +37,14 @@ final class CaseDetailLoader
 
         return [
             'case' => $case,
-            'enrichment' => $this->enrichment($caseId),
+            'enrichment' => $this->enrichmentFor($caseId),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    public function enrichmentFor(string $caseId): array
+    {
+        return $this->enrichment($caseId);
     }
 
     /** @return array<string, mixed> */

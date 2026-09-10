@@ -124,13 +124,42 @@ final class App
             ]));
         });
 
-        $this->router->get('/about', static function (Request $request) use ($view): Response {
-            return Response::html($view->renderInLayout('pages/shell', [
+        $this->router->get('/about', static function (Request $request) use ($view, $pdo): Response {
+            $aboutStats = [
+                'total_cases' => 0,
+                'cases_1960' => 0,
+                'cases_crypto' => 0,
+            ];
+            if ($pdo instanceof PDO) {
+                $aboutStats['total_cases'] = (int) $pdo->query('SELECT COUNT(*) FROM cases')->fetchColumn();
+                $aboutStats['cases_1960'] = (int) $pdo->query(
+                    'SELECT COUNT(*) FROM cases WHERE mentions_1960 = 1'
+                )->fetchColumn();
+                $aboutStats['cases_crypto'] = (int) $pdo->query(
+                    'SELECT COUNT(*) FROM cases WHERE mentions_crypto = 1'
+                )->fetchColumn();
+            }
+
+            return Response::html($view->renderInLayout('pages/about', [
                 'title' => 'About — Project 1960',
                 'currentPath' => $request->path,
-                'heading' => 'About',
-                'blurb' => 'About page content arrives in a later slice.',
+                'stats' => $aboutStats,
             ]));
+        });
+
+        $api = new Api($pdo);
+        $this->router->get('/api/stats', static function (Request $request) use ($api): Response {
+            unset($request);
+
+            return $api->stats();
+        });
+        $this->router->get('/api/cases', static function (Request $request) use ($api): Response {
+            unset($request);
+
+            return $api->cases();
+        });
+        $this->router->get('/api/enrichment/{id}', static function (Request $request) use ($api): Response {
+            return $api->enrichment($request->attr('id'));
         });
 
         $this->router->get('/health', static function (Request $request): Response {
