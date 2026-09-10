@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 /**
- * Project 1960 DOJ scraper CLI (SC1: fetch + retry).
+ * Project 1960 DOJ scraper CLI.
  *
- *   php bin/scrape.php [--max-pages=N] [--wait=2] [--dry-run]
+ *   php bin/scrape.php [--max-pages=N] [--limit=N] [--page-start=N] [--wait=2] [--dry-run] [--verbose]
  *
- * Uses DATABASE_PATH / db/doj_cases.db for scraper_state.
+ * See docs/scraper.md
  */
 
 use Project1960\Config;
@@ -17,19 +17,16 @@ use Project1960\Scraper\CaseStore;
 use Project1960\Scraper\CurlTransport;
 use Project1960\Scraper\DojClient;
 use Project1960\Scraper\FetchLoop;
+use Project1960\Scraper\ScrapeCliOptions;
 use Project1960\Scraper\ScraperState;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$opts = getopt('', ['max-pages::', 'wait::', 'dry-run', 'help']);
-if (isset($opts['help'])) {
-    fwrite(STDOUT, "Usage: php bin/scrape.php [--max-pages=N] [--wait=2] [--dry-run]\n");
+$options = ScrapeCliOptions::fromArgv($argv);
+if ($options->help) {
+    fwrite(STDOUT, ScrapeCliOptions::helpText());
     exit(0);
 }
-
-$maxPages = isset($opts['max-pages']) ? (int) $opts['max-pages'] : null;
-$wait = isset($opts['wait']) ? (int) $opts['wait'] : 2;
-$dryRun = array_key_exists('dry-run', $opts);
 
 try {
     $dbPath = Config::databasePath();
@@ -47,21 +44,35 @@ try {
     exit(1);
 }
 
-$client = new DojClient(new CurlTransport(), retrySleepSeconds: 5);
 $state = new ScraperState($pdo);
+if ($options->pageStart !== null) {
+    $start = max(0, $options->pageStart - 1);
+    $state->saveLastPage($start);
+    if ($options->verbose) {
+        fwrite(STDOUT, "page-start override: next page will be {$options->pageStart}\n");
+    }
+}
+
+$client = new DojClient(new CurlTransport(), retrySleepSeconds: 5);
+$verbose = $options->verbose;
+$dryRun = $options->dryRun;
+
 $loop = new FetchLoop(
     $client,
     $state,
-    waitSeconds: $wait,
+    waitSeconds: max(0, $options->waitSeconds),
     sleeper: static function (int $seconds): void {
         if ($seconds > 0) {
             sleep($seconds);
         }
     },
-    onPage: static function (int $page, array $results) use ($dryRun, $pdo): void {
+    onPage: static function (int $page, array $results) use ($dryRun, $pdo, $verbose): void {
         $prefix = $dryRun ? '[dry-run] ' : '';
         if ($dryRun) {
             fwrite(STDOUT, $prefix . "page {$page}: " . count($results) . " items (not stored)\n");
+            if ($verbose && isset($results[0]['title'])) {
+                fwrite(STDOUT, $prefix . 'sample title: ' . (string) $results[0]['title'] . "\n");
+            }
             return;
         }
         $counts = (new CaseStore($pdo))->storeAll($results);
@@ -78,9 +89,11 @@ $loop = new FetchLoop(
 );
 
 fwrite(STDOUT, 'Starting from page ' . ($state->lastPage() + 1) . "…\n");
-$result = $loop->run($maxPages);
-foreach ($result['log'] as $line) {
-    fwrite(STDOUT, $line . "\n");
+$result = $loop->run($options->maxPages);
+if ($verbose) {
+    foreach ($result['log'] as $line) {
+        fwrite(STDOUT, $line . "\n");
+    }
 }
 fwrite(STDOUT, sprintf(
     "Done: pages=%d fetched=%d stopped=%s\n",
