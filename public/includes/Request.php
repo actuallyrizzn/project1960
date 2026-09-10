@@ -9,6 +9,7 @@ final class Request
      * @param array<string, string> $query
      * @param array<string, string> $attrs
      * @param array<string, mixed> $server
+     * @param array<string, mixed> $post
      */
     public function __construct(
         public readonly string $method,
@@ -16,6 +17,7 @@ final class Request
         public readonly array $query = [],
         public readonly array $attrs = [],
         public readonly array $server = [],
+        public readonly array $post = [],
     ) {
     }
 
@@ -45,8 +47,9 @@ final class Request
     /**
      * @param array<string, mixed> $server
      * @param array<string, mixed>|null $get
+     * @param array<string, mixed>|null $post
      */
-    public static function fromGlobals(array $server, ?array $get = null): self
+    public static function fromGlobals(array $server, ?array $get = null, ?array $post = null): self
     {
         $method = strtoupper((string) ($server['REQUEST_METHOD'] ?? 'GET'));
         $uri = (string) ($server['REQUEST_URI'] ?? '/');
@@ -66,6 +69,13 @@ final class Request
             }
         }
 
-        return new self($method, $path, $query, [], $server);
+        $postBody = [];
+        foreach (($post ?? []) as $k => $v) {
+            if (is_string($k) && (is_string($v) || is_numeric($v))) {
+                $postBody[$k] = (string) $v;
+            }
+        }
+
+        return new self($method, $path, $query, [], $server, $postBody);
     }
 }

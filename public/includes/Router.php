@@ -13,6 +13,11 @@ final class Router
         $this->add('GET', $path, $handler);
     }
 
+    public function post(string $path, callable $handler): void
+    {
+        $this->add('POST', $path, $handler);
+    }
+
     public function add(string $method, string $path, callable $handler): void
     {
         $normalized = $this->normalize($path);
@@ -49,7 +54,14 @@ final class Router
             foreach ($route['keys'] as $i => $key) {
                 $attrs[$key] = rawurldecode((string) ($matches[$i + 1] ?? ''));
             }
-            $matched = new Request($request->method, $request->path, $request->query, $attrs, $request->server);
+            $matched = new Request(
+                $request->method,
+                $request->path,
+                $request->query,
+                $attrs,
+                $request->server,
+                $request->post
+            );
 
             return ($route['handler'])($matched);
         }

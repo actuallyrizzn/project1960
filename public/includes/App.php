@@ -218,7 +218,7 @@ final class App
             ]);
         });
 
-        // AD-A1 — admin shell (auth stub; login page in AD-A2)
+        // AD-A1/A2 — admin shell + login/logout
         if ($pdo instanceof PDO) {
             $this->router->get('/admin', static function (Request $request) use ($view, $pdo): Response {
                 $auth = new AdminAuth($pdo);
@@ -232,6 +232,29 @@ final class App
                     'currentPath' => $request->path,
                     'adminUser' => $auth->user(),
                 ]);
+            });
+            $login = new AdminLogin($pdo, $view);
+            $this->router->get('/admin/login', static function (Request $request) use ($login, $pdo): Response {
+                $auth = new AdminAuth($pdo);
+                if ($auth->check()) {
+                    return new Response('', 302, ['Location' => '/admin']);
+                }
+                unset($request);
+
+                return $login->show();
+            });
+            $this->router->post('/admin/login', static function (Request $request) use ($login): Response {
+                return $login->attempt($request->post);
+            });
+            $this->router->get('/admin/logout', static function (Request $request) use ($login): Response {
+                unset($request);
+
+                return $login->logout();
+            });
+            $this->router->post('/admin/logout', static function (Request $request) use ($login): Response {
+                unset($request);
+
+                return $login->logout();
             });
         }
     }

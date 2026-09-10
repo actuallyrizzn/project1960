@@ -29,9 +29,16 @@ function project1960_boot(?string $forcePath = null): array
     }
 
     $app = new App(null, null, $pdo);
-    $request = Request::fromGlobals($_SERVER, $_GET);
+    $request = Request::fromGlobals($_SERVER, $_GET, $_POST);
     if ($forcePath !== null) {
-        $request = new Request($request->method, $forcePath, $request->query, $request->attrs);
+        $request = new Request(
+            $request->method,
+            $forcePath,
+            $request->query,
+            $request->attrs,
+            $request->server,
+            $request->post
+        );
     }
 
     return [$app, $request];
