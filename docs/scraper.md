@@ -4,7 +4,10 @@ CLI: `php bin/scrape.php`
 
 Fetches DOJ press releases from `https://www.justice.gov/api/v1/press_releases.json` (pagesize 50), filters for 18 U.S.C. § 1960 / crypto keywords, and `INSERT OR IGNORE`s into SQLite (`DATABASE_PATH` or `db/doj_cases.db`).
 
-## Flags
+## Requirements
+
+- PHP 8.1+ with **curl** extension (`php-curl`)
+- Writable SQLite path via `DATABASE_PATH` or `db/doj_cases.db`
 
 | Flag | Meaning |
 |------|---------|
