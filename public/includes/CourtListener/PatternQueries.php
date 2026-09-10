@@ -34,7 +34,11 @@ HAVING case_count >= {$minCases}
 ORDER BY case_count DESC, p.display_name ASC
 LIMIT {$limit}
 SQL;
-        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        try {
+            $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException) {
+            return [];
+        }
         $out = [];
         foreach ($rows as $row) {
             $ids = array_values(array_filter(explode(',', (string) ($row['case_ids'] ?? ''))));
@@ -61,20 +65,24 @@ SQL;
         if ($n === '') {
             return [];
         }
-        $stmt = $this->pdo->prepare(
-            'SELECT p.id AS person_id, p.display_name, p.role, e.case_id, e.role AS edge_role
-             FROM cl_persons p
-             JOIN cl_person_case_edges e ON e.person_id = p.id
-             WHERE p.id IN (
-                SELECT id FROM cl_persons WHERE normalized_name = :n
-                UNION
-                SELECT person_id FROM cl_person_aliases WHERE alias_normalized = :n2
-             )
-             ORDER BY e.case_id'
-        );
-        $stmt->bindValue(':n', $n);
-        $stmt->bindValue(':n2', $n);
-        $stmt->execute();
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT p.id AS person_id, p.display_name, p.role, e.case_id, e.role AS edge_role
+                 FROM cl_persons p
+                 JOIN cl_person_case_edges e ON e.person_id = p.id
+                 WHERE p.id IN (
+                    SELECT id FROM cl_persons WHERE normalized_name = :n
+                    UNION
+                    SELECT person_id FROM cl_person_aliases WHERE alias_normalized = :n2
+                 )
+                 ORDER BY e.case_id'
+            );
+            $stmt->bindValue(':n', $n);
+            $stmt->bindValue(':n2', $n);
+            $stmt->execute();
+        } catch (\PDOException) {
+            return [];
+        }
 
         return array_map(static function (array $r): array {
             return [
@@ -108,7 +116,11 @@ HAVING case_count >= {$minCases}
 ORDER BY case_count DESC
 LIMIT {$limit}
 SQL;
-        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        try {
+            $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException) {
+            return [];
+        }
 
         return $this->mapShared($rows);
     }

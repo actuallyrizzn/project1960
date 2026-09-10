@@ -37,6 +37,9 @@ final class Database
 
     public static function connectFromEnv(array $env = [], ?string $projectRoot = null): PDO
     {
-        return self::connect(Config::databasePath($env, $projectRoot));
+        $pdo = self::connect(Config::databasePath($env, $projectRoot));
+        Schema::migrate($pdo);
+
+        return $pdo;
     }
 }
