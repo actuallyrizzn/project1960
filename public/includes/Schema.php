@@ -79,5 +79,36 @@ final class Schema
                 value TEXT
             )'
         );
+
+        // CourtListener Phase 2 — docket cache + case links (CL-S1)
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS courtlistener_dockets (
+                cl_docket_id INTEGER PRIMARY KEY,
+                court_id TEXT,
+                docket_number TEXT,
+                case_name TEXT,
+                raw_json TEXT,
+                updated_at TEXT
+            )'
+        );
+
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS case_courtlistener_links (
+                case_id TEXT NOT NULL,
+                cl_docket_id INTEGER NOT NULL,
+                match_confidence REAL,
+                match_method TEXT,
+                raw_json TEXT,
+                updated_at TEXT,
+                PRIMARY KEY (case_id, cl_docket_id),
+                FOREIGN KEY(case_id) REFERENCES cases(id),
+                FOREIGN KEY(cl_docket_id) REFERENCES courtlistener_dockets(cl_docket_id)
+            )'
+        );
+
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_case_cl_links_cl_docket
+             ON case_courtlistener_links(cl_docket_id)'
+        );
     }
 }
