@@ -1,7 +1,13 @@
 <?php
 declare(strict_types=1);
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+$vendor = dirname(__DIR__) . '/vendor/autoload.php';
+$local = __DIR__ . '/includes/autoload.php';
+if (is_file($vendor)) {
+    require $vendor;
+} else {
+    require $local;
+}
 
 use Project1960\App;
 use Project1960\Database;
