@@ -27,10 +27,11 @@ MOBILE = {"width": 390, "height": 844}
 
 ROUTES = [
     ("home", "/"),
-    ("cases", "/cases"),
-    ("case_detail", "/case/fixture-case-1"),
-    ("enrichment", "/enrichment"),
-    ("about", "/about"),
+    ("cases", "/cases/"),
+    ("case_detail", "/case.php?id=fixture-case-1"),
+    ("enrichment", "/enrichment/"),
+    ("about", "/about/"),
+    ("health", "/health/"),
 ]
 
 
