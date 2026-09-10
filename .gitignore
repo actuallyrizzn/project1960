@@ -1,69 +1,81 @@
-
-# CL document bytes (CL-I3)
-# Database files
 # Environment variables
-# IDE
-# Live / local SQLite (keep db/README.md)
-# Local tooling
-# Logs
-# OS
-# PHP / Composer (foundation+)
-# Python
-# Temporary files
-# Virtual environments
-*$py.class
+.env
+
+# Database files
 *.db
-*.egg
-*.egg-info/
-*.log
-*.py[cod]
-*.so
 *.sqlite
 *.sqlite3
-*.swo
-*.swp
-*.temp 
-*.tmp
-*~
-.DS_Store
-.DS_Store?
-.Python
-.Spotlight-V100
-.Trashes
-._*
-.eggs/
-.env
-.idea/
-.installed.cfg
-.otto-githooks-installed
-.phpunit.cache/
-.phpunit.result.cache
-.vscode/
-/vendor/
-ENV/
-MANIFEST
-Thumbs.db
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
-db/*.db
-db/*.db-*
 develop-eggs/
 dist/
 downloads/
 eggs/
-ehthumbs.db
-enrichment.lock
-env.bak/
-env/
+.eggs/
 lib/
 lib64/
-logs/
 parts/
 sdist/
-storage/cl-docs/
-tools/design-smoke/out-admin/
-tools/design-smoke/out/
 var/
-venv.bak/
-venv/
 wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp 
+enrichment.lock
+
+# PHP / Composer (foundation+)
+/vendor/
+.phpunit.cache/
+.phpunit.result.cache
+
+# Local tooling
+.otto-githooks-installed
+
+# Live / local SQLite (keep db/README.md)
+db/*.db
+db/*.db-*
+
+# CL document bytes (CL-I3)
+storage/cl-docs/
+
+# Design smoke outputs
+tools/design-smoke/out/
+tools/design-smoke/out-admin/
