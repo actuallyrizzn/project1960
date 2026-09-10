@@ -136,10 +136,10 @@ $e = static fn (mixed $v): string => \Project1960\View::e($v);
             <div class="card-body">
                 <h2 class="h4 card-title">JSON API</h2>
                 <ul class="mb-0">
-                    <li><code>GET /api/stats</code> — dashboard statistics</li>
-                    <li><code>GET /api/cases</code> — recent cases (limit 100)</li>
-                    <li><code>GET /api/enrichment/{id}</code> — enrichment tables for a case</li>
-                    <li><code>GET /health</code> — liveness</li>
+                    <li><code>GET /api/stats/</code> — dashboard statistics</li>
+                    <li><code>GET /api/cases/</code> — recent cases (limit 100)</li>
+                    <li><code>GET /api/enrichment/?id=…</code> — enrichment tables for a case</li>
+                    <li><code>GET /health/</code> — liveness</li>
                 </ul>
             </div>
         </div>

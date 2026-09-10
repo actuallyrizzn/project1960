@@ -122,7 +122,7 @@ $queryKeep = static function (array $overrides) use ($filters): string {
                                 <?php if (!empty($case['mentions_crypto'])): ?><span class="badge bg-success">Crypto</span><?php endif; ?>
                             </td>
                             <td>
-                                <a class="btn btn-sm btn-outline-primary" href="/case/<?= $e(rawurlencode((string) ($case['id'] ?? ''))) ?>">View</a>
+                                <a class="btn btn-sm btn-outline-primary" href="/case.php?id=<?= $e(rawurlencode((string) ($case['id'] ?? ''))) ?>">View</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

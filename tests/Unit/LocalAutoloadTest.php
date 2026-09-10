@@ -12,10 +12,13 @@ final class LocalAutoloadTest extends TestCase
         $path = dirname(__DIR__, 2) . '/public/includes/autoload.php';
         self::assertFileExists($path);
 
-        // Fresh process would be ideal; assert file defines the expected fallback path used by index.php.
+        $boot = file_get_contents(dirname(__DIR__, 2) . '/public/bootstrap.php');
+        self::assertNotFalse($boot);
+        self::assertStringContainsString('includes/autoload.php', $boot);
+        self::assertStringContainsString('vendor/autoload.php', $boot);
+
         $index = file_get_contents(dirname(__DIR__, 2) . '/public/index.php');
         self::assertNotFalse($index);
-        self::assertStringContainsString('includes/autoload.php', $index);
-        self::assertStringContainsString('vendor/autoload.php', $index);
+        self::assertStringContainsString('bootstrap.php', $index);
     }
 }

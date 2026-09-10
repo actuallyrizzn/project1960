@@ -1,25 +1,7 @@
 <?php
 declare(strict_types=1);
 
-$vendor = dirname(__DIR__) . '/vendor/autoload.php';
-$local = __DIR__ . '/includes/autoload.php';
-if (is_file($vendor)) {
-    require $vendor;
-} else {
-    require $local;
-}
+require __DIR__ . '/bootstrap.php';
 
-use Project1960\App;
-use Project1960\Database;
-use Project1960\Request;
-
-$pdo = null;
-try {
-    $pdo = Database::connectFromEnv();
-} catch (Throwable) {
-    $pdo = null;
-}
-
-$app = new App(null, null, $pdo);
-$response = $app->handle(Request::fromGlobals($_SERVER));
-$response->send();
+[$app, $request] = project1960_boot('/');
+project1960_send($app->handle($request));

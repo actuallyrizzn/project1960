@@ -135,7 +135,7 @@ $formatTs = static function (string $ts): string {
                                 <tr>
                                     <td class="text-nowrap"><?= $e($formatTs((string) ($log['timestamp'] ?? ''))) ?></td>
                                     <td class="font-monospace small">
-                                        <a href="/case/<?= $e(rawurlencode($caseId)) ?>" class="text-primary fw-bold text-decoration-none">
+                                        <a href="/case.php?id=<?= $e(rawurlencode($caseId)) ?>" class="text-primary fw-bold text-decoration-none">
                                             <?= $e($caseId) ?>
                                             <i class="bi bi-box-arrow-up-right ms-1 opacity-75"></i>
                                         </a>

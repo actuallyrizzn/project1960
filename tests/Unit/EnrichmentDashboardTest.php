@@ -70,7 +70,7 @@ final class EnrichmentDashboardTest extends TestCase
         self::assertStringContainsString('Data Enrichment Progress', $response->body);
         self::assertStringContainsString('fixture-case-1', $response->body);
         self::assertStringContainsString('Extracted 1 charge', $response->body);
-        self::assertStringContainsString('href="/case/fixture-case-1"', $response->body);
+        self::assertStringContainsString('href="/case.php?id=fixture-case-1"', $response->body);
         self::assertStringContainsString('Success', $response->body);
         self::assertStringContainsString('Skipped', $response->body);
         self::assertStringContainsString('Error', $response->body);
