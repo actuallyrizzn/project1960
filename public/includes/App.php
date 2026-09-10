@@ -226,12 +226,9 @@ final class App
                 if ($deny instanceof Response) {
                     return $deny;
                 }
+                unset($request, $view);
 
-                return AdminShell::renderPage($view, 'admin/home', [
-                    'title' => 'Home',
-                    'currentPath' => $request->path,
-                    'adminUser' => $auth->user(),
-                ], $pdo);
+                return (new AdminHomeController($pdo))->pageGet();
             });
             $login = new AdminLogin($pdo, $view);
             $this->router->get('/admin/login', static function (Request $request) use ($login, $pdo): Response {
