@@ -179,8 +179,44 @@ final class DocketMatcherTest extends TestCase
         self::assertCount(1, $seeds);
         self::assertSame('c1', $seeds[0]['case_id']);
         $q = $this->matcher->buildQuery($seeds[0]);
-        self::assertStringContainsString('1:24-cr-0001', $q);
         self::assertStringContainsString('Jane Fixture', $q);
+        self::assertStringContainsString('1:24-cr-0001', $q);
+        self::assertStringNotContainsString('Southern District', $q);
+        self::assertTrue($this->matcher->looksLikeCourtDocketNumber('1:24-cr-0001'));
+        self::assertTrue($this->matcher->looksLikeCourtDocketNumber('23cr166'));
+        self::assertFalse($this->matcher->looksLikeCourtDocketNumber('CAS25-0212-McGrath'));
+        self::assertSame('cr23166', $this->matcher->docketCore('23cr166'));
+        self::assertSame('cr23166', $this->matcher->docketCore('1:23-cr-00166'));
+        self::assertSame('fixture', $this->matcher->lastName('Jane Fixture'));
+        $q2 = $this->matcher->buildQuery([
+            'case_id' => 'x',
+            'case_number' => 'CAS25-0212-McGrath',
+            'party_names' => ['Michael Pratt'],
+            'district_office' => 'Southern District of California',
+        ]);
+        self::assertStringNotContainsString('CAS25', $q2);
+        self::assertSame('Michael Pratt', $q2);
+    }
+
+    public function testPartyAndCourtScoreCanAccept(): void
+    {
+        $this->fakeResults = [
+            [
+                'docket_id' => 42,
+                'docketNumber' => '1:23-cr-00166',
+                'caseName' => 'United States v. Firoz Patel',
+                'court_id' => 'dcd',
+            ],
+        ];
+        $result = $this->matcher->matchOne([
+            'case_id' => 'c1',
+            'title' => 'Canadian Businessman Sentenced',
+            'case_number' => '23cr166',
+            'district_office' => 'District of Columbia',
+            'party_names' => ['Firoz Patel'],
+        ], dryRun: true);
+        self::assertSame('dry_run_matched', $result['outcome']);
+        self::assertGreaterThanOrEqual(DocketMatcher::ACCEPT_MIN, $result['confidence']);
     }
 
     public function testMatchCliOptions(): void

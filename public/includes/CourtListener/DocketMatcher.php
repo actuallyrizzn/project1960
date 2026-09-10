@@ -8,13 +8,40 @@ use Project1960\CourtListenerMatchReviewStore;
 use PDO;
 
 /**
- * Match DOJ seed cases → CourtListener dockets via SDK search (CL-M1).
+ * Match DOJ seed cases → CourtListener dockets via SDK search (CL-M1/M2).
+ * Designed for slow-drip CLI (--limit / --wait), not bulk burns.
  */
 final class DocketMatcher
 {
-    public const ACCEPT_MIN = 0.70;
-    public const AMBIGUOUS_GAP = 0.15;
-    public const REVIEW_MIN = 0.45;
+    public const ACCEPT_MIN = 0.65;
+    public const AMBIGUOUS_GAP = 0.12;
+    public const REVIEW_MIN = 0.40;
+
+    /** @var array<string, string> district phrase → court_id fragment */
+    private const COURT_HINTS = [
+        'district of columbia' => 'dcd',
+        'southern district of new york' => 'nysd',
+        'eastern district of new york' => 'nyed',
+        'southern district of california' => 'casd',
+        'central district of california' => 'cacd',
+        'northern district of california' => 'cand',
+        'southern district of texas' => 'txsd',
+        'northern district of texas' => 'txnd',
+        'eastern district of texas' => 'txed',
+        'western district of texas' => 'txwd',
+        'southern district of florida' => 'flsd',
+        'middle district of florida' => 'flmd',
+        'northern district of illinois' => 'ilnd',
+        'district of massachusetts' => 'mad',
+        'district of new jersey' => 'njd',
+        'eastern district of pennsylvania' => 'paed',
+        'northern district of georgia' => 'gand',
+        'western district of washington' => 'wawd',
+        'district of arizona' => 'azd',
+        'district of colorado' => 'cod',
+        'eastern district of virginia' => 'vaed',
+        'district of maryland' => 'mdd',
+    ];
 
     public function __construct(
         private SearchGateway $search,
@@ -48,25 +75,19 @@ final class DocketMatcher
         }
 
         $q = $this->buildQuery($seed);
-        $resp = $this->search->search([
-            'q' => $q,
-            'type' => 'd',
-            'page_size' => 10,
-        ]);
-        $results = $resp['results'] ?? [];
-        if (!is_array($results)) {
-            $results = [];
-        }
+        $results = $this->collectSearchResults($q);
 
         $scored = [];
+        $seen = [];
         foreach ($results as $row) {
             if (!is_array($row)) {
                 continue;
             }
             $id = $this->extractDocketId($row);
-            if ($id === null) {
+            if ($id === null || isset($seen[$id])) {
                 continue;
             }
+            $seen[$id] = true;
             $score = $this->scoreCandidate($seed, $row);
             $scored[] = [
                 'cl_docket_id' => $id,
@@ -131,6 +152,29 @@ final class DocketMatcher
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    private function collectSearchResults(string $q): array
+    {
+        $out = [];
+        foreach (['d', 'r'] as $type) {
+            $resp = $this->search->search([
+                'q' => $q,
+                'type' => $type,
+                'page_size' => 10,
+            ]);
+            $chunk = $resp['results'] ?? [];
+            if (is_array($chunk)) {
+                foreach ($chunk as $row) {
+                    $out[] = $row;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * @return list<array{case_id: string, title: ?string, case_number: ?string, district_office: ?string, date: ?string, party_names: list<string>}>
      */
     public function loadSeeds(int $limit, bool $verifiedOnly = true): array
@@ -173,28 +217,26 @@ final class DocketMatcher
     }
 
     /**
-     * @param array{case_id: string, title?: ?string, case_number?: ?string, district_office?: ?string, date?: ?string, party_names?: list<string>} $seed
+     * Party-first query. Omit long district phrases (they dilute CL search).
+     *
+     * @param array{case_id?: string, title?: ?string, case_number?: ?string, district_office?: ?string, date?: ?string, party_names?: list<string>} $seed
      */
     public function buildQuery(array $seed): string
     {
         $parts = [];
-        $caseNumber = trim((string) ($seed['case_number'] ?? ''));
-        if ($caseNumber !== '' && $this->looksLikeCourtDocketNumber($caseNumber)) {
-            $parts[] = $caseNumber;
-        }
         if (!empty($seed['party_names'][0])) {
             $parts[] = trim((string) $seed['party_names'][0]);
         } elseif (!empty($seed['title'])) {
-            // Strip long press-release titles — use last segment after "v."
             $title = trim((string) $seed['title']);
             if (preg_match('/\bv\.?\s+(.+)$/i', $title, $m)) {
                 $parts[] = trim($m[1]);
             } else {
-                $parts[] = mb_substr($title, 0, 80);
+                $parts[] = mb_substr($title, 0, 60);
             }
         }
-        if (!empty($seed['district_office'])) {
-            $parts[] = trim((string) $seed['district_office']);
+        $caseNumber = trim((string) ($seed['case_number'] ?? ''));
+        if ($caseNumber !== '' && $this->looksLikeCourtDocketNumber($caseNumber)) {
+            $parts[] = $caseNumber;
         }
         $q = trim(implode(' ', $parts));
 
@@ -217,36 +259,50 @@ final class DocketMatcher
         $court = strtolower((string) ($row['court_id'] ?? $row['court'] ?? ''));
 
         $seedNumber = trim((string) ($seed['case_number'] ?? ''));
-        if ($seedNumber !== '' && $docketNumber !== '') {
+        if ($seedNumber !== '' && $this->looksLikeCourtDocketNumber($seedNumber) && $docketNumber !== '') {
             $a = $this->normalizeDocketNumber($seedNumber);
             $b = $this->normalizeDocketNumber($docketNumber);
             if ($a !== '' && $a === $b) {
-                $score += 0.55;
+                $score += 0.50;
             } elseif ($a !== '' && (str_contains($b, $a) || str_contains($a, $b))) {
                 $score += 0.35;
+            } else {
+                // 23cr166 vs 123cr00166 — compare cr/cv + digits core
+                $coreA = $this->docketCore($seedNumber);
+                $coreB = $this->docketCore($docketNumber);
+                if ($coreA !== '' && $coreA === $coreB) {
+                    $score += 0.40;
+                }
+            }
+        }
+
+        foreach ($seed['party_names'] ?? [] as $party) {
+            $party = trim((string) $party);
+            if ($party === '' || $caseName === '') {
+                continue;
+            }
+            if (stripos($caseName, $party) !== false) {
+                $score += 0.45;
+                break;
+            }
+            $last = $this->lastName($party);
+            if ($last !== '' && preg_match('/\b' . preg_quote($last, '/') . '\b/i', $caseName)) {
+                $score += 0.30;
+                break;
             }
         }
 
         $title = trim((string) ($seed['title'] ?? ''));
         if ($title !== '' && $caseName !== '') {
             similar_text(strtolower($title), strtolower($caseName), $pct);
-            $score += min(0.30, $pct / 100.0 * 0.30);
+            $score += min(0.15, $pct / 100.0 * 0.15);
         }
 
-        foreach ($seed['party_names'] ?? [] as $party) {
-            $party = trim((string) $party);
-            if ($party !== '' && $caseName !== '' && stripos($caseName, $party) !== false) {
-                $score += 0.15;
-                break;
-            }
-        }
-
-        $district = strtolower((string) ($seed['district_office'] ?? ''));
+        $district = strtolower(trim((string) ($seed['district_office'] ?? '')));
         if ($district !== '' && $court !== '') {
-            if (str_contains($district, 'southern') && str_contains($court, 'nysd')) {
-                $score += 0.10;
-            } elseif (str_contains($district, 'eastern') && str_contains($court, 'nyed')) {
-                $score += 0.10;
+            $hint = self::COURT_HINTS[$district] ?? null;
+            if ($hint !== null && str_contains($court, $hint)) {
+                $score += 0.15;
             } elseif (strlen($court) >= 3 && str_contains($district, substr($court, 0, 2))) {
                 $score += 0.05;
             }
@@ -260,12 +316,33 @@ final class DocketMatcher
         return strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $n) ?? '');
     }
 
+    public function docketCore(string $n): string
+    {
+        if (preg_match('/(\d+)\s*[-:]?\s*(cr|cv|misc|md)\s*[-:]?\s*0*(\d+)/i', $n, $m)) {
+            return strtolower($m[2] . $m[1] . (int) $m[3]);
+        }
+        if (preg_match('/(\d+)\s*(cr|cv|misc|md)\s*0*(\d+)/i', $n, $m)) {
+            return strtolower($m[2] . $m[1] . (int) $m[3]);
+        }
+
+        return '';
+    }
+
+    public function lastName(string $full): string
+    {
+        $full = trim(preg_replace('/\s+(jr\.?|sr\.?|ii|iii|iv)$/i', '', $full) ?? $full);
+        $parts = preg_split('/\s+/', $full) ?: [];
+        $last = (string) end($parts);
+
+        return strtolower($last);
+    }
+
     /**
      * @param array<string, mixed> $row
      */
     private function extractDocketId(array $row): ?int
     {
-        foreach (['docket_id', 'id', 'cluster_id'] as $key) {
+        foreach (['docket_id', 'id'] as $key) {
             if (isset($row[$key]) && is_numeric($row[$key])) {
                 $id = (int) $row[$key];
                 if ($id > 0) {
