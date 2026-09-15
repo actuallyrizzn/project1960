@@ -121,6 +121,36 @@ final class OcrWorkerTest extends TestCase
         self::assertSame(1, $m2['pending']);
     }
 
+    public function testPendingDefersWeakAcceptDockets(): void
+    {
+        $store = new CourtListenerDocketStore($this->pdo);
+        $store->upsertDocket(['cl_docket_id' => 2, 'case_name' => 'Weak']);
+        $store->upsertCaseLink([
+            'case_id' => 'strong',
+            'cl_docket_id' => 1,
+            'match_method' => 'auto_docket_court',
+            'match_confidence' => 1.0,
+        ]);
+        $store->upsertCaseLink([
+            'case_id' => 'weak',
+            'cl_docket_id' => 2,
+            'match_method' => 'weak_accept',
+            'match_confidence' => 0.55,
+        ]);
+        $docs = new CourtListenerDocumentStore($this->pdo);
+        $docs->upsertDocument([
+            'cl_document_id' => 200,
+            'cl_docket_id' => 2,
+            'ocr_status' => CourtListenerDocumentStore::OCR_PENDING,
+        ]);
+        // Move existing pending docs: 100/101 on docket 1 (strong)
+        $worker = new OcrWorker($this->fakeEngine(), $docs, $this->pdo);
+        $pending = $worker->pendingDocuments(3);
+        self::assertSame(100, (int) $pending[0]['cl_document_id']);
+        self::assertSame(101, (int) $pending[1]['cl_document_id']);
+        self::assertSame(200, (int) $pending[2]['cl_document_id']);
+    }
+
     public function testIdempotentSkipWhenNotPending(): void
     {
         $store = new CourtListenerDocumentStore($this->pdo);

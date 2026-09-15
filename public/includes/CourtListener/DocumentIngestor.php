@@ -25,8 +25,14 @@ final class DocumentIngestor
     public function linkedDocketIds(int $limit): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT DISTINCT cl_docket_id FROM case_courtlistener_links
-             ORDER BY cl_docket_id LIMIT :lim'
+            'SELECT cl_docket_id FROM (
+                SELECT cl_docket_id,
+                       MIN(CASE WHEN match_method = \'' . LinkQueuePriority::WEAK_METHOD . '\' THEN 1 ELSE 0 END) AS defer_rank
+                FROM case_courtlistener_links
+                GROUP BY cl_docket_id
+             )
+             ORDER BY defer_rank ASC, cl_docket_id ASC
+             LIMIT :lim'
         );
         $stmt->bindValue(':lim', max(1, $limit), PDO::PARAM_INT);
         $stmt->execute();

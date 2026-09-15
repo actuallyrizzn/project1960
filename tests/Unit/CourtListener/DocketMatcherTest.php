@@ -5,6 +5,7 @@ namespace Project1960\Tests\Unit\CourtListener;
 
 use PHPUnit\Framework\TestCase;
 use Project1960\CourtListener\DocketMatcher;
+use Project1960\CourtListener\LinkQueuePriority;
 use Project1960\CourtListener\MatchCliOptions;
 use Project1960\CourtListener\SdkSearchGateway;
 use Project1960\CourtListener\SearchGateway;
@@ -349,6 +350,50 @@ final class DocketMatcherTest extends TestCase
         self::assertSame('dry_run_matched', $result['outcome']);
         self::assertGreaterThanOrEqual(DocketMatcher::PARTY_COURT_ACCEPT, $result['confidence']);
         self::assertSame(8801, $result['cl_docket_id']);
+    }
+
+    public function testWeakAcceptLinksDocsAndFlagsReview(): void
+    {
+        // Magistrate + last-name/court → between WEAK_ACCEPT_MIN and ACCEPT_MIN.
+        $this->fakeResults = [
+            [
+                'docket_id' => 5501,
+                'docketNumber' => '2:23-mj-11000',
+                'caseName' => 'United States v. DOSHI SHAH',
+                'court_id' => 'njd',
+                'dateFiled' => '2023-01-15',
+            ],
+        ];
+        $seed = [
+            'case_id' => 'c1',
+            'title' => 'India- And New Jersey-Based Jeweler Sentenced',
+            'case_number' => '25-016',
+            'district_office' => 'District of New Jersey',
+            'date' => '2025-03-01',
+            'party_names' => ['Monishkumar Kirankumar Doshi Shah'],
+        ];
+        $score = $this->matcher->scoreCandidate($seed, $this->fakeResults[0]);
+        self::assertGreaterThanOrEqual(
+            DocketMatcher::WEAK_ACCEPT_MIN,
+            $score,
+            'expected weak-band score, got ' . $score
+        );
+        self::assertLessThan(
+            DocketMatcher::ACCEPT_MIN,
+            $score,
+            'expected below ACCEPT_MIN, got ' . $score
+        );
+
+        $result = $this->matcher->matchOne($seed, dryRun: false);
+        self::assertSame('weak_accept', $result['outcome']);
+        self::assertSame(5501, $result['cl_docket_id']);
+        $links = (new CourtListenerDocketStore($this->pdo))->linksForCase('c1');
+        self::assertCount(1, $links);
+        self::assertSame(LinkQueuePriority::WEAK_METHOD, $links[0]['match_method']);
+        $review = (new CourtListenerMatchReviewStore($this->pdo))->get('c1');
+        self::assertNotNull($review);
+        self::assertSame('weak_accept', $review['reason']);
+        self::assertSame('pending', $review['status']);
     }
 
     public function testCommonNameDistantYearDoesNotAutoAccept(): void

@@ -9,6 +9,7 @@ namespace Project1960\CourtListener;
 final class MatchBatchStats
 {
     private int $matched = 0;
+    private int $weakAccept = 0;
     private int $ambiguous = 0;
     private int $noMatch = 0;
     private int $errors = 0;
@@ -17,7 +18,9 @@ final class MatchBatchStats
     public function record(string $outcome): void
     {
         $this->processed++;
-        if (str_contains($outcome, 'matched')) {
+        if (str_contains($outcome, 'weak_accept')) {
+            $this->weakAccept++;
+        } elseif (str_contains($outcome, 'matched')) {
             $this->matched++;
         } elseif (str_contains($outcome, 'ambiguous')) {
             $this->ambiguous++;
@@ -34,18 +37,30 @@ final class MatchBatchStats
         $this->errors++;
     }
 
-    /** @return array{processed: int, matched: int, ambiguous: int, no_match: int, errors: int, match_rate: float} */
+    /**
+     * @return array{
+     *   processed: int,
+     *   matched: int,
+     *   weak_accept: int,
+     *   ambiguous: int,
+     *   no_match: int,
+     *   errors: int,
+     *   match_rate: float
+     * }
+     */
     public function toArray(): array
     {
         $denom = max(1, $this->processed - $this->errors);
+        $linked = $this->matched + $this->weakAccept;
 
         return [
             'processed' => $this->processed,
             'matched' => $this->matched,
+            'weak_accept' => $this->weakAccept,
             'ambiguous' => $this->ambiguous,
             'no_match' => $this->noMatch,
             'errors' => $this->errors,
-            'match_rate' => round($this->matched / $denom, 4),
+            'match_rate' => round($linked / $denom, 4),
         ];
     }
 
@@ -54,9 +69,10 @@ final class MatchBatchStats
         $a = $this->toArray();
 
         return sprintf(
-            'Done: processed=%d matched=%d ambiguous=%d no_match=%d errors=%d match_rate=%.1f%%',
+            'Done: processed=%d matched=%d weak_accept=%d ambiguous=%d no_match=%d errors=%d match_rate=%.1f%%',
             $a['processed'],
             $a['matched'],
+            $a['weak_accept'],
             $a['ambiguous'],
             $a['no_match'],
             $a['errors'],

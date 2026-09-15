@@ -45,6 +45,8 @@ Queries are **docket-first** when `case_number` looks like a federal docket (`YY
 
 **No-docket lane:** when there is no courtish docket number, search up to three defendants (quoted firm names for Inc/LLC/etc.), prefer `United States v.` criminal dockets in the matching district, apply year proximity vs press date, and auto-accept party+court hits at ≥ `0.68` (`PARTY_COURT_ACCEPT` / `auto_party_court`).
 
+**Weak accepts:** scores in `[0.50, 0.65)` with a clear top hit (gap ≥ `0.12`) still **link** the docket (`match_method=weak_accept`) and flag `cl_match_reviews.reason=weak_accept` so RECAP metadata/docs can be pulled for fact-pattern review. OCR and Venice people-extract **defer** these dockets to the end of their queues (`LinkQueuePriority`) so inference prefers strong auto-links first. Ambiguous (gap too small) and scores below `0.50` stay review-only with no link.
+
 **Live DB note:** prod `cases` has no SQLite PRIMARY KEY on `id` (legacy). CL tables that touch `case_id` omit FKs to `cases` so inserts work.
 
 **Rate limits:** default `--wait=2`; raise to 5–10s on token 429s. CLI backs off 30s on `RateLimitException` and continues.

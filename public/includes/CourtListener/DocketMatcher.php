@@ -25,6 +25,12 @@ final class DocketMatcher
     public const AMBIGUOUS_GAP = 0.12;
     public const REVIEW_MIN = 0.40;
 
+    /**
+     * Below ACCEPT_MIN but still worth linking + pulling docs for fact-pattern review.
+     * Inference (OCR/Venice) defers these via LinkQueuePriority.
+     */
+    public const WEAK_ACCEPT_MIN = 0.50;
+
     /** Core docket + matching court → enough to auto-link (press parties often ≠ lead caption). */
     public const DOCKET_COURT_ACCEPT = 0.70;
 
@@ -79,7 +85,7 @@ final class DocketMatcher
      *   party_names?: list<string>
      * } $seed
      * @return array{
-     *   outcome: 'matched'|'ambiguous'|'no_match'|'dry_run_matched'|'dry_run_ambiguous'|'dry_run_no_match',
+     *   outcome: 'matched'|'weak_accept'|'ambiguous'|'no_match'|'dry_run_matched'|'dry_run_weak_accept'|'dry_run_ambiguous'|'dry_run_no_match',
      *   confidence: float,
      *   cl_docket_id: ?int,
      *   candidates: list<array{cl_docket_id: int, score: float, case_name: ?string, docket_number: ?string}>
@@ -158,6 +164,24 @@ final class DocketMatcher
 
             return [
                 'outcome' => $dryRun ? 'dry_run_matched' : 'matched',
+                'confidence' => $bestScore,
+                'cl_docket_id' => $best['cl_docket_id'],
+                'candidates' => $candidates,
+            ];
+        }
+
+        // Weak accept: link + ingest docs; flag for fact-pattern review; OCR/Venice last.
+        $weakAccept = $best !== null
+            && $bestScore >= self::WEAK_ACCEPT_MIN
+            && $gap >= self::AMBIGUOUS_GAP;
+        if ($weakAccept) {
+            if (!$dryRun) {
+                $this->persistMatch($caseId, $best, LinkQueuePriority::WEAK_METHOD);
+                $this->reviews->flag($caseId, 'weak_accept', $candidates);
+            }
+
+            return [
+                'outcome' => $dryRun ? 'dry_run_weak_accept' : 'weak_accept',
                 'confidence' => $bestScore,
                 'cl_docket_id' => $best['cl_docket_id'],
                 'candidates' => $candidates,

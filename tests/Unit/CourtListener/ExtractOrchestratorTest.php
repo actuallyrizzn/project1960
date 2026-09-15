@@ -113,6 +113,33 @@ final class ExtractOrchestratorTest extends TestCase
         self::assertSame([], $orch2->pendingDocuments(5));
     }
 
+    public function testPendingDefersWeakAcceptLinks(): void
+    {
+        $dockets = new CourtListenerDocketStore($this->pdo);
+        $this->pdo->exec("UPDATE case_courtlistener_links SET match_method = 'auto_docket_court' WHERE case_id = 'c1'");
+        $this->pdo->exec("INSERT INTO cases (id, title, date, url, body) VALUES ('c2', 'W', '2024-01-01', 'http://y', 'b')");
+        $dockets->upsertDocket(['cl_docket_id' => 10, 'case_name' => 'Weak']);
+        $dockets->upsertCaseLink([
+            'case_id' => 'c2',
+            'cl_docket_id' => 10,
+            'match_method' => 'weak_accept',
+            'match_confidence' => 0.55,
+        ]);
+        $docs = new CourtListenerDocumentStore($this->pdo);
+        $docs->upsertDocument([
+            'cl_document_id' => 60,
+            'cl_docket_id' => 10,
+            'ocr_status' => CourtListenerDocumentStore::OCR_DONE,
+        ]);
+        $docs->upsertFullText(60, 'Weak match filing text for fact pattern review.');
+
+        $orch = new ExtractOrchestrator($this->llm('[]'), new CourtListenerPersonStore($this->pdo), $this->pdo);
+        $pending = $orch->pendingDocuments(5);
+        self::assertCount(2, $pending);
+        self::assertSame(50, $pending[0]['cl_document_id']);
+        self::assertSame(60, $pending[1]['cl_document_id']);
+    }
+
     public function testSkipsUnparseableChunks(): void
     {
         $orch = new ExtractOrchestrator(

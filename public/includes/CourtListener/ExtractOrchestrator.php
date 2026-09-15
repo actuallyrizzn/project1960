@@ -96,6 +96,7 @@ final class ExtractOrchestrator
     public function pendingDocuments(int $limit = 10): array
     {
         $limit = max(1, $limit);
+        $defer = LinkQueuePriority::deferRankColumn('e');
         $sql = <<<SQL
 SELECT t.cl_document_id, e.case_id
 FROM courtlistener_document_text t
@@ -105,7 +106,7 @@ WHERE t.full_text IS NOT NULL AND TRIM(t.full_text) != ''
   AND NOT EXISTS (
     SELECT 1 FROM cl_persons p WHERE p.source_document_id = t.cl_document_id
   )
-ORDER BY t.cl_document_id ASC
+ORDER BY {$defer} ASC, t.cl_document_id ASC
 LIMIT {$limit}
 SQL;
         try {

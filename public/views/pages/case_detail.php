@@ -156,6 +156,9 @@ $clEmpty = ($cl['dockets'] ?? []) === []
                             <?php if (!empty($d['court_id'])): ?>
                                 <span class="text-muted">(<?= $e($d['court_id']) ?>)</span>
                             <?php endif; ?>
+                            <?php if (($d['match_method'] ?? '') === 'weak_accept'): ?>
+                                <span class="badge text-bg-warning" title="Linked for document pull; fact-pattern review before trusting extracts">Weak match</span>
+                            <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

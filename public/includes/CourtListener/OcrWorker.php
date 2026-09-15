@@ -27,10 +27,11 @@ final class OcrWorker
     {
         $limit = max(1, $limit);
         $stmt = $this->pdo->query(
-            "SELECT * FROM courtlistener_documents
-             WHERE ocr_status = 'pending'
-             ORDER BY cl_document_id ASC
-             LIMIT {$limit}"
+            'SELECT d.* FROM courtlistener_documents d
+             WHERE d.ocr_status = \'pending\'
+             ORDER BY ' . LinkQueuePriority::deferRankSubquery('d.cl_docket_id') . ' ASC,
+                      d.cl_document_id ASC
+             LIMIT ' . $limit
         );
         /** @var list<array<string, mixed>> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
