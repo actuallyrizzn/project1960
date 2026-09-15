@@ -17,7 +17,6 @@ use Project1960\CourtListener\DocketMatcher;
 use Project1960\CourtListener\SdkSearchGateway;
 use Project1960\CourtListenerDocketStore;
 use Project1960\CourtListenerMatchReviewStore;
-use PDO;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
