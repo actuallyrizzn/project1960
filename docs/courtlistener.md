@@ -39,13 +39,15 @@ php bin/match.php --limit=50 --wait=5 --verbose
 
 Uses `CourtListener\CourtListenerClient` Search (`type=d` then `type=r`) via `SdkSearchGateway` — no hand-rolled HTTP.
 
-Queries are **party-first** (optional real docket number). Press IDs like `CAS25-…` are skipped. Designed for **slow drip**: small `--limit`, `--wait` between cases, cron — not a one-shot burn of all verified seeds.
+Queries are **docket-first** when `case_number` looks like a federal docket (`YY-cr-NNNN`, PACER, `19 Cr. 838`, `E.D.N.Y. Docket No. …`). Normalized query + optional `court=` from `district_office`. Press IDs like `CAS25-…` fall back to party/title. Designed for **slow drip**: small `--limit`, `--wait` between cases, cron — not a one-shot burn of all verified seeds.
+
+**Accept rule:** docket **core** + matching **court** → confidence ≥ `0.70` (`DOCKET_COURT_ACCEPT`) even if the press defendant is not the CL caption party. Duplicate CL ids for the same PACER docket are collapsed before the ambiguity gap check.
 
 **Live DB note:** prod `cases` has no SQLite PRIMARY KEY on `id` (legacy). CL tables that touch `case_id` omit FKs to `cases` so inserts work.
 
 **Rate limits:** default `--wait=2`; raise to 5–10s on token 429s. CLI backs off 30s on `RateLimitException` and continues.
 
-**Seed selection:** `loadSeeds` skips cases already in `case_courtlistener_links` or `cl_match_reviews`, so cron advances through the verified pool instead of re-querying the same titles.
+**Seed selection:** `loadSeeds` skips cases already in `case_courtlistener_links` or `cl_match_reviews`, and **prefers known-good court docket numbers** over press-id-only verified rows so cron starts the machine on high-confidence seeds. Prototype notes: Tasks Doc #1358 / `tools/cl-match-prototype/`.
 
 ## Slow-drip cron (multihost)
 

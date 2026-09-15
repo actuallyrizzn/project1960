@@ -10,12 +10,20 @@ use PDO;
 /**
  * Match DOJ seed cases → CourtListener dockets via SDK search (CL-M1/M2).
  * Designed for slow-drip CLI (--limit / --wait), not bulk burns.
+ *
+ * Prototype (tools/cl-match-prototype/, Tasks Doc #1358): known-good court
+ * docket numbers should query as normalized YY-cr-NNNN with court filter,
+ * auto-accept on docket-core + court match, and collapse duplicate CL ids
+ * for the same PACER docket before the ambiguity gap check.
  */
 final class DocketMatcher
 {
     public const ACCEPT_MIN = 0.65;
     public const AMBIGUOUS_GAP = 0.12;
     public const REVIEW_MIN = 0.40;
+
+    /** Core docket + matching court → enough to auto-link (press parties often ≠ lead caption). */
+    public const DOCKET_COURT_ACCEPT = 0.70;
 
     /** @var array<string, string> district phrase → court_id fragment */
     private const COURT_HINTS = [
@@ -41,6 +49,7 @@ final class DocketMatcher
         'district of colorado' => 'cod',
         'eastern district of virginia' => 'vaed',
         'district of maryland' => 'mdd',
+        'district of minnesota' => 'mnd',
     ];
 
     public function __construct(
@@ -75,7 +84,8 @@ final class DocketMatcher
         }
 
         $q = $this->buildQuery($seed);
-        $results = $this->collectSearchResults($q);
+        $courtId = $this->courtIdFromDistrict((string) ($seed['district_office'] ?? ''));
+        $results = $this->collectSearchResults($q, $courtId);
 
         $scored = [];
         $seen = [];
@@ -98,6 +108,9 @@ final class DocketMatcher
                 'raw' => $row,
             ];
         }
+
+        // Same PACER docket often has multiple CL ids — collapse before gap check.
+        $scored = $this->collapseByDocketCourt($scored);
         usort($scored, static fn (array $a, array $b): int => $b['score'] <=> $a['score']);
 
         $candidates = array_map(static function (array $c): array {
@@ -114,9 +127,11 @@ final class DocketMatcher
         $bestScore = $best['score'] ?? 0.0;
         $gap = $best && $second ? ($best['score'] - $second['score']) : 1.0;
 
-        if ($best !== null && $bestScore >= self::ACCEPT_MIN && $gap >= self::AMBIGUOUS_GAP) {
+        $accept = $best !== null && $bestScore >= self::ACCEPT_MIN && $gap >= self::AMBIGUOUS_GAP;
+        if ($accept) {
             if (!$dryRun) {
-                $this->persistMatch($caseId, $best, 'auto');
+                $method = $bestScore >= self::DOCKET_COURT_ACCEPT ? 'auto_docket_court' : 'auto';
+                $this->persistMatch($caseId, $best, $method);
                 $this->reviews->clear($caseId);
             }
 
@@ -152,17 +167,41 @@ final class DocketMatcher
     }
 
     /**
+     * @param list<array{cl_docket_id: int, score: float, case_name: ?string, docket_number: ?string, court_id: ?string, raw: array}> $scored
+     * @return list<array{cl_docket_id: int, score: float, case_name: ?string, docket_number: ?string, court_id: ?string, raw: array}>
+     */
+    public function collapseByDocketCourt(array $scored): array
+    {
+        $collapsed = [];
+        foreach ($scored as $c) {
+            $dn = (string) ($c['docket_number'] ?? '');
+            $core = $this->docketCore($dn);
+            $court = strtolower((string) ($c['court_id'] ?? ''));
+            $key = ($core !== '' ? $core : 'id:' . $c['cl_docket_id']) . '|' . $court;
+            if (!isset($collapsed[$key]) || $c['score'] > $collapsed[$key]['score']) {
+                $collapsed[$key] = $c;
+            }
+        }
+
+        return array_values($collapsed);
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
-    private function collectSearchResults(string $q): array
+    private function collectSearchResults(string $q, ?string $courtId = null): array
     {
         $out = [];
         foreach (['d', 'r'] as $type) {
-            $resp = $this->search->search([
+            $params = [
                 'q' => $q,
                 'type' => $type,
                 'page_size' => 10,
-            ]);
+            ];
+            if ($courtId !== null && $courtId !== '') {
+                $params['court'] = $courtId;
+            }
+            $resp = $this->search->search($params);
             $chunk = $resp['results'] ?? [];
             if (is_array($chunk)) {
                 foreach ($chunk as $row) {
@@ -177,11 +216,13 @@ final class DocketMatcher
     /**
      * Unmatched seeds for slow-drip: skips cases already linked to a CL docket
      * or already flagged in cl_match_reviews (so cron advances instead of re-hitting the same set).
+     * Prefer verified rows whose case_number looks like a court docket (known-good first).
      *
      * @return list<array{case_id: string, title: ?string, case_number: ?string, district_office: ?string, date: ?string, party_names: list<string>}>
      */
     public function loadSeeds(int $limit, bool $verifiedOnly = true): array
     {
+        $fetch = max($limit * 25, 40);
         $sql = 'SELECT c.id AS case_id, c.title, c.date, c.number AS case_number_fallback,
                        m.case_number, m.district_office
                 FROM cases c
@@ -194,7 +235,7 @@ final class DocketMatcher
         }
         $sql .= ' ORDER BY c.date DESC LIMIT :lim';
         $stmt = $this->pdo->prepare($sql);
-        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':lim', $fetch, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
@@ -219,16 +260,35 @@ final class DocketMatcher
             ];
         }
 
-        return $out;
+        usort($out, function (array $a, array $b): int {
+            $aGood = $this->looksLikeCourtDocketNumber((string) ($a['case_number'] ?? '')) ? 0 : 1;
+            $bGood = $this->looksLikeCourtDocketNumber((string) ($b['case_number'] ?? '')) ? 0 : 1;
+            if ($aGood !== $bGood) {
+                return $aGood <=> $bGood;
+            }
+
+            return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
+        });
+
+        return array_slice($out, 0, $limit);
     }
 
     /**
-     * Party-first query. Omit long district phrases (they dilute CL search).
+     * Docket-first query for courtish numbers (normalized YY-cr-NNNN).
+     * Party-first diluted multi-defendant cases and burned rate limit on weak hits.
      *
      * @param array{case_id?: string, title?: ?string, case_number?: ?string, district_office?: ?string, date?: ?string, party_names?: list<string>} $seed
      */
     public function buildQuery(array $seed): string
     {
+        $caseNumber = trim((string) ($seed['case_number'] ?? ''));
+        if ($caseNumber !== '' && $this->looksLikeCourtDocketNumber($caseNumber)) {
+            $q = $this->hyphenatedDocketQuery($caseNumber);
+            if ($q !== '') {
+                return $q;
+            }
+        }
+
         $parts = [];
         if (!empty($seed['party_names'][0])) {
             $parts[] = trim((string) $seed['party_names'][0]);
@@ -240,10 +300,6 @@ final class DocketMatcher
                 $parts[] = mb_substr($title, 0, 60);
             }
         }
-        $caseNumber = trim((string) ($seed['case_number'] ?? ''));
-        if ($caseNumber !== '' && $this->looksLikeCourtDocketNumber($caseNumber)) {
-            $parts[] = $caseNumber;
-        }
         $q = trim(implode(' ', $parts));
 
         return $q !== '' ? $q : '1960';
@@ -251,7 +307,68 @@ final class DocketMatcher
 
     public function looksLikeCourtDocketNumber(string $n): bool
     {
-        return (bool) preg_match('/\d+:\d+|\d+\s*[- ]?\s*(cr|cv|misc|md)/i', $n);
+        if ($this->docketCore($n) !== '') {
+            return true;
+        }
+
+        return (bool) preg_match('/\d+:\d+|\d+\s*[-.]?\s*(cr|cv|misc|md)/i', $n);
+    }
+
+    public function courtIdFromDistrict(string $district): ?string
+    {
+        $district = strtolower(trim($district));
+        if ($district === '') {
+            return null;
+        }
+        if (isset(self::COURT_HINTS[$district])) {
+            return self::COURT_HINTS[$district];
+        }
+        foreach (self::COURT_HINTS as $phrase => $id) {
+            if (str_contains($district, $phrase)) {
+                return $id;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Strip wrappers / judge initials / take first of a multi-docket list.
+     */
+    public function primaryDocketToken(string $n): string
+    {
+        $n = trim($n);
+        if ($n === '') {
+            return '';
+        }
+        if (str_contains($n, ',')) {
+            $n = trim(explode(',', $n, 2)[0]);
+        }
+        $n = preg_replace('/^[A-Z](?:\.?[A-Z]){1,3}\.?\s*Docket\s+No\.?\s*/i', '', $n) ?? $n;
+        $n = preg_replace('/\([^)]*\)/', '', $n) ?? $n;
+        $n = trim($n);
+        // 18-cr-1129-GPC / 20-CR-369-JLS
+        if (preg_match('/^(.+?)-([A-Z]{2,4})$/', $n, $m) && $this->docketCoreRaw($m[1]) !== '') {
+            $n = $m[1];
+        }
+        // 22cr1551RBM glued initials
+        if (preg_match('/^(\d+\s*(?:cr|cv|misc|md)\.?\s*\d+)[A-Za-z]{2,4}$/i', $n, $m)) {
+            $n = $m[1];
+        }
+
+        return trim($n);
+    }
+
+    /** Rebuild searchable YY-cr-NNNN from any seed form. */
+    public function hyphenatedDocketQuery(string $n): string
+    {
+        $token = $this->primaryDocketToken($n);
+        $core = $this->docketCoreRaw($token !== '' ? $token : $n);
+        if ($core !== '' && preg_match('/^(cr|cv|misc|md)(\d{1,2})(\d+)$/i', $core, $m)) {
+            return sprintf('%d-%s-%d', (int) $m[2], strtolower($m[1]), (int) $m[3]);
+        }
+
+        return $token;
     }
 
     /**
@@ -265,20 +382,25 @@ final class DocketMatcher
         $court = strtolower((string) ($row['court_id'] ?? $row['court'] ?? ''));
 
         $seedNumber = trim((string) ($seed['case_number'] ?? ''));
+        $seedCore = $seedNumber !== '' ? $this->docketCore($seedNumber) : '';
+        $hitCore = $docketNumber !== '' ? $this->docketCore($docketNumber) : '';
+        $courtHint = $this->courtIdFromDistrict((string) ($seed['district_office'] ?? ''));
+        $courtMatch = $courtHint !== null && $court !== '' && str_contains($court, $courtHint);
+
         if ($seedNumber !== '' && $this->looksLikeCourtDocketNumber($seedNumber) && $docketNumber !== '') {
-            $a = $this->normalizeDocketNumber($seedNumber);
+            $a = $this->normalizeDocketNumber($this->primaryDocketToken($seedNumber));
             $b = $this->normalizeDocketNumber($docketNumber);
-            if ($a !== '' && $a === $b) {
+            $coreHit = $seedCore !== '' && $seedCore === $hitCore;
+
+            if ($coreHit && $courtMatch) {
+                // Known-good path: exact/core docket in the right court.
+                $score = max($score, self::DOCKET_COURT_ACCEPT);
+            } elseif ($a !== '' && $a === $b) {
                 $score += 0.50;
             } elseif ($a !== '' && (str_contains($b, $a) || str_contains($a, $b))) {
                 $score += 0.35;
-            } else {
-                // 23cr166 vs 123cr00166 — compare cr/cv + digits core
-                $coreA = $this->docketCore($seedNumber);
-                $coreB = $this->docketCore($docketNumber);
-                if ($coreA !== '' && $coreA === $coreB) {
-                    $score += 0.40;
-                }
+            } elseif ($coreHit) {
+                $score += 0.40;
             }
         }
 
@@ -304,12 +426,11 @@ final class DocketMatcher
             $score += min(0.15, $pct / 100.0 * 0.15);
         }
 
-        $district = strtolower(trim((string) ($seed['district_office'] ?? '')));
-        if ($district !== '' && $court !== '') {
-            $hint = self::COURT_HINTS[$district] ?? null;
-            if ($hint !== null && str_contains($court, $hint)) {
-                $score += 0.15;
-            } elseif (strlen($court) >= 3 && str_contains($district, substr($court, 0, 2))) {
+        if ($courtMatch && $score < self::DOCKET_COURT_ACCEPT) {
+            $score += 0.15;
+        } elseif (!$courtMatch && $court !== '') {
+            $district = strtolower(trim((string) ($seed['district_office'] ?? '')));
+            if ($district !== '' && strlen($court) >= 3 && str_contains($district, substr($court, 0, 2))) {
                 $score += 0.05;
             }
         }
@@ -324,10 +445,19 @@ final class DocketMatcher
 
     public function docketCore(string $n): string
     {
-        if (preg_match('/(\d+)\s*[-:]?\s*(cr|cv|misc|md)\s*[-:]?\s*0*(\d+)/i', $n, $m)) {
+        $cleaned = $this->primaryDocketToken($n);
+
+        return $this->docketCoreRaw($cleaned !== '' ? $cleaned : $n);
+    }
+
+    /** Regex-only core parse (no primaryDocketToken — avoids recursion). */
+    private function docketCoreRaw(string $n): string
+    {
+        // Allow "19 Cr. 838", "18-cr-1129", "1:19-cr-00838"
+        if (preg_match('/(\d+)\s*[-:]?\s*(cr|cv|misc|md)\.?\s*[-:]?\s*0*(\d+)/i', $n, $m)) {
             return strtolower($m[2] . $m[1] . (int) $m[3]);
         }
-        if (preg_match('/(\d+)\s*(cr|cv|misc|md)\s*0*(\d+)/i', $n, $m)) {
+        if (preg_match('/(\d+)\s*(cr|cv|misc|md)\.?\s*0*(\d+)/i', $n, $m)) {
             return strtolower($m[2] . $m[1] . (int) $m[3]);
         }
 

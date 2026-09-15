@@ -1,0 +1,310 @@
+{
+    "generated_at": "2026-09-15T19:41:39+00:00",
+    "accept_min": 0.65,
+    "ambiguous_gap": 0.12,
+    "seeds_tested": 5,
+    "results": [
+        {
+            "case_id": "8a86ddb0-1384-4a1a-9630-83e5489501cb",
+            "title": "Nationwide Takedown Targets Brazen International Money Laundering Scheme ",
+            "case_number": "18-cr-1129-GPC",
+            "party": "Alfredo Cardenas-Uriarte",
+            "queries": {
+                "docket_only": {
+                    "q": "18-cr-1129-GPC",
+                    "hit_count": 20,
+                    "best": {
+                        "cl_docket_id": 16351014,
+                        "docket_number": "3:18-cr-01129",
+                        "case_name": "United States v. Lopez-Albarran",
+                        "court_id": "casd",
+                        "score_current": 0.582,
+                        "docket_exact": false,
+                        "docket_core": true
+                    },
+                    "second_score": 0.582,
+                    "gap": 0,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": true,
+                    "top3": [
+                        {
+                            "cl_docket_id": 16351014,
+                            "docket_number": "3:18-cr-01129",
+                            "case_name": "United States v. Lopez-Albarran",
+                            "court_id": "casd",
+                            "score_current": 0.582,
+                            "docket_exact": false,
+                            "docket_core": true
+                        },
+                        {
+                            "cl_docket_id": 16351007,
+                            "docket_number": "3:18-cr-01129",
+                            "case_name": "United States v. Lopez-Albarran",
+                            "court_id": "casd",
+                            "score_current": 0.582,
+                            "docket_exact": false,
+                            "docket_core": true
+                        },
+                        {
+                            "cl_docket_id": 16224353,
+                            "docket_number": "3:18-cr-01129",
+                            "case_name": "United States v. Lopez-Albarran",
+                            "court_id": "casd",
+                            "score_current": 0.582,
+                            "docket_exact": false,
+                            "docket_core": true
+                        }
+                    ]
+                },
+                "party_docket": {
+                    "q": "Alfredo Cardenas-Uriarte 18-cr-1129-GPC",
+                    "hit_count": 1,
+                    "best": {
+                        "cl_docket_id": 14639230,
+                        "docket_number": "3:18-cr-01129",
+                        "case_name": "United States v. Lopez-Albarran",
+                        "court_id": "casd",
+                        "score_current": 0.582,
+                        "docket_exact": false,
+                        "docket_core": true
+                    },
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": true,
+                    "top3": [
+                        {
+                            "cl_docket_id": 14639230,
+                            "docket_number": "3:18-cr-01129",
+                            "case_name": "United States v. Lopez-Albarran",
+                            "court_id": "casd",
+                            "score_current": 0.582,
+                            "docket_exact": false,
+                            "docket_core": true
+                        }
+                    ]
+                },
+                "current_buildQuery": {
+                    "q": "Alfredo Cardenas-Uriarte 18-cr-1129-GPC",
+                    "hit_count": 1,
+                    "best": {
+                        "cl_docket_id": 14639230,
+                        "docket_number": "3:18-cr-01129",
+                        "case_name": "United States v. Lopez-Albarran",
+                        "court_id": "casd",
+                        "score_current": 0.582,
+                        "docket_exact": false,
+                        "docket_core": true
+                    },
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": true,
+                    "top3": [
+                        {
+                            "cl_docket_id": 14639230,
+                            "docket_number": "3:18-cr-01129",
+                            "case_name": "United States v. Lopez-Albarran",
+                            "court_id": "casd",
+                            "score_current": 0.582,
+                            "docket_exact": false,
+                            "docket_core": true
+                        }
+                    ]
+                },
+                "docket_stripped": {
+                    "q": "18-cr-1129",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                }
+            }
+        },
+        {
+            "case_id": "dddc9c60-ec78-4167-abad-4ee98f293e34",
+            "title": "6 Colombian Nationals And Owner Of Consumer Electronics Business Charged For Their Roles In Money Laundering And Unlicensed Money Transmission Business Offenses",
+            "case_number": "19 Cr. 838",
+            "party": "MIGUEL CESPEDES",
+            "queries": {
+                "docket_only": {
+                    "q": "19 Cr. 838",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "party_docket": {
+                    "q": "MIGUEL CESPEDES 19 Cr. 838",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "current_buildQuery": {
+                    "q": "MIGUEL CESPEDES 19 Cr. 838",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                }
+            }
+        },
+        {
+            "case_id": "52eb904e-4c5b-46fd-85ea-b54b1ca1dc95",
+            "title": "BitConnect Founder Indicted in Global $2.4 Billion Cryptocurrency Scheme",
+            "case_number": "21cr02542-twr",
+            "party": "Satish Kumbhani",
+            "queries": {
+                "docket_only": {
+                    "q": "21cr02542-twr",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "party_docket": {
+                    "q": "Satish Kumbhani 21cr02542-twr",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "current_buildQuery": {
+                    "q": "Satish Kumbhani 21cr02542-twr",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "docket_stripped": {
+                    "q": "21cr02542",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                }
+            }
+        },
+        {
+            "case_id": "ae2ec2c6-85d6-4432-828f-4398f229baf9",
+            "title": "Key West Man Sentenced to 180 Months in Federal Prison for Laundering Victim Funds to Nigeria",
+            "case_number": "19-cr-10016-KMM",
+            "party": "Sean Kerwin Bindranauth",
+            "queries": {
+                "docket_only": {
+                    "q": "19-cr-10016-KMM",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "party_docket": {
+                    "q": "Sean Kerwin Bindranauth 19-cr-10016-KMM",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "current_buildQuery": {
+                    "q": "Sean Kerwin Bindranauth 19-cr-10016-KMM",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "docket_stripped": {
+                    "q": "19-cr-10016",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                }
+            }
+        },
+        {
+            "case_id": "ff6849bb-8498-4346-ba32-5f1fde38599b",
+            "title": "Brother-Sister Duo Indicted for Laundering More Than $42 Million of Drug Proceeds Through 22 Shell Corporations",
+            "case_number": "22cr1551RBM",
+            "party": "Jesus Vazquez Padilla",
+            "queries": {
+                "docket_only": {
+                    "q": "22cr1551RBM",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "party_docket": {
+                    "q": "Jesus Vazquez Padilla 22cr1551RBM",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "current_buildQuery": {
+                    "q": "Jesus Vazquez Padilla 22cr1551RBM",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                },
+                "docket_stripped": {
+                    "q": "22cr1551",
+                    "hit_count": 0,
+                    "best": null,
+                    "second_score": null,
+                    "gap": 1,
+                    "would_accept_current": false,
+                    "would_accept_docket_rule": false,
+                    "top3": []
+                }
+            }
+        }
+    ]
+}
