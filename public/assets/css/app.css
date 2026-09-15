@@ -199,16 +199,26 @@ body:not(.admin-body) .footer-dsc {
 }
 body:not(.admin-body) .dsc-lockup {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.15rem;
+  /* Technor’s native space is ~4px at this size — bump so "Corp powered" reads clearly */
+  column-gap: 0.55em;
+  row-gap: 0.15em;
   text-decoration: none;
   color: var(--ink);
   font-size: 1.125rem;
   max-width: 100%;
-  flex-wrap: nowrap;
 }
 body:not(.admin-body) .dsc-lockup:hover {
   color: var(--gold-dark);
+}
+/* Logo + "Decision Science Corp" stay one unit so D tracks the black bar */
+body:not(.admin-body) .dsc-lockup-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 body:not(.admin-body) .dsc-lockup-img {
   display: block;
@@ -217,20 +227,32 @@ body:not(.admin-body) .dsc-lockup-img {
   flex-shrink: 0;
   align-self: center;
 }
-body:not(.admin-body) .dsc-lockup-text {
+body:not(.admin-body) .dsc-lockup-name,
+body:not(.admin-body) .dsc-lockup-tag {
   font-family: var(--font-heading);
   font-size: 1em;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.15;
-  margin-left: -0.02em;
+  white-space: nowrap;
+  /* Style guide: bar centerline, not mark center — D sits on the black bar */
   transform: translateY(calc(var(--brand-logo-bar-center-offset-ratio) * var(--brand-mark-height-em) * 1em));
-  overflow-wrap: anywhere;
-  min-width: 0;
+}
+body:not(.admin-body) .dsc-lockup-name {
+  margin-left: -0.02em;
+}
+body:not(.admin-body) .dsc-lockup-tag {
+  flex: 0 1 auto;
 }
 @media (max-width: 720px) {
   body:not(.admin-body) .dsc-lockup {
     font-size: 0.95rem;
+  }
+  /* Tag on its own row, indented under the wordmark (not under the waveform) */
+  body:not(.admin-body) .dsc-lockup-tag {
+    flex-basis: 100%;
+    padding-left: calc(var(--brand-mark-height-em) * 1em * (374 / 92) + 0.15rem);
+    transform: none;
   }
 }
 body:not(.admin-body) .footer-license {

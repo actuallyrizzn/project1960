@@ -66,8 +66,10 @@ $currentPath = $currentPath ?? '/';
             </nav>
             <div class="footer-dsc">
                 <a class="dsc-lockup" href="https://www.decisionsciencecorp.com/" target="_blank" rel="noopener" aria-label="Decision Science Corp">
-                    <img class="dsc-lockup-img" src="/assets/dsc-logo.svg" alt="" width="180" height="44">
-                    <span class="dsc-lockup-text">Decision Science Corp powered deep research.</span>
+                    <span class="dsc-lockup-primary">
+                        <img class="dsc-lockup-img" src="/assets/dsc-logo.svg" alt="" width="180" height="44">
+                        <span class="dsc-lockup-name">Decision Science Corp</span>
+                    </span><span class="dsc-lockup-tag">powered deep research.</span>
                 </a>
             </div>
             <p class="footer-license">

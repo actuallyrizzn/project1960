@@ -41,7 +41,9 @@ final class ViewNavTest extends TestCase
         self::assertStringContainsString('api.fontshare.com', $html);
         self::assertStringContainsString('site-exterior', $html);
         self::assertStringContainsString('nav-link active', $html);
-        self::assertStringContainsString('dsc-lockup', $html);
+        self::assertStringContainsString('dsc-lockup-primary', $html);
+        self::assertStringContainsString('dsc-lockup-name', $html);
+        self::assertStringContainsString('dsc-lockup-tag', $html);
     }
 
     public function testMissingViewThrows(): void
