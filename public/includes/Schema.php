@@ -266,6 +266,113 @@ final class Schema
 
         // AD-S1 — operator control dashboard (Environment-shaped; no secrets seeded)
         self::ensureAdminControlTables($pdo);
+
+        // After dedupe: restore PRIMARY KEY + unique URL so INSERT OR IGNORE works
+        self::ensureCasesPrimaryKey($pdo);
+        self::ensureCasesUrlUniqueIndex($pdo);
+    }
+
+    /**
+     * Legacy prod cases lacked PRIMARY KEY — INSERT OR IGNORE never conflicted.
+     * Rebuild only when ids are unique and pk is missing.
+     */
+    private static function ensureCasesPrimaryKey(PDO $pdo): void
+    {
+        $cols = $pdo->query('PRAGMA table_info(cases)')->fetchAll(PDO::FETCH_ASSOC);
+        if ($cols === []) {
+            return;
+        }
+        $hasPk = false;
+        foreach ($cols as $col) {
+            if ((string) ($col['name'] ?? '') === 'id' && (int) ($col['pk'] ?? 0) > 0) {
+                $hasPk = true;
+                break;
+            }
+        }
+        if ($hasPk) {
+            return;
+        }
+
+        $dupGroups = (int) $pdo->query(
+            'SELECT COUNT(*) FROM (SELECT id FROM cases GROUP BY id HAVING COUNT(*) > 1)'
+        )->fetchColumn();
+        if ($dupGroups > 0) {
+            // Leave table as-is; bin/dedupe-cases.php must run first.
+            return;
+        }
+
+        $colNames = array_map(static fn (array $c): string => (string) $c['name'], $cols);
+        $wanted = [
+            'id', 'title', 'date', 'body', 'url', 'teaser', 'number', 'component', 'topic',
+            'changed', 'created', 'mentions_1960', 'mentions_crypto', 'verified_1960',
+            'verified_crypto', 'classification',
+        ];
+        $copy = array_values(array_intersect($wanted, $colNames));
+        if (!in_array('id', $copy, true)) {
+            throw new \RuntimeException('cases table missing id column');
+        }
+        $list = implode(', ', $copy);
+
+        $pdo->exec('PRAGMA foreign_keys = OFF');
+        $pdo->beginTransaction();
+        try {
+            $pdo->exec('ALTER TABLE cases RENAME TO cases_legacy_nopk');
+            $pdo->exec(
+                'CREATE TABLE cases (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    date TEXT,
+                    body TEXT,
+                    url TEXT,
+                    teaser TEXT,
+                    number TEXT,
+                    component TEXT,
+                    topic TEXT,
+                    changed TEXT,
+                    created TEXT,
+                    mentions_1960 NUM,
+                    mentions_crypto NUM,
+                    verified_1960,
+                    verified_crypto,
+                    classification TEXT
+                )'
+            );
+            $pdo->exec("INSERT INTO cases ({$list}) SELECT {$list} FROM cases_legacy_nopk");
+            $pdo->exec('DROP TABLE cases_legacy_nopk');
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $pdo->exec('PRAGMA foreign_keys = ON');
+            throw $e;
+        }
+        $pdo->exec('PRAGMA foreign_keys = ON');
+    }
+
+    private static function ensureCasesUrlUniqueIndex(PDO $pdo): void
+    {
+        $exists = (int) $pdo->query(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_cases_url_unique'"
+        )->fetchColumn();
+        if ($exists > 0) {
+            return;
+        }
+        $dupUrls = (int) $pdo->query(
+            "SELECT COUNT(*) FROM (
+                SELECT url FROM cases
+                WHERE url IS NOT NULL AND TRIM(url) != ''
+                GROUP BY url HAVING COUNT(*) > 1
+             )"
+        )->fetchColumn();
+        if ($dupUrls > 0) {
+            return;
+        }
+        $pdo->exec(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_cases_url_unique
+             ON cases(url)
+             WHERE url IS NOT NULL AND TRIM(url) != ''"
+        );
     }
 
     /**

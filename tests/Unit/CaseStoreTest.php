@@ -68,11 +68,36 @@ final class CaseStoreTest extends TestCase
             'uuid' => 'dup-crypto',
             'title' => 'Crypto case',
             'body' => 'Seized Bitcoin wallets.',
+            'url' => 'https://www.justice.gov/example/dup-crypto',
         ];
         self::assertSame(CaseStore::RESULT_STORED, $store->store($item));
         self::assertSame(CaseStore::RESULT_DUPLICATE, $store->store($item));
         $count = (int) $fixture->pdo()->query(
             "SELECT COUNT(*) FROM cases WHERE id = 'dup-crypto'"
+        )->fetchColumn();
+        self::assertSame(1, $count);
+        $fixture->destroy();
+    }
+
+    public function testDuplicateUrlIgnoredEvenWithNewId(): void
+    {
+        $fixture = new FixtureDatabase();
+        $store = new CaseStore($fixture->pdo());
+        $url = 'https://www.justice.gov/example/same-url';
+        self::assertSame(CaseStore::RESULT_STORED, $store->store([
+            'uuid' => 'url-first',
+            'title' => 'First',
+            'body' => '18 U.S.C. 1960 charge',
+            'url' => $url,
+        ]));
+        self::assertSame(CaseStore::RESULT_DUPLICATE, $store->store([
+            'uuid' => 'url-second',
+            'title' => 'Second',
+            'body' => '18 U.S.C. 1960 charge again',
+            'url' => $url,
+        ]));
+        $count = (int) $fixture->pdo()->query(
+            'SELECT COUNT(*) FROM cases WHERE url = ' . $fixture->pdo()->quote($url)
         )->fetchColumn();
         self::assertSame(1, $count);
         $fixture->destroy();

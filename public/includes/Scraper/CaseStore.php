@@ -48,6 +48,21 @@ final class CaseStore
             return self::RESULT_NO_MATCH;
         }
 
+        // Explicit dupe check — prod historically lacked PRIMARY KEY so OR IGNORE was inert
+        $dup = $this->pdo->prepare(
+            'SELECT 1 FROM cases
+             WHERE id = :id
+                OR (:url != \'\' AND url = :url2)
+             LIMIT 1'
+        );
+        $dup->bindValue(':id', $caseId);
+        $dup->bindValue(':url', $url);
+        $dup->bindValue(':url2', $url);
+        $dup->execute();
+        if ($dup->fetchColumn() !== false) {
+            return self::RESULT_DUPLICATE;
+        }
+
         $stmt = $this->pdo->prepare(
             'INSERT OR IGNORE INTO cases
              (id, title, date, body, url, teaser, number, component, topic,
