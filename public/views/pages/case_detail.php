@@ -28,7 +28,10 @@ $meta = $enrichment['metadata'] ?? null;
                 <span class="badge bg-info">Verified 1960</span>
             <?php endif; ?>
         </div>
-        <div class="border rounded p-3 bg-light" style="white-space: pre-wrap;"><?= $e($case['body'] ?? '') ?></div>
+        <?php if (!empty($case['teaser'])): ?>
+            <p class="text-secondary"><strong>Summary:</strong> <?= $e($case['teaser']) ?></p>
+        <?php endif; ?>
+        <div class="border rounded p-3 bg-light press-release-body"><?= \Project1960\PressReleaseHtml::render(isset($case['body']) ? (string) $case['body'] : null) ?></div>
     </div>
 </div>
 
