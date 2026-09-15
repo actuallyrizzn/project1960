@@ -54,7 +54,7 @@ $queryKeep = static function (array $overrides) use ($filters): string {
             <div class="col-md-2">
                 <label for="classification" class="form-label">Classification</label>
                 <select class="form-select" id="classification" name="classification">
-                    <option value="">All</option>
+                    <option value=""<?= $selected($filters->classification, '') ?>>All</option>
                     <option value="yes"<?= $selected($filters->classification, 'yes') ?>>Yes (1960)</option>
                     <option value="no"<?= $selected($filters->classification, 'no') ?>>No</option>
                     <option value="unknown"<?= $selected($filters->classification, 'unknown') ?>>Unknown</option>

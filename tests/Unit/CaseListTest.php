@@ -19,6 +19,19 @@ final class CaseListTest extends TestCase
         self::assertSame(1, $filters->page);
         self::assertSame('foo', $filters->search);
         self::assertSame(0, $filters->offset());
+        self::assertSame('yes', $filters->classification);
+    }
+
+    public function testClassificationDefaultsToYesUnlessExplicitlyCleared(): void
+    {
+        $default = CaseListFilters::fromRequest(new Request('GET', '/cases', []));
+        self::assertSame('yes', $default->classification);
+
+        $all = CaseListFilters::fromRequest(new Request('GET', '/cases', ['classification' => '']));
+        self::assertSame('', $all->classification);
+
+        $no = CaseListFilters::fromRequest(new Request('GET', '/cases', ['classification' => 'no']));
+        self::assertSame('no', $no->classification);
     }
 
     public function testListReturnsAllFixtureCases(): void
@@ -85,12 +98,27 @@ final class CaseListTest extends TestCase
     {
         $fixture = new FixtureDatabase();
         $app = new App(null, null, $fixture->pdo());
-        $response = $app->handle(new Request('GET', '/cases', ['mentions_1960' => '1']));
+        $response = $app->handle(new Request('GET', '/cases', [
+            'mentions_1960' => '1',
+            'classification' => '',
+        ]));
 
         self::assertSame(200, $response->status);
         self::assertStringContainsString('Cases Database', $response->body);
         self::assertStringContainsString('United States v. Fixture', $response->body);
         self::assertStringContainsString('name="verified_1960"', $response->body);
+        // With classification cleared, select shows All selected (empty value)
+        self::assertMatchesRegularExpression(
+            '/id="classification"[^>]*>\s*<option value="" selected>/s',
+            $response->body
+        );
+
+        $defaulted = $app->handle(new Request('GET', '/cases', []));
+        self::assertSame(200, $defaulted->status);
+        self::assertMatchesRegularExpression(
+            '/id="classification"[^>]*>.*?value="yes" selected/s',
+            $defaulted->body
+        );
         $fixture->destroy();
     }
 }
