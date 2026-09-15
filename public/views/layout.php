@@ -58,11 +58,27 @@ $currentPath = $currentPath ?? '/';
         <?= $content ?>
     </main>
 
-    <footer class="mt-5 py-4 text-center text-muted">
-        <div class="container">
-            <p class="mb-0">
-                <i class="bi bi-code-slash me-1"></i>
-                Project 1960 — project1960.rizzn.net
+    <footer class="site-footer ledger-footer">
+        <div class="container footer-inner">
+            <nav class="footer-navlinks" aria-label="Footer">
+                <a href="/cases">Cases</a>
+                <a href="/patterns">Patterns</a>
+                <a href="/enrichment">Enrichment</a>
+                <a href="/about">About</a>
+                <a href="https://ledger.rizzn.net/" target="_blank" rel="noopener">Ledger</a>
+                <a href="https://rizzn.net/" target="_blank" rel="noopener">rizzn.net</a>
+                <a href="https://www.decisionsciencecorp.com/" target="_blank" rel="noopener">DSC</a>
+            </nav>
+            <div class="footer-dsc">
+                <a class="dsc-lockup" href="https://www.decisionsciencecorp.com/" target="_blank" rel="noopener" aria-label="Decision Science Corp">
+                    <img class="dsc-lockup-img" src="/assets/dsc-logo.svg" alt="" width="180" height="44">
+                    <span class="dsc-lockup-text">Decision Science Corp powered deep research.</span>
+                </a>
+            </div>
+            <p class="footer-license">
+                Content on this site is licensed under
+                <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="license noopener">CC BY-SA 4.0</a>
+                unless a page says otherwise.
             </p>
         </div>
     </footer>

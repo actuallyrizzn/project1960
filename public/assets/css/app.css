@@ -16,6 +16,12 @@
   --font-heading: 'Technor', Arial, sans-serif;
   --font-body: 'Satoshi', Arial, sans-serif;
   --border: 3px;
+  /* DSC mark lockup — same bar→D rules as Ledger / decisionsciencecorp.com */
+  --brand-wordmark-d-height-em: 0.7222;
+  --brand-logo-bar-thickness-ratio: 0.2725;
+  --brand-mark-height-em: calc(var(--brand-wordmark-d-height-em) / var(--brand-logo-bar-thickness-ratio));
+  --brand-logo-bar-center-ratio: 0.7331;
+  --brand-logo-bar-center-offset-ratio: calc(var(--brand-logo-bar-center-ratio) - 0.5);
 
   /* Bootstrap remaps used by page templates */
   --primary-color: var(--ink);
@@ -178,23 +184,93 @@ body:not(.admin-body) main.container {
   max-width: 1100px;
 }
 
-body:not(.admin-body) footer {
-  margin-top: auto !important;
-  padding: 1.25rem 1rem !important;
+/* Footer — fidelity to ledger.rizzn.net (DSC lockup + CC BY-SA) */
+body:not(.admin-body) .site-footer {
+  margin-top: auto;
   background: var(--paper);
   border-top: var(--border) solid var(--ink);
   box-shadow: 0 -3px 0 var(--ink);
-  color: var(--sepia) !important;
+}
+body:not(.admin-body) .footer-inner {
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
+  max-width: 1100px;
+}
+body:not(.admin-body) .footer-navlinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.35rem;
+  margin-bottom: 1.25rem;
+}
+body:not(.admin-body) .footer-navlinks a {
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  color: var(--ink);
 }
-body:not(.admin-body) footer .text-muted {
-  color: var(--sepia) !important;
+body:not(.admin-body) .footer-navlinks a:hover {
+  color: var(--gold);
 }
-body:not(.admin-body) footer .bi {
-  display: none;
+body:not(.admin-body) .footer-dsc {
+  padding-top: 1rem;
+  border-top: 2px dashed var(--paper-tan, #e0c48f);
+}
+body:not(.admin-body) .dsc-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 1.125rem;
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+body:not(.admin-body) .dsc-lockup:hover {
+  color: var(--gold-dark);
+}
+body:not(.admin-body) .dsc-lockup-img {
+  display: block;
+  height: calc(var(--brand-mark-height-em) * 1em);
+  width: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+body:not(.admin-body) .dsc-lockup-text {
+  font-family: var(--font-heading);
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin-left: -0.02em;
+  transform: translateY(calc(var(--brand-logo-bar-center-offset-ratio) * var(--brand-mark-height-em) * 1em));
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  body:not(.admin-body) .dsc-lockup {
+    font-size: 0.95rem;
+  }
+}
+body:not(.admin-body) .footer-license {
+  margin: 1rem 0 0;
+  font-size: 0.82rem;
+  color: var(--sepia);
+  max-width: 40rem;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--font-body);
+}
+body:not(.admin-body) .footer-license a {
+  color: var(--ink-deep);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+body:not(.admin-body) .footer-license a:hover {
+  color: var(--gold);
 }
 
 /* —— Cards / panels —— */
