@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Project1960\CourtListener;
 
 use PDO;
+use Project1960\ActivityLog;
 use Project1960\CourtListenerPersonStore;
 
 /**
@@ -37,11 +38,14 @@ final class ExtractOrchestrator
             }
             $resp = $this->llm->complete($prompt);
             if (!$resp['ok']) {
+                $err = $resp['error'] ?? 'llm failed';
+                $this->logExtract($clDocumentId, $caseId, 'failed', $err);
+
                 return [
                     'cl_document_id' => $clDocumentId,
                     'people' => 0,
                     'status' => 'failed',
-                    'error' => $resp['error'] ?? 'llm failed',
+                    'error' => $err,
                 ];
             }
             $parsed = DirtyJsonParser::parse($resp['content']);
@@ -85,7 +89,22 @@ final class ExtractOrchestrator
             $count++;
         }
 
+        $this->logExtract($clDocumentId, $caseId, 'done', 'people=' . $count);
+
         return ['cl_document_id' => $clDocumentId, 'people' => $count, 'status' => 'done'];
+    }
+
+    private function logExtract(int $clDocumentId, string $caseId, string $status, string $notes): void
+    {
+        try {
+            (new ActivityLog($this->pdo))->record(
+                ActivityLog::STAGE_CL_EXTRACT,
+                ActivityLog::normalizeStatus($status),
+                sprintf('doc #%d %s', $clDocumentId, $notes),
+                $caseId !== '' ? $caseId : null
+            );
+        } catch (\Throwable) {
+        }
     }
 
     /**

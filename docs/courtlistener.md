@@ -70,6 +70,8 @@ Example (Ada/Otto host crontab — custom lines, not `devops__add_cron`):
 
 Do **not** raise `--limit` into the hundreds or drop `--wait` without Mark go.
 
+**Activity log:** the Enrichment page reads `enrichment_activity_log`. Legacy Venice enrichment wrote here; as of the pipeline logging change, CourtListener **match / ingest / download / OCR / extract** also append rows (`table_name` = stage such as `cl_match`). Statuses: `success`, `skipped`, `error`, `weak_accept`.
+
 ## Document ingest CLI (CL-I2)
 
 ```bash

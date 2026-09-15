@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Project1960;
 
 use PDO;
-use PDOException;
 
 final class EnrichmentDashboard
 {
@@ -82,16 +81,7 @@ final class EnrichmentDashboard
 
     public function ensureActivityLogTable(): void
     {
-        $this->pdo->exec(
-            'CREATE TABLE IF NOT EXISTS enrichment_activity_log (
-                log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                case_id TEXT,
-                table_name TEXT,
-                status TEXT,
-                notes TEXT
-            )'
-        );
+        (new ActivityLog($this->pdo))->ensureTable();
     }
 
     /**
@@ -99,25 +89,7 @@ final class EnrichmentDashboard
      */
     public function recentActivity(int $limit = 100): array
     {
-        $this->ensureActivityLogTable();
-        $limit = max(1, min(500, $limit));
-        try {
-            $stmt = $this->pdo->query(
-                'SELECT timestamp, case_id, table_name, status, notes
-                 FROM enrichment_activity_log
-                 ORDER BY timestamp DESC
-                 LIMIT ' . $limit
-            );
-            if ($stmt === false) {
-                return [];
-            }
-            /** @var list<array{timestamp: string, case_id: string, table_name: string, status: string, notes: string}> $rows */
-            $rows = $stmt->fetchAll();
-
-            return $rows;
-        } catch (PDOException) {
-            return [];
-        }
+        return (new ActivityLog($this->pdo))->recent($limit);
     }
 
     /**

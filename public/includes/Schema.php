@@ -264,6 +264,9 @@ final class Schema
         // No FK to cases: live doj_cases.db legacy `cases` may lack a PK SQLite accepts for FK.
         self::ensureMatchReviewsTable($pdo);
 
+        // Shared pipeline + enrichment activity feed (Enrichment page)
+        (new ActivityLog($pdo))->ensureTable();
+
         // AD-S1 — operator control dashboard (Environment-shaped; no secrets seeded)
         self::ensureAdminControlTables($pdo);
 

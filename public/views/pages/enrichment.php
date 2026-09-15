@@ -24,8 +24,9 @@ $formatTs = static function (string $ts): string {
                     Data Enrichment Progress
                 </h1>
                 <p class="text-muted mb-0">
-                    Progress of AI-powered extraction for <strong>verified 18 U.S.C. § 1960 cases.</strong>
-                    Each table is a different aspect of case analysis from the press releases.
+                    Progress of AI-powered extraction for <strong>verified 18 U.S.C. § 1960 cases,</strong>
+                    plus the CourtListener pipeline (match, document ingest, OCR, people extract).
+                    The activity feed below covers every stage — not enrichment alone.
                 </p>
             </div>
         </div>
@@ -98,8 +99,8 @@ $formatTs = static function (string $ts): string {
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Recent Enrichment Activity Log</h5>
-                <small class="text-muted">Click any Case ID to open case details</small>
+                <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Recent Pipeline Activity</h5>
+                <small class="text-muted">CourtListener match / ingest / OCR / extract plus Venice enrichment — click a Case ID for details</small>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -108,7 +109,7 @@ $formatTs = static function (string $ts): string {
                             <tr>
                                 <th scope="col">Timestamp (UTC)</th>
                                 <th scope="col">Case ID</th>
-                                <th scope="col">Table</th>
+                                <th scope="col">Stage</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Notes</th>
                             </tr>
@@ -122,25 +123,32 @@ $formatTs = static function (string $ts): string {
                                 $status = (string) ($log['status'] ?? '');
                                 $badge = match ($status) {
                                     'success' => 'bg-success',
-                                    'skipped' => 'bg-warning text-dark',
+                                    'weak_accept' => 'bg-warning text-dark',
+                                    'skipped' => 'bg-secondary',
                                     default => 'bg-danger',
                                 };
                                 $label = match ($status) {
                                     'success' => 'Success',
+                                    'weak_accept' => 'Weak accept',
                                     'skipped' => 'Skipped',
                                     default => 'Error',
                                 };
                                 $caseId = (string) ($log['case_id'] ?? '');
+                                $stage = (string) ($log['table_name'] ?? '');
                                 ?>
                                 <tr>
                                     <td class="text-nowrap"><?= $e($formatTs((string) ($log['timestamp'] ?? ''))) ?></td>
                                     <td class="font-monospace small">
-                                        <a href="/case.php?id=<?= $e(rawurlencode($caseId)) ?>" class="text-primary fw-bold text-decoration-none">
-                                            <?= $e($caseId) ?>
-                                            <i class="bi bi-box-arrow-up-right ms-1 opacity-75"></i>
-                                        </a>
+                                        <?php if ($caseId !== ''): ?>
+                                            <a href="/case.php?id=<?= $e(rawurlencode($caseId)) ?>" class="text-primary fw-bold text-decoration-none">
+                                                <?= $e($caseId) ?>
+                                                <i class="bi bi-box-arrow-up-right ms-1 opacity-75"></i>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
                                     </td>
-                                    <td><span class="badge bg-secondary"><?= $e($log['table_name'] ?? '') ?></span></td>
+                                    <td><span class="badge bg-secondary"><?= $e($stage) ?></span></td>
                                     <td><span class="badge <?= $e($badge) ?>"><?= $e($label) ?></span></td>
                                     <td class="small"><?= $e($log['notes'] ?? '') ?></td>
                                 </tr>

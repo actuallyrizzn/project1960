@@ -5,6 +5,7 @@ namespace Project1960\CourtListener;
 
 use Project1960\Config;
 use Project1960\CourtListenerDocumentStore;
+use Project1960\ActivityLog;
 use PDO;
 
 /**
@@ -93,6 +94,7 @@ final class DocumentDownloader
         if ($this->looksLikePacerOnly($url) || !$this->isFreeUrl($url)) {
             if (!$dryRun) {
                 $this->setDownloadMeta($clDocumentId, self::STATUS_SKIPPED_PACER, null, null);
+                $this->logActivity($clDocumentId, self::STATUS_SKIPPED_PACER, 'PACER/paywall or non-free URL');
             }
 
             return ['status' => self::STATUS_SKIPPED_PACER, 'cl_document_id' => $clDocumentId];
@@ -105,11 +107,13 @@ final class DocumentDownloader
         $resp = $this->http->get($url);
         if (!$resp['ok'] || $resp['body'] === '') {
             $this->setDownloadMeta($clDocumentId, self::STATUS_FAILED, null, null);
+            $err = $resp['error'] ?? ('http_' . $resp['status']);
+            $this->logActivity($clDocumentId, self::STATUS_FAILED, (string) $err);
 
             return [
                 'status' => self::STATUS_FAILED,
                 'cl_document_id' => $clDocumentId,
-                'error' => $resp['error'] ?? ('http_' . $resp['status']),
+                'error' => $err,
             ];
         }
 
@@ -123,11 +127,13 @@ final class DocumentDownloader
         $abs = rtrim($this->storageDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $rel;
         if (file_put_contents($abs, $resp['body']) === false) {
             $this->setDownloadMeta($clDocumentId, self::STATUS_FAILED, null, null);
+            $this->logActivity($clDocumentId, self::STATUS_FAILED, 'write_failed');
 
             return ['status' => self::STATUS_FAILED, 'cl_document_id' => $clDocumentId, 'error' => 'write_failed'];
         }
 
         $this->setDownloadMeta($clDocumentId, self::STATUS_DONE, $abs, $sha);
+        $this->logActivity($clDocumentId, self::STATUS_DONE, 'saved ' . basename($abs));
 
         return [
             'status' => self::STATUS_DONE,
@@ -135,6 +141,21 @@ final class DocumentDownloader
             'path' => $abs,
             'sha256' => $sha,
         ];
+    }
+
+    private function logActivity(int $clDocumentId, string $status, string $notes): void
+    {
+        try {
+            $log = new ActivityLog($this->pdo);
+            $caseId = $log->caseIdForDocument($clDocumentId);
+            $log->record(
+                ActivityLog::STAGE_CL_DOWNLOAD,
+                ActivityLog::normalizeStatus($status),
+                sprintf('doc #%d %s', $clDocumentId, $notes),
+                $caseId
+            );
+        } catch (\Throwable) {
+        }
     }
 
     private function setDownloadMeta(int $id, string $status, ?string $path, ?string $sha): void

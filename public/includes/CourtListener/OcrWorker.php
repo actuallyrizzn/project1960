@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Project1960\CourtListener;
 
 use PDO;
+use Project1960\ActivityLog;
 use Project1960\CourtListenerDocumentStore;
 use RuntimeException;
 
@@ -79,7 +80,7 @@ final class OcrWorker
             }
             $this->docs->setOcrStatus($clDocumentId, CourtListenerDocumentStore::OCR_FAILED);
 
-            return ['cl_document_id' => $clDocumentId, 'status' => 'failed', 'error' => 'no local_path'];
+            return $this->finishOcr($clDocumentId, 'failed', 'no local_path');
         }
 
         if ($dryRun) {
@@ -88,31 +89,66 @@ final class OcrWorker
 
         $lock = $this->acquireLock($clDocumentId);
         if ($lock === null) {
-            return ['cl_document_id' => $clDocumentId, 'status' => 'locked'];
+            return $this->finishOcr($clDocumentId, 'locked', 'lock held', log: true);
         }
         try {
             $result = $this->engine->extractText($path);
             if (!$result['ok'] || trim($result['text']) === '') {
                 $this->docs->setOcrStatus($clDocumentId, CourtListenerDocumentStore::OCR_FAILED);
 
-                return [
-                    'cl_document_id' => $clDocumentId,
-                    'status' => 'failed',
-                    'error' => $result['error'] ?? 'empty OCR text',
-                    'method' => $result['method'] ?? null,
-                ];
+                return $this->finishOcr(
+                    $clDocumentId,
+                    'failed',
+                    $result['error'] ?? 'empty OCR text',
+                    $result['method'] ?? null
+                );
             }
             $this->docs->upsertFullText($clDocumentId, $result['text']);
             $this->docs->setOcrStatus($clDocumentId, CourtListenerDocumentStore::OCR_DONE);
 
-            return [
-                'cl_document_id' => $clDocumentId,
-                'status' => 'done',
-                'method' => $result['method'] ?? 'ocr',
-            ];
+            return $this->finishOcr(
+                $clDocumentId,
+                'done',
+                'chars=' . strlen($result['text']),
+                $result['method'] ?? 'ocr'
+            );
         } finally {
             $this->releaseLock($lock);
         }
+    }
+
+    /**
+     * @return array{cl_document_id: int, status: string, method?: string, error?: string}
+     */
+    private function finishOcr(
+        int $clDocumentId,
+        string $status,
+        string $detail,
+        ?string $method = null,
+        bool $log = true,
+    ): array {
+        if ($log && !str_starts_with($status, 'would_')) {
+            try {
+                $alog = new ActivityLog($this->pdo);
+                $caseId = $alog->caseIdForDocument($clDocumentId);
+                $alog->record(
+                    ActivityLog::STAGE_CL_OCR,
+                    ActivityLog::normalizeStatus($status),
+                    trim(sprintf('doc #%d %s %s', $clDocumentId, $detail, $method ?? '')),
+                    $caseId
+                );
+            } catch (\Throwable) {
+            }
+        }
+        $out = ['cl_document_id' => $clDocumentId, 'status' => $status];
+        if ($method !== null) {
+            $out['method'] = $method;
+        }
+        if ($status === 'failed') {
+            $out['error'] = $detail;
+        }
+
+        return $out;
     }
 
     /** @return resource|null */

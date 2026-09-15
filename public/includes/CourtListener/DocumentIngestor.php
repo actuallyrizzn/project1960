@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Project1960\CourtListener;
 
 use Project1960\CourtListenerDocumentStore;
+use Project1960\ActivityLog;
 use PDO;
 
 /**
@@ -104,6 +105,7 @@ final class DocumentIngestor
                 $this->docs->upsertDocument($doc);
                 $upserted++;
             }
+            $this->logActivity($clDocketId, $upserted, count($entryRows));
         } else {
             $upserted = count($mapped);
         }
@@ -114,6 +116,21 @@ final class DocumentIngestor
             'documents_upserted' => $upserted,
             'dry_run' => $dryRun,
         ];
+    }
+
+    private function logActivity(int $clDocketId, int $upserted, int $entriesSeen): void
+    {
+        try {
+            $log = new ActivityLog($this->pdo);
+            $caseId = $log->caseIdForDocket($clDocketId);
+            $log->record(
+                ActivityLog::STAGE_CL_INGEST,
+                ActivityLog::STATUS_SUCCESS,
+                sprintf('CL docket #%d entries=%d docs=%d', $clDocketId, $entriesSeen, $upserted),
+                $caseId
+            );
+        } catch (\Throwable) {
+        }
     }
 
     /**

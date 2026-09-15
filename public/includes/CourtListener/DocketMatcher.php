@@ -5,6 +5,7 @@ namespace Project1960\CourtListener;
 
 use Project1960\CourtListenerDocketStore;
 use Project1960\CourtListenerMatchReviewStore;
+use Project1960\ActivityLog;
 use PDO;
 
 /**
@@ -160,6 +161,17 @@ final class DocketMatcher
                 }
                 $this->persistMatch($caseId, $best, $method);
                 $this->reviews->clear($caseId);
+                $this->logActivity(
+                    $caseId,
+                    ActivityLog::STATUS_SUCCESS,
+                    sprintf(
+                        '%s CL #%d conf=%.3f %s',
+                        $method,
+                        $best['cl_docket_id'],
+                        $bestScore,
+                        (string) ($best['docket_number'] ?? '')
+                    )
+                );
             }
 
             return [
@@ -178,6 +190,16 @@ final class DocketMatcher
             if (!$dryRun) {
                 $this->persistMatch($caseId, $best, LinkQueuePriority::WEAK_METHOD);
                 $this->reviews->flag($caseId, 'weak_accept', $candidates);
+                $this->logActivity(
+                    $caseId,
+                    ActivityLog::STATUS_WEAK,
+                    sprintf(
+                        'weak_accept CL #%d conf=%.3f %s',
+                        $best['cl_docket_id'],
+                        $bestScore,
+                        (string) ($best['docket_number'] ?? '')
+                    )
+                );
             }
 
             return [
@@ -195,6 +217,16 @@ final class DocketMatcher
 
         if (!$dryRun) {
             $this->reviews->flag($caseId, $reason, $candidates);
+            $this->logActivity(
+                $caseId,
+                ActivityLog::normalizeStatus($reason),
+                sprintf(
+                    '%s conf=%.3f candidates=%d',
+                    $reason,
+                    $bestScore,
+                    count($candidates)
+                )
+            );
         }
 
         $prefix = $dryRun ? 'dry_run_' : '';
@@ -768,5 +800,19 @@ final class DocketMatcher
             'match_confidence' => $best['score'],
             'match_method' => $method,
         ]);
+    }
+
+    private function logActivity(string $caseId, string $status, string $notes): void
+    {
+        try {
+            (new ActivityLog($this->pdo))->record(
+                ActivityLog::STAGE_CL_MATCH,
+                $status,
+                $notes,
+                $caseId
+            );
+        } catch (\Throwable) {
+            // Activity feed must not break matching.
+        }
     }
 }
