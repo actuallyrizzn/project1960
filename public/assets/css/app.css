@@ -1,304 +1,436 @@
+/*
+ * Project 1960 public exterior — Ledger / rizzn.net token skin
+ * (Sharpie / Technor / Satoshi + paper/gold). Admin uses skins.css.
+ */
+
 :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #34495e;
-            --accent-color: #3498db;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --bg-color: #f8f9fa;
-            --text-color: #333;
-            --card-bg: #fff;
-            --border-color: #e9ecef;
-            --input-bg: #fff;
-            --input-border: #ced4da;
-            --input-text: #495057;
-            --table-header-bg: #f8f9fa;
-            --table-header-text: #495057;
-            --breadcrumb-bg: #e9ecef;
-            --breadcrumb-text: #6c757d;
-            --progress-bg: #e9ecef;
-        }
+  --ink: #2d1c0b;
+  --ink-deep: #4b2e0e;
+  --sepia: #7a5c2e;
+  --paper: #fffbe6;
+  --paper-warm: #f5ecd7;
+  --gold: #a67c52;
+  --gold-bright: #ffb300;
+  --gold-dark: #7a5c2e;
+  --font-display: 'Sharpie', 'Impact', Arial, sans-serif;
+  --font-heading: 'Technor', Arial, sans-serif;
+  --font-body: 'Satoshi', Arial, sans-serif;
+  --border: 3px;
 
-        [data-theme="dark"] {
-            --primary-color: #1a252f;
-            --secondary-color: #2c3e50;
-            --accent-color: #3498db;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --bg-color: #121212;
-            --text-color: #ffffff;
-            --card-bg: #1e1e1e;
-            --border-color: #404040;
-            --input-bg: #2d2d2d;
-            --input-border: #404040;
-            --input-text: #e0e0e0;
-            --table-header-bg: #2c3e50;
-            --table-header-text: #ffffff;
-            --breadcrumb-bg: #2d2d2d;
-            --breadcrumb-text: #b0b0b0;
-            --progress-bg: #404040;
-        }
-        
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-brand {
-            font-weight: 600;
-            font-size: 1.4rem;
-        }
+  /* Bootstrap remaps used by page templates */
+  --primary-color: var(--ink);
+  --secondary-color: var(--ink-deep);
+  --accent-color: var(--gold-dark);
+  --success-color: #1f7a3f;
+  --warning-color: var(--gold-bright);
+  --danger-color: #a12828;
+  --bg-color: var(--paper-warm);
+  --text-color: var(--ink);
+  --card-bg: var(--paper);
+  --border-color: var(--ink);
+  --input-bg: var(--paper);
+  --input-border: var(--ink);
+  --input-text: var(--ink);
+  --table-header-bg: var(--paper-warm);
+  --table-header-text: var(--ink);
+  --breadcrumb-bg: var(--paper-warm);
+  --breadcrumb-text: var(--sepia);
+  --progress-bg: var(--paper-warm);
+}
 
-        /* Dark mode toggle styles */
-        .theme-toggle {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: all 0.3s;
-            margin-left: 15px;
-        }
+/* Public site only — admin keeps Skin Lab via skins.css */
+body:not(.admin-body) {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper-warm) url('/assets/comic-paper-bk.png') repeat;
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.55;
+}
 
-        .theme-toggle:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: scale(1.1);
-        }
-        
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
+body:not(.admin-body) a {
+  color: var(--gold-dark);
+}
+body:not(.admin-body) a:hover {
+  color: var(--gold);
+}
 
-        .card-header {
-            background-color: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 15px;
-        }
-        
-        .stat-card.success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        }
-        
-        .stat-card.warning {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        
-        .stat-card.info {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-color), #2980b9);
-            border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-weight: 500;
-        }
-        
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #2980b9, var(--accent-color));
-            transform: translateY(-1px);
-        }
+body:not(.admin-body) h1,
+body:not(.admin-body) h2,
+body:not(.admin-body) h3,
+body:not(.admin-body) h4,
+body:not(.admin-body) h5,
+body:not(.admin-body) .display-5,
+body:not(.admin-body) .display-6 {
+  font-family: var(--font-heading);
+  line-height: 1.15;
+  color: var(--ink) !important;
+}
 
-        .btn-outline-secondary {
-            border-color: var(--border-color);
-            color: var(--text-color);
-        }
+body:not(.admin-body) .display-5,
+body:not(.admin-body) .display-6 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-shadow: 2px 2px 0 var(--gold-bright);
+}
 
-        .btn-outline-secondary:hover {
-            background-color: var(--border-color);
-            color: var(--card-bg);
-        }
-        
-        .table {
-            background-color: var(--card-bg);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-        }
-        
-        .table thead th {
-            background: var(--table-header-bg);
-            color: var(--table-header-text);
-            border: none;
-            font-weight: 600;
-        }
+body:not(.admin-body) .text-primary,
+body:not(.admin-body) .text-success,
+body:not(.admin-body) .text-info {
+  color: var(--ink-deep) !important;
+}
+body:not(.admin-body) .text-muted,
+body:not(.admin-body) .text-secondary,
+body:not(.admin-body) .lead {
+  color: var(--sepia) !important;
+}
 
-        .table tbody tr {
-            background-color: var(--card-bg);
-            color: var(--text-color);
-        }
+/* —— Masthead (Bootstrap navbar → Ledger chrome) —— */
+body:not(.admin-body) .navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--paper) !important;
+  border-bottom: var(--border) solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  margin-bottom: 1.5rem !important;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
 
-        .table tbody tr:hover {
-            background-color: var(--border-color);
-        }
+body:not(.admin-body) .navbar .container {
+  max-width: 1100px;
+}
 
-        .table-sm td, .table-sm th {
-            padding: 0.5rem;
-        }
-        
-        .badge {
-            font-size: 0.8em;
-            padding: 6px 12px;
-            border-radius: 20px;
-        }
-        
-        .search-box, .form-control, .form-select {
-            background-color: var(--input-bg);
-            color: var(--input-text);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        
-        .search-box:focus, .form-control:focus, .form-select:focus {
-            background-color: var(--input-bg);
-            color: var(--input-text);
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-        }
+body:not(.admin-body) .navbar-brand {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink) !important;
+  text-shadow: 1px 1px 0 var(--gold-bright);
+  font-weight: 700;
+}
 
-        .form-label {
-            color: var(--text-color);
-            font-weight: 500;
-        }
-        
-        .pagination .page-link {
-            background-color: var(--card-bg);
-            color: var(--text-color);
-            border-radius: 8px;
-            margin: 0 2px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .pagination .page-item.active .page-link {
-            background: linear-gradient(135deg, var(--accent-color), #2980b9);
-            border: none;
-        }
+body:not(.admin-body) .navbar-brand .bi {
+  display: none;
+}
 
-        .pagination .page-item.disabled .page-link {
-            background-color: var(--border-color);
-            color: var(--text-color);
-            opacity: 0.6;
-        }
+body:not(.admin-body) .navbar-dark .navbar-nav .nav-link,
+body:not(.admin-body) .navbar-nav .nav-link {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-deep) !important;
+  border-bottom: 3px solid transparent;
+  padding: 0.35rem 0.15rem;
+  margin: 0 0.45rem;
+}
 
-        /* Progress bars */
-        .progress {
-            background-color: var(--progress-bg);
-        }
+body:not(.admin-body) .navbar-nav .nav-link:hover {
+  color: var(--gold) !important;
+}
 
-        /* Breadcrumbs */
-        .breadcrumb {
-            background-color: var(--breadcrumb-bg);
-            border-radius: 8px;
-        }
+body:not(.admin-body) .navbar-nav .nav-link.active {
+  color: var(--ink) !important;
+  border-bottom-color: var(--gold-bright);
+}
 
-        .breadcrumb-item a {
-            color: var(--accent-color);
-            text-decoration: none;
-        }
+body:not(.admin-body) .navbar-toggler {
+  border: var(--border) solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  box-shadow: none;
+}
 
-        .breadcrumb-item.active {
-            color: var(--breadcrumb-text);
-        }
+body:not(.admin-body) .navbar-toggler-icon {
+  filter: invert(0) sepia(1) saturate(5) hue-rotate(10deg) brightness(0.3);
+}
 
-        /* Dark mode specific adjustments */
-        [data-theme="dark"] .text-muted {
-            color: #a0a0a0 !important;
-        }
+body:not(.admin-body) .theme-toggle {
+  background: var(--paper);
+  border: var(--border) solid var(--ink);
+  color: var(--ink);
+  font-size: 1rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 var(--ink);
+  margin-left: 0.5rem;
+}
+body:not(.admin-body) .theme-toggle:hover {
+  background: var(--gold-bright);
+  transform: translate(-1px, -1px);
+}
 
-        [data-theme="dark"] .border {
-            border-color: var(--border-color) !important;
-        }
+/* Dark toggle kept in markup; exterior stays Ledger paper either way */
+body:not(.admin-body)[data-theme="dark"] {
+  background: var(--paper-warm) url('/assets/comic-paper-bk.png') repeat;
+  color: var(--ink);
+}
 
-        [data-theme="dark"] .bg-light {
-            background-color: var(--card-bg) !important;
-        }
+body:not(.admin-body) main.container {
+  flex: 1;
+  max-width: 1100px;
+}
 
-        [data-theme="dark"] .table-light {
-            background-color: var(--card-bg) !important;
-        }
+body:not(.admin-body) footer {
+  margin-top: auto !important;
+  padding: 1.25rem 1rem !important;
+  background: var(--paper);
+  border-top: var(--border) solid var(--ink);
+  box-shadow: 0 -3px 0 var(--ink);
+  color: var(--sepia) !important;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+body:not(.admin-body) footer .text-muted {
+  color: var(--sepia) !important;
+}
+body:not(.admin-body) footer .bi {
+  display: none;
+}
 
-        [data-theme="dark"] .table-light th {
-            background-color: var(--table-header-bg) !important;
-            color: var(--table-header-text) !important;
-        }
+/* —— Cards / panels —— */
+body:not(.admin-body) .card {
+  background: var(--paper);
+  border: var(--border) solid var(--ink);
+  border-radius: 0;
+  box-shadow: 5px 5px 0 var(--ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+body:not(.admin-body) .card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+body:not(.admin-body) .card-header {
+  background: var(--paper-warm);
+  border-bottom: var(--border) solid var(--ink);
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.9rem;
+}
+body:not(.admin-body) .card-title {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
 
-        [data-theme="dark"] .table-light td {
-            background-color: var(--card-bg) !important;
-            color: var(--text-color) !important;
-        }
+/* Stat tiles — no purple gradients */
+body:not(.admin-body) .stat-card,
+body:not(.admin-body) .stat-card.success,
+body:not(.admin-body) .stat-card.warning,
+body:not(.admin-body) .stat-card.info {
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+}
+body:not(.admin-body) .stat-card .opacity-75 {
+  opacity: 1 !important;
+  color: var(--sepia);
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+body:not(.admin-body) .stat-card h2 {
+  font-family: var(--font-display);
+  text-shadow: 1px 1px 0 var(--gold-bright);
+}
 
-        /* Form select dropdowns in dark mode */
-        [data-theme="dark"] .form-select option {
-            background-color: var(--input-bg);
-            color: var(--input-text);
-        }
+/* —— Buttons —— */
+body:not(.admin-body) .btn-primary {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink) !important;
+  background: var(--gold-bright) !important;
+  border: var(--border) solid var(--ink) !important;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 0.5rem 0.9rem;
+}
+body:not(.admin-body) .btn-primary:hover,
+body:not(.admin-body) .btn-primary:focus {
+  background: var(--gold) !important;
+  color: var(--ink) !important;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
 
-        /* Links in dark mode */
-        [data-theme="dark"] a {
-            color: var(--accent-color);
-        }
+body:not(.admin-body) .btn-outline-primary,
+body:not(.admin-body) .btn-outline-secondary {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink) !important;
+  background: var(--paper) !important;
+  border: var(--border) solid var(--ink) !important;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+body:not(.admin-body) .btn-outline-primary:hover,
+body:not(.admin-body) .btn-outline-secondary:hover {
+  background: var(--gold-bright) !important;
+  color: var(--ink) !important;
+}
 
-        [data-theme="dark"] a:hover {
-            color: #2980b9;
-        }
+body:not(.admin-body) .btn-link {
+  color: var(--gold-dark) !important;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+}
+body:not(.admin-body) .btn-link:hover {
+  color: var(--gold) !important;
+}
 
-        /* Text colors in dark mode */
-        [data-theme="dark"] .text-primary {
-            color: var(--accent-color) !important;
-        }
+/* —— Forms —— */
+body:not(.admin-body) .form-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--sepia);
+}
 
-        [data-theme="dark"] .text-success {
-            color: var(--success-color) !important;
-        }
+body:not(.admin-body) .form-control,
+body:not(.admin-body) .form-select,
+body:not(.admin-body) .search-box {
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--border) solid var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+}
+body:not(.admin-body) .form-control:focus,
+body:not(.admin-body) .form-select:focus {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--gold-bright);
+}
 
-        [data-theme="dark"] .text-warning {
-            color: var(--warning-color) !important;
-        }
+/* —— Tables —— */
+body:not(.admin-body) .table {
+  background: var(--paper);
+  border: var(--border) solid var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+  --bs-table-bg: var(--paper);
+  --bs-table-color: var(--ink);
+  --bs-table-hover-bg: var(--paper-warm);
+  --bs-table-striped-bg: var(--paper-warm);
+}
+body:not(.admin-body) .table thead th {
+  background: var(--paper-warm);
+  color: var(--ink);
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+  border-bottom: var(--border) solid var(--ink);
+  font-weight: 700;
+}
+body:not(.admin-body) .table tbody tr:hover {
+  background: var(--paper-warm) !important;
+}
+body:not(.admin-body) .table > :not(caption) > * > * {
+  border-bottom-color: color-mix(in srgb, var(--ink) 25%, transparent);
+}
 
-        [data-theme="dark"] .text-info {
-            color: var(--accent-color) !important;
-        }
+/* —— Badges —— */
+body:not(.admin-body) .badge {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 0;
+  border: 2px solid var(--ink);
+  padding: 0.35em 0.55em;
+  box-shadow: 1px 1px 0 var(--ink);
+}
+body:not(.admin-body) .badge.bg-primary,
+body:not(.admin-body) .badge.bg-success,
+body:not(.admin-body) .badge.bg-info,
+body:not(.admin-body) .badge.bg-secondary {
+  background: var(--gold-bright) !important;
+  color: var(--ink) !important;
+}
 
-        [data-theme="dark"] .text-danger {
-            color: var(--danger-color) !important;
-        }
+/* —— Pagination —— */
+body:not(.admin-body) .pagination .page-link {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--border) solid var(--ink);
+  border-radius: 0;
+  margin: 0 3px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+body:not(.admin-body) .pagination .page-item.active .page-link {
+  background: var(--gold-bright);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+body:not(.admin-body) .pagination .page-item.disabled .page-link {
+  opacity: 0.45;
+  box-shadow: none;
+}
 
-        /* Small text in dark mode */
-        [data-theme="dark"] .small {
-            color: #b0b0b0;
-        }
+/* —— Misc Bootstrap helpers used in pages —— */
+body:not(.admin-body) .bg-light,
+body:not(.admin-body) .press-release-body {
+  background: var(--paper) !important;
+  border-color: var(--ink) !important;
+  color: var(--ink);
+}
+body:not(.admin-body) .border {
+  border-color: var(--ink) !important;
+}
+body:not(.admin-body) .border.rounded {
+  border-radius: 0 !important;
+  border-width: var(--border) !important;
+}
 
-        /* Hover effects for cards in dark mode */
-        [data-theme="dark"] .card:hover {
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        }
+body:not(.admin-body) .breadcrumb {
+  background: var(--paper);
+  border: var(--border) solid var(--ink);
+  border-radius: 0;
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+body:not(.admin-body) .breadcrumb-item a {
+  color: var(--gold-dark);
+  font-weight: 700;
+}
+body:not(.admin-body) .breadcrumb-item.active {
+  color: var(--ink);
+}
 
-        /* Table hover in dark mode */
-        [data-theme="dark"] .table-hover tbody tr:hover {
-            background-color: #2a2a2a !important;
-        }
+body:not(.admin-body) .progress {
+  background: var(--paper-warm);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  height: 1rem;
+}
+body:not(.admin-body) .progress-bar {
+  background: var(--gold-bright);
+}

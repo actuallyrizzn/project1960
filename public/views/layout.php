@@ -16,11 +16,13 @@ $currentPath = $currentPath ?? '/';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= View::e($title) ?></title>
+    <link rel="preconnect" href="https://api.fontshare.com">
+    <link href="https://api.fontshare.com/v2/css?f[]=sharpie@700&f[]=technor@400,700&f[]=satoshi@400,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/assets/css/app.css" rel="stylesheet">
 </head>
-<body>
+<body class="site-exterior">
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
         <div class="container">
             <a class="navbar-brand" href="/">

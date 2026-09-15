@@ -38,6 +38,8 @@ final class ViewNavTest extends TestCase
         self::assertStringContainsString('Dashboard', $html);
         self::assertStringContainsString('themeToggle', $html);
         self::assertStringContainsString('/assets/js/theme.js', $html);
+        self::assertStringContainsString('api.fontshare.com', $html);
+        self::assertStringContainsString('site-exterior', $html);
         self::assertStringContainsString('nav-link active', $html);
     }
 
