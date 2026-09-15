@@ -198,6 +198,30 @@ final class DocketMatcherTest extends TestCase
         self::assertSame('Michael Pratt', $q2);
     }
 
+    public function testLoadSeedsSkipsLinkedAndReviewed(): void
+    {
+        $this->pdo->exec(
+            "INSERT INTO cases (id, title, date, verified_1960, number)
+             VALUES ('c2', 'United States v. Other', '2024-02-01', 1, '1:24-cr-0002')"
+        );
+        $this->pdo->exec(
+            "INSERT INTO courtlistener_dockets (cl_docket_id, case_name) VALUES (1, 'Linked')"
+        );
+        $this->pdo->exec(
+            "INSERT INTO case_courtlistener_links (case_id, cl_docket_id, match_method)
+             VALUES ('c1', 1, 'auto')"
+        );
+        $seeds = $this->matcher->loadSeeds(5, verifiedOnly: true);
+        self::assertCount(1, $seeds);
+        self::assertSame('c2', $seeds[0]['case_id']);
+
+        $this->pdo->exec(
+            "INSERT INTO cl_match_reviews (case_id, status, reason, candidates_json, updated_at)
+             VALUES ('c2', 'pending', 'no_match', '[]', datetime('now'))"
+        );
+        self::assertSame([], $this->matcher->loadSeeds(5, verifiedOnly: true));
+    }
+
     public function testPartyAndCourtScoreCanAccept(): void
     {
         $this->fakeResults = [

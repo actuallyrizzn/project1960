@@ -89,6 +89,7 @@ final class MatchCliOptions
 Usage: php bin/match.php [options]
 
 Match verified_1960 seed cases to CourtListener dockets via courtlistener-sdk Search.
+Skips cases already linked or already in cl_match_reviews (cron advances).
 
 Options:
   --limit=N     Max cases to process (default 25)
@@ -102,8 +103,10 @@ Env:
   COURTLISTENER_API_TOKEN  (or load ~/.ssh/courtlistener-api.pass)
   DATABASE_PATH            SQLite path (same as site)
 
-Cron example (dry-run first):
-  php bin/match.php --limit=10 --wait=3 --dry-run --verbose
+Cron example (slow drip on multihost):
+  */30 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && \\
+    DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db \\
+    php bin/match.php --limit=5 --wait=10 >> /var/log/project1960-cl-match.log 2>&1
 
 TXT;
     }

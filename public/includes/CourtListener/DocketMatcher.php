@@ -175,6 +175,9 @@ final class DocketMatcher
     }
 
     /**
+     * Unmatched seeds for slow-drip: skips cases already linked to a CL docket
+     * or already flagged in cl_match_reviews (so cron advances instead of re-hitting the same set).
+     *
      * @return list<array{case_id: string, title: ?string, case_number: ?string, district_office: ?string, date: ?string, party_names: list<string>}>
      */
     public function loadSeeds(int $limit, bool $verifiedOnly = true): array
@@ -182,9 +185,12 @@ final class DocketMatcher
         $sql = 'SELECT c.id AS case_id, c.title, c.date, c.number AS case_number_fallback,
                        m.case_number, m.district_office
                 FROM cases c
-                LEFT JOIN case_metadata m ON m.case_id = c.id';
+                LEFT JOIN case_metadata m ON m.case_id = c.id
+                LEFT JOIN case_courtlistener_links l ON l.case_id = c.id
+                LEFT JOIN cl_match_reviews r ON r.case_id = c.id
+                WHERE l.case_id IS NULL AND r.case_id IS NULL';
         if ($verifiedOnly) {
-            $sql .= ' WHERE c.verified_1960 = 1';
+            $sql .= ' AND c.verified_1960 = 1';
         }
         $sql .= ' ORDER BY c.date DESC LIMIT :lim';
         $stmt = $this->pdo->prepare($sql);
