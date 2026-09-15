@@ -29,7 +29,13 @@ $meta = $enrichment['metadata'] ?? null;
             <?php endif; ?>
         </div>
         <?php if (!empty($case['teaser'])): ?>
-            <p class="text-secondary"><strong>Summary:</strong> <?= $e($case['teaser']) ?></p>
+            <?php
+            $teaserPlain = html_entity_decode(strip_tags((string) $case['teaser']), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $teaserPlain = trim(preg_replace('/\s+/u', ' ', $teaserPlain) ?? '');
+            ?>
+            <?php if ($teaserPlain !== ''): ?>
+                <p class="text-secondary"><strong>Summary:</strong> <?= $e($teaserPlain) ?></p>
+            <?php endif; ?>
         <?php endif; ?>
         <div class="border rounded p-3 bg-light press-release-body"><?= \Project1960\PressReleaseHtml::render(isset($case['body']) ? (string) $case['body'] : null) ?></div>
     </div>
