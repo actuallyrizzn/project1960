@@ -1,0 +1,266 @@
+{
+    "count": 9,
+    "seeds": [
+        {
+            "case_id": "6bd0bb00-24d0-4d08-9056-bddb0d155209",
+            "title": "Transplant Surgeon Sentenced for Operation of Unlicensed Money Transmitting Business",
+            "date": "1734350400",
+            "case_number": "",
+            "district_office": "District of Massachusetts",
+            "party_names": [
+                "Zhendi Wang"
+            ],
+            "review_reason": "ambiguous",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 68231827,
+                    "score": 0.4814,
+                    "case_name": "United States v. Wang",
+                    "docket_number": "1:24-cr-10034"
+                },
+                {
+                    "cl_docket_id": 69473774,
+                    "score": 0.4814,
+                    "case_name": "United States v. Wang",
+                    "docket_number": "1:24-cr-10034"
+                },
+                {
+                    "cl_docket_id": 67657903,
+                    "score": 0.4788,
+                    "case_name": "United States v. Wang: <b><font color=\"red\"> DO NOT DOCKET IN THIS CASE - ALL FUTURE FILING SHOULD BE MADE IN 1:24-cr-10034 <\/font><\/b>",
+                    "docket_number": "1:23-mj-07350"
+                }
+            ]
+        },
+        {
+            "case_id": "fd153b9a-4e6f-4765-9e92-6a0d1c771253",
+            "title": "Four Indicted For Operating Unlicensed Money Transmitting Business, Conspiracy To Make False Statements To A Bank",
+            "date": "1734955200",
+            "case_number": "",
+            "district_office": "Northern District of California",
+            "party_names": [],
+            "review_reason": "no_match",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 18466580,
+                    "score": 0.2021,
+                    "case_name": "The Center for Investigative Reporting v. United States Department of Justice",
+                    "docket_number": "3:20-cv-06649"
+                },
+                {
+                    "cl_docket_id": 67485102,
+                    "score": 0.1833,
+                    "case_name": "United States v. BTC-E",
+                    "docket_number": "3:16-cr-00227"
+                },
+                {
+                    "cl_docket_id": 67485100,
+                    "score": 0.1833,
+                    "case_name": "United States v. BTC-E",
+                    "docket_number": "3:16-cr-00227"
+                }
+            ]
+        },
+        {
+            "case_id": "7e55c9c6-492a-4804-bd1c-26aaf51bf428",
+            "title": "Operators of Cryptocurrency Mixers Charged with Money Laundering",
+            "date": "1736510400",
+            "case_number": "25-37",
+            "district_office": "Northern District of Georgia",
+            "party_names": [
+                "Roman Vitalyevich Ostapenko",
+                "Alexander Evgenievich Oleynik",
+                "Anton Vyachlavovich Tarasov"
+            ],
+            "review_reason": "ambiguous",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 69534066,
+                    "score": 0.4767,
+                    "case_name": "United States v. Ostapenko",
+                    "docket_number": "1:25-cr-00001"
+                },
+                {
+                    "cl_docket_id": 70609044,
+                    "score": 0.4767,
+                    "case_name": "United States v. Ostapenko",
+                    "docket_number": "1:24-mj-00961"
+                }
+            ]
+        },
+        {
+            "case_id": "1aef9ea9-b9d5-4574-8d8b-97a83784c239",
+            "title": "Operators of Cryptocurrency Mixers Charged with Money Laundering",
+            "date": "1736510400",
+            "case_number": "",
+            "district_office": "Northern District of Georgia",
+            "party_names": [],
+            "review_reason": "no_match",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 69097703,
+                    "score": 0.0241,
+                    "case_name": "United States v. Ismail",
+                    "docket_number": "4:24-mj-00656"
+                }
+            ]
+        },
+        {
+            "case_id": "e5b116d8-0b99-4d33-bd88-30dcc2000315",
+            "title": "India- And New Jersey-Based Jeweler Sentenced To 30 Months Incarceration For Multimillion Dollar International Trade Fraud Scheme And Unlicensed Money Transmitting",
+            "date": "1737633600",
+            "case_number": "25-016",
+            "district_office": "District of New Jersey",
+            "party_names": [
+                "Monishkumar Kirankumar Doshi Shah"
+            ],
+            "review_reason": "low_confidence",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 68284668,
+                    "score": 0.4768,
+                    "case_name": "United States v. DOSHI SHAH",
+                    "docket_number": "2:24-mj-11000"
+                },
+                {
+                    "cl_docket_id": 72065103,
+                    "score": 0.175,
+                    "case_name": "United States v. NUNEZ-FLORES",
+                    "docket_number": "2:25-cr-00786"
+                },
+                {
+                    "cl_docket_id": 72065068,
+                    "score": 0.175,
+                    "case_name": "United States v. NUNEZ-FLORES",
+                    "docket_number": "2:25-cr-00786"
+                }
+            ]
+        },
+        {
+            "case_id": "f605da0d-58b2-4a64-b597-43fb26dfa527",
+            "title": "Out of state man pleads guilty to laundering email scam proceeds",
+            "date": "1738843200",
+            "case_number": "",
+            "district_office": "Southern District of Texas",
+            "party_names": [
+                "Victor Rubio Jr."
+            ],
+            "review_reason": "no_match",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 5092013,
+                    "score": 0.3543,
+                    "case_name": "United States v. Rubio-Herrera",
+                    "docket_number": "2:11-mj-10519"
+                },
+                {
+                    "cl_docket_id": 5091924,
+                    "score": 0.3543,
+                    "case_name": "United States v. Rubio-Herrera",
+                    "docket_number": "2:11-cr-02314"
+                },
+                {
+                    "cl_docket_id": 71038037,
+                    "score": 0.3518,
+                    "case_name": "Stanford Daily Publishing Corporation v. Rubio",
+                    "docket_number": "5:25-cv-06618"
+                }
+            ]
+        },
+        {
+            "case_id": "c6e39ec3-e8a3-4a47-9bff-83ee3b5f9ac1",
+            "title": "Kucoin Pleads Guilty To Unlicensed Money Transmission Charge And Agrees To Pay Penalties Totaling Nearly $300 Million",
+            "date": "1737979200",
+            "case_number": "25-018",
+            "district_office": "Southern District of New York",
+            "party_names": [
+                "PEKEN GLOBAL LIMITED",
+                "Chun Gan",
+                "Ke Tang"
+            ],
+            "review_reason": "ambiguous",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 68375921,
+                    "score": 0.5049,
+                    "case_name": "Commodity Futures Trading Commission v. Mek Global Limited",
+                    "docket_number": "1:24-cv-02255"
+                },
+                {
+                    "cl_docket_id": 68380374,
+                    "score": 0.49,
+                    "case_name": "United States v. FLASHDOT LIMITED",
+                    "docket_number": "1:24-cr-00168"
+                },
+                {
+                    "cl_docket_id": 68377393,
+                    "score": 0.49,
+                    "case_name": "United States v. FLASHDOT LIMITED",
+                    "docket_number": "1:24-cr-00168"
+                }
+            ]
+        },
+        {
+            "case_id": "839b9b69-aab2-4a35-9f68-121a9fd9e009",
+            "title": "Brink’s Forfeits $50 Million for Failing to Register as a Money Transmitting Business",
+            "date": "1738843200",
+            "case_number": "CAS25-0206-Brinks",
+            "district_office": "Southern District of California",
+            "party_names": [
+                "Brink’s Global Services USA, Inc."
+            ],
+            "review_reason": "no_match",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 6904721,
+                    "score": 0.0895,
+                    "case_name": "Vanguard Logistics Services (USA), Inc. v. Groupage Services of New England, LLC",
+                    "docket_number": "2:18-cv-00517"
+                },
+                {
+                    "cl_docket_id": 4152580,
+                    "score": 0.0844,
+                    "case_name": "Dorian Ceron v. Brinks Incorporated",
+                    "docket_number": "2:15-cv-01129"
+                },
+                {
+                    "cl_docket_id": 4153633,
+                    "score": 0.0831,
+                    "case_name": "David Walker v. Brink's Global Services USA, Inc.",
+                    "docket_number": "2:15-cv-08833"
+                }
+            ]
+        },
+        {
+            "case_id": "53192fc9-941b-47aa-a8aa-cb796b712dad",
+            "title": "U.S. Attorney Tara McGrath Concludes Tenure as Chief Law Enforcement Officer in Southern District of California",
+            "date": "1739361600",
+            "case_number": "CAS25-0212-McGrath",
+            "district_office": "Southern District of California",
+            "party_names": [
+                "Michael Pratt"
+            ],
+            "review_reason": "ambiguous",
+            "top_candidates": [
+                {
+                    "cl_docket_id": 6739857,
+                    "score": 0.5409,
+                    "case_name": "Michael Pratt Wilbur and Amber Marie Wilbur",
+                    "docket_number": "18-10116"
+                },
+                {
+                    "cl_docket_id": 67580107,
+                    "score": 0.5267,
+                    "case_name": "Michael Pratt, Jr. v. United States",
+                    "docket_number": "19-1640"
+                },
+                {
+                    "cl_docket_id": 67581691,
+                    "score": 0.5267,
+                    "case_name": "Michael Pratt, Jr. v. United States",
+                    "docket_number": "19-1664"
+                }
+            ]
+        }
+    ]
+}

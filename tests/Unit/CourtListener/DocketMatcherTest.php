@@ -319,6 +319,117 @@ final class DocketMatcherTest extends TestCase
         self::assertSame([], $this->matcher->loadSeeds(5, verifiedOnly: true));
     }
 
+    public function testPartyCourtAcceptsWithoutDocketNumber(): void
+    {
+        // Wang transplant surgeon review: last-name + mad + US v. cr + year.
+        $this->fakeResults = [
+            [
+                'docket_id' => 8801,
+                'docketNumber' => '1:24-cr-10034',
+                'caseName' => 'United States v. Wang',
+                'court_id' => 'mad',
+                'dateFiled' => '2024-02-15',
+            ],
+            [
+                'docket_id' => 8802,
+                'docketNumber' => '1:23-mj-07350',
+                'caseName' => 'United States v. Wang',
+                'court_id' => 'mad',
+                'dateFiled' => '2023-11-01',
+            ],
+        ];
+        $result = $this->matcher->matchOne([
+            'case_id' => 'c1',
+            'title' => 'Transplant Surgeon Sentenced for Operation of Unlicensed Money Transmitting Business',
+            'case_number' => '',
+            'district_office' => 'District of Massachusetts',
+            'date' => '2024-06-01',
+            'party_names' => ['Zhendi Wang'],
+        ], dryRun: true);
+        self::assertSame('dry_run_matched', $result['outcome']);
+        self::assertGreaterThanOrEqual(DocketMatcher::PARTY_COURT_ACCEPT, $result['confidence']);
+        self::assertSame(8801, $result['cl_docket_id']);
+    }
+
+    public function testCommonNameDistantYearDoesNotAutoAccept(): void
+    {
+        // Pratt press vs old unrelated Pratt appellate/bankruptcy noise.
+        $this->fakeResults = [
+            [
+                'docket_id' => 9901,
+                'docketNumber' => '18-10116',
+                'caseName' => 'Michael Pratt Wilbur and Amber Marie Wilbur',
+                'court_id' => 'bap9',
+                'dateFiled' => '2018-05-01',
+            ],
+            [
+                'docket_id' => 9902,
+                'docketNumber' => '19-1640',
+                'caseName' => 'Michael Pratt, Jr. v. United States',
+                'court_id' => 'cafc',
+                'dateFiled' => '2019-01-01',
+            ],
+        ];
+        $result = $this->matcher->matchOne([
+            'case_id' => 'c1',
+            'title' => 'U.S. Attorney Tara McGrath Concludes Tenure',
+            'case_number' => 'CAS25-0212-McGrath',
+            'district_office' => 'Southern District of California',
+            'date' => '2025-06-01',
+            'party_names' => ['Michael Pratt'],
+        ], dryRun: true);
+        self::assertNotSame('dry_run_matched', $result['outcome']);
+        self::assertNull($result['cl_docket_id']);
+    }
+
+    public function testBuildQueriesMultiPartyAndCorporate(): void
+    {
+        $qs = $this->matcher->buildQueries([
+            'case_number' => '25-37',
+            'party_names' => [
+                'Roman Vitalyevich Ostapenko',
+                'Alexander Evgenievich Oleynik',
+                'Anton Vyachlavovich Tarasov',
+            ],
+        ]);
+        self::assertCount(3, $qs);
+        self::assertSame('Roman Vitalyevich Ostapenko', $qs[0]);
+
+        $corp = $this->matcher->buildQueries([
+            'case_number' => 'CAS25-0206-Brinks',
+            'party_names' => ["Brink's Global Services USA, Inc."],
+        ]);
+        self::assertCount(1, $corp);
+        self::assertStringContainsString('Brink', $corp[0]);
+        self::assertStringStartsWith('"', $corp[0]);
+        self::assertTrue($this->matcher->isCorporateParty("Brink's Global Services USA, Inc."));
+        self::assertFalse($this->matcher->isCorporateParty('Zhendi Wang'));
+    }
+
+    public function testOstapenkoPartyCourtAccept(): void
+    {
+        $this->fakeResults = [
+            [
+                'docket_id' => 7701,
+                'docketNumber' => '1:25-cr-00001',
+                'caseName' => 'United States v. Ostapenko',
+                'court_id' => 'gand',
+                'dateFiled' => '2025-01-10',
+            ],
+        ];
+        $result = $this->matcher->matchOne([
+            'case_id' => 'c1',
+            'title' => 'Operators of Cryptocurrency Mixers Charged with Money Laundering',
+            'case_number' => '25-37',
+            'district_office' => 'Northern District of Georgia',
+            'date' => '2025-02-01',
+            'party_names' => ['Roman Vitalyevich Ostapenko', 'Alexander Evgenievich Oleynik'],
+        ], dryRun: false);
+        self::assertSame('matched', $result['outcome']);
+        $links = (new CourtListenerDocketStore($this->pdo))->linksForCase('c1');
+        self::assertSame('auto_party_court', $links[0]['match_method']);
+    }
+
     public function testPartyAndCourtScoreCanAccept(): void
     {
         $this->fakeResults = [

@@ -15,6 +15,9 @@ use PDO;
  * docket numbers should query as normalized YY-cr-NNNN with court filter,
  * auto-accept on docket-core + court match, and collapse duplicate CL ids
  * for the same PACER docket before the ambiguity gap check.
+ *
+ * No-docket lane (Tasks #3992/#3993): multi-defendant queries, party+court
+ * accept on US criminal captions, year proximity, corporate query shape.
  */
 final class DocketMatcher
 {
@@ -24,6 +27,12 @@ final class DocketMatcher
 
     /** Core docket + matching court → enough to auto-link (press parties often ≠ lead caption). */
     public const DOCKET_COURT_ACCEPT = 0.70;
+
+    /** Last-name/party + matching court + US criminal caption (no docket token). */
+    public const PARTY_COURT_ACCEPT = 0.68;
+
+    /** Max defendant-name searches when no courtish docket (rate-limit friendly). */
+    public const MAX_PARTY_QUERIES = 3;
 
     /** @var array<string, string> district phrase → court_id fragment */
     private const COURT_HINTS = [
@@ -83,9 +92,14 @@ final class DocketMatcher
             throw new \InvalidArgumentException('case_id required');
         }
 
-        $q = $this->buildQuery($seed);
+        $queries = $this->buildQueries($seed);
         $courtId = $this->courtIdFromDistrict((string) ($seed['district_office'] ?? ''));
-        $results = $this->collectSearchResults($q, $courtId);
+        $results = [];
+        foreach ($queries as $q) {
+            foreach ($this->collectSearchResults($q, $courtId) as $row) {
+                $results[] = $row;
+            }
+        }
 
         $scored = [];
         $seen = [];
@@ -130,7 +144,14 @@ final class DocketMatcher
         $accept = $best !== null && $bestScore >= self::ACCEPT_MIN && $gap >= self::AMBIGUOUS_GAP;
         if ($accept) {
             if (!$dryRun) {
-                $method = $bestScore >= self::DOCKET_COURT_ACCEPT ? 'auto_docket_court' : 'auto';
+                $method = 'auto';
+                $hasCourtish = trim((string) ($seed['case_number'] ?? '')) !== ''
+                    && $this->looksLikeCourtDocketNumber((string) $seed['case_number']);
+                if ($hasCourtish && $bestScore >= self::DOCKET_COURT_ACCEPT) {
+                    $method = 'auto_docket_court';
+                } elseif ($this->isPartyCourtAccept($seed, $best)) {
+                    $method = 'auto_party_court';
+                }
                 $this->persistMatch($caseId, $best, $method);
                 $this->reviews->clear($caseId);
             }
@@ -274,35 +295,91 @@ final class DocketMatcher
     }
 
     /**
-     * Docket-first query for courtish numbers (normalized YY-cr-NNNN).
-     * Party-first diluted multi-defendant cases and burned rate limit on weak hits.
+     * Docket-first when courtish; otherwise one query per defendant (capped) /
+     * corporate shape / title fallback. Prefer buildQueries for matching.
      *
      * @param array{case_id?: string, title?: ?string, case_number?: ?string, district_office?: ?string, date?: ?string, party_names?: list<string>} $seed
      */
     public function buildQuery(array $seed): string
     {
+        $queries = $this->buildQueries($seed);
+
+        return $queries[0] ?? '1960';
+    }
+
+    /**
+     * @param array{case_id?: string, title?: ?string, case_number?: ?string, district_office?: ?string, date?: ?string, party_names?: list<string>} $seed
+     * @return list<string>
+     */
+    public function buildQueries(array $seed): array
+    {
         $caseNumber = trim((string) ($seed['case_number'] ?? ''));
         if ($caseNumber !== '' && $this->looksLikeCourtDocketNumber($caseNumber)) {
             $q = $this->hyphenatedDocketQuery($caseNumber);
             if ($q !== '') {
-                return $q;
+                return [$q];
             }
         }
 
-        $parts = [];
-        if (!empty($seed['party_names'][0])) {
-            $parts[] = trim((string) $seed['party_names'][0]);
-        } elseif (!empty($seed['title'])) {
+        $out = [];
+        $seen = [];
+        $parties = $seed['party_names'] ?? [];
+        if (!is_array($parties)) {
+            $parties = [];
+        }
+        $n = 0;
+        foreach ($parties as $party) {
+            $party = trim((string) $party);
+            if ($party === '') {
+                continue;
+            }
+            $q = $this->isCorporateParty($party)
+                ? $this->corporateQuery($party)
+                : $party;
+            $key = strtolower($q);
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+                $out[] = $q;
+                $n++;
+            }
+            if ($n >= self::MAX_PARTY_QUERIES) {
+                break;
+            }
+        }
+
+        if ($out === [] && !empty($seed['title'])) {
             $title = trim((string) $seed['title']);
             if (preg_match('/\bv\.?\s+(.+)$/i', $title, $m)) {
-                $parts[] = trim($m[1]);
+                $out[] = trim($m[1]);
             } else {
-                $parts[] = mb_substr($title, 0, 60);
+                $out[] = mb_substr($title, 0, 60);
             }
         }
-        $q = trim(implode(' ', $parts));
 
-        return $q !== '' ? $q : '1960';
+        return $out !== [] ? $out : ['1960'];
+    }
+
+    public function isCorporateParty(string $name): bool
+    {
+        return (bool) preg_match(
+            '/\b(inc\.?|llc|l\.l\.c\.|corp\.?|corporation|ltd\.?|limited|company|co\.|services|bank|group|holdings|plc)\b/i',
+            $name
+        );
+    }
+
+    /** Quoted firm name for CL search (bare names pull civil noise). */
+    public function corporateQuery(string $name): string
+    {
+        $name = trim($name);
+        // Strip curly apostrophes for search
+        $name = str_replace(["\u{2019}", '’'], "'", $name);
+        $core = preg_replace('/,?\s+(inc\.?|llc|l\.l\.c\.|corp\.?|corporation|ltd\.?|limited|co\.)\s*$/i', '', $name) ?? $name;
+        $core = trim($core, " \t\"'");
+        if ($core === '') {
+            $core = $name;
+        }
+
+        return '"' . $core . '"';
     }
 
     public function looksLikeCourtDocketNumber(string $n): bool
@@ -386,6 +463,8 @@ final class DocketMatcher
         $hitCore = $docketNumber !== '' ? $this->docketCore($docketNumber) : '';
         $courtHint = $this->courtIdFromDistrict((string) ($seed['district_office'] ?? ''));
         $courtMatch = $courtHint !== null && $court !== '' && str_contains($court, $courtHint);
+        $usCriminal = $this->isUsCriminalCaption($caseName);
+        $nature = $this->docketNature($docketNumber);
 
         if ($seedNumber !== '' && $this->looksLikeCourtDocketNumber($seedNumber) && $docketNumber !== '') {
             $a = $this->normalizeDocketNumber($this->primaryDocketToken($seedNumber));
@@ -404,6 +483,7 @@ final class DocketMatcher
             }
         }
 
+        $partyHit = 'none';
         foreach ($seed['party_names'] ?? [] as $party) {
             $party = trim((string) $party);
             if ($party === '' || $caseName === '') {
@@ -411,11 +491,14 @@ final class DocketMatcher
             }
             if (stripos($caseName, $party) !== false) {
                 $score += 0.45;
+                $partyHit = 'full';
                 break;
             }
             $last = $this->lastName($party);
             if ($last !== '' && preg_match('/\b' . preg_quote($last, '/') . '\b/i', $caseName)) {
-                $score += 0.30;
+                // Last-name alone is weaker unless it's a US criminal caption in the right court.
+                $score += ($usCriminal && $courtMatch) ? 0.40 : 0.30;
+                $partyHit = 'last';
                 break;
             }
         }
@@ -435,7 +518,157 @@ final class DocketMatcher
             }
         }
 
-        return min(1.0, round($score, 4));
+        // Nature: prefer felony/criminal docket numbers over civil / bare appeals.
+        if ($nature === 'cr') {
+            $score += 0.08;
+        } elseif ($nature === 'cv') {
+            $score -= 0.12;
+        } elseif ($nature === 'mj') {
+            $score -= 0.03;
+        } elseif ($nature === 'other' && $docketNumber !== '') {
+            // Appellate-style bare numbers (18-10116) — weak for DOJ press matches.
+            $score -= 0.10;
+        }
+
+        $seedYear = $this->yearFromSeedDate(isset($seed['date']) ? (string) $seed['date'] : null);
+        $candYear = $this->yearFromCandidate($row, $docketNumber);
+        if ($seedYear !== null && $candYear !== null) {
+            $delta = abs($seedYear - $candYear);
+            if ($delta === 0) {
+                $score += 0.12;
+            } elseif ($delta === 1) {
+                $score += 0.08;
+            } elseif ($delta === 2) {
+                $score += 0.04;
+            } elseif ($delta >= 4) {
+                $score -= 0.18;
+            }
+        }
+
+        // No-docket strong path: party in caption + right court + US criminal + criminal nature.
+        $hasCourtish = $seedNumber !== '' && $this->looksLikeCourtDocketNumber($seedNumber);
+        if (
+            !$hasCourtish
+            && $partyHit !== 'none'
+            && $courtMatch
+            && $usCriminal
+            && $nature === 'cr'
+            && ($seedYear === null || $candYear === null || abs($seedYear - $candYear) <= 2)
+        ) {
+            $score = max($score, self::PARTY_COURT_ACCEPT);
+        }
+
+        return min(1.0, max(0.0, round($score, 4)));
+    }
+
+    public function isUsCriminalCaption(string $caseName): bool
+    {
+        return (bool) preg_match('/^\s*(united\s+states|u\.?\s*s\.?a?\.?)\s+v\.?\s+/i', $caseName);
+    }
+
+    /** @return 'cr'|'cv'|'mj'|'misc'|'md'|'other'|'' */
+    public function docketNature(string $docketNumber): string
+    {
+        if ($docketNumber === '') {
+            return '';
+        }
+        if (preg_match('/\bcr\b/i', $docketNumber) || preg_match('/\d+cr\d+/i', $docketNumber)) {
+            return 'cr';
+        }
+        if (preg_match('/\bcv\b/i', $docketNumber) || preg_match('/\d+cv\d+/i', $docketNumber)) {
+            return 'cv';
+        }
+        if (preg_match('/\bmj\b/i', $docketNumber) || preg_match('/\d+mj\d+/i', $docketNumber)) {
+            return 'mj';
+        }
+        if (preg_match('/\bmisc\b/i', $docketNumber)) {
+            return 'misc';
+        }
+        if (preg_match('/\bmd\b/i', $docketNumber)) {
+            return 'md';
+        }
+
+        return 'other';
+    }
+
+    public function yearFromSeedDate(?string $date): ?int
+    {
+        if ($date === null || trim($date) === '') {
+            return null;
+        }
+        $date = trim($date);
+        if (ctype_digit($date) && strlen($date) >= 9) {
+            $ts = (int) $date;
+            if ($ts > 1_000_000_000) {
+                return (int) gmdate('Y', $ts);
+            }
+        }
+        if (preg_match('/^(19|20)\d{2}/', $date, $m)) {
+            return (int) substr($date, 0, 4);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    public function yearFromCandidate(array $row, string $docketNumber = ''): ?int
+    {
+        foreach (['dateFiled', 'date_filed', 'dateArgued', 'date_argued'] as $k) {
+            if (!empty($row[$k]) && is_string($row[$k]) && preg_match('/^(19|20)\d{2}/', $row[$k])) {
+                return (int) substr($row[$k], 0, 4);
+            }
+        }
+        // PACER office:YY-cr-NNNN → 20YY (federal dockets post-2000 for our corpus)
+        if (preg_match('/(?:^|[^\d])(\d{2})-(?:cr|cv|mj|misc|md)-/i', $docketNumber, $m)) {
+            $yy = (int) $m[1];
+
+            return $yy >= 70 ? 1900 + $yy : 2000 + $yy;
+        }
+        if (preg_match('/:(\d{2})-(?:cr|cv|mj)/i', $docketNumber, $m)) {
+            $yy = (int) $m[1];
+
+            return $yy >= 70 ? 1900 + $yy : 2000 + $yy;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array{case_name: ?string, docket_number: ?string, court_id: ?string, score?: float} $best
+     */
+    public function isPartyCourtAccept(array $seed, array $best): bool
+    {
+        $seedNumber = trim((string) ($seed['case_number'] ?? ''));
+        if ($seedNumber !== '' && $this->looksLikeCourtDocketNumber($seedNumber)) {
+            return false;
+        }
+        $caseName = (string) ($best['case_name'] ?? '');
+        $docketNumber = (string) ($best['docket_number'] ?? '');
+        $court = strtolower((string) ($best['court_id'] ?? ''));
+        $courtHint = $this->courtIdFromDistrict((string) ($seed['district_office'] ?? ''));
+        if ($courtHint === null || $court === '' || !str_contains($court, $courtHint)) {
+            return false;
+        }
+        if (!$this->isUsCriminalCaption($caseName) || $this->docketNature($docketNumber) !== 'cr') {
+            return false;
+        }
+        foreach ($seed['party_names'] ?? [] as $party) {
+            $party = trim((string) $party);
+            if ($party === '') {
+                continue;
+            }
+            if (stripos($caseName, $party) !== false) {
+                return true;
+            }
+            $last = $this->lastName($party);
+            if ($last !== '' && preg_match('/\b' . preg_quote($last, '/') . '\b/i', $caseName)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function normalizeDocketNumber(string $n): string

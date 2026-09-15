@@ -43,6 +43,8 @@ Queries are **docket-first** when `case_number` looks like a federal docket (`YY
 
 **Accept rule:** docket **core** + matching **court** → confidence ≥ `0.70` (`DOCKET_COURT_ACCEPT`) even if the press defendant is not the CL caption party. Duplicate CL ids for the same PACER docket are collapsed before the ambiguity gap check.
 
+**No-docket lane:** when there is no courtish docket number, search up to three defendants (quoted firm names for Inc/LLC/etc.), prefer `United States v.` criminal dockets in the matching district, apply year proximity vs press date, and auto-accept party+court hits at ≥ `0.68` (`PARTY_COURT_ACCEPT` / `auto_party_court`).
+
 **Live DB note:** prod `cases` has no SQLite PRIMARY KEY on `id` (legacy). CL tables that touch `case_id` omit FKs to `cases` so inserts work.
 
 **Rate limits:** default `--wait=2`; raise to 5–10s on token 429s. CLI backs off 30s on `RateLimitException` and continues.
