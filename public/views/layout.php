@@ -44,11 +44,6 @@ $currentPath = $currentPath ?? '/';
                             </a>
                         </li>
                     <?php endforeach; ?>
-                    <li class="nav-item">
-                        <button class="theme-toggle" id="themeToggle" type="button" title="Toggle Dark Mode" aria-label="Toggle dark mode">
-                            <i class="bi bi-moon-fill" id="themeIcon"></i>
-                        </button>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -84,6 +79,5 @@ $currentPath = $currentPath ?? '/';
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/assets/js/theme.js"></script>
 </body>
 </html>

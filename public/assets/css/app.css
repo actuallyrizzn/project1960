@@ -158,27 +158,6 @@ body:not(.admin-body) .navbar-toggler-icon {
   filter: invert(0) sepia(1) saturate(5) hue-rotate(10deg) brightness(0.3);
 }
 
-body:not(.admin-body) .theme-toggle {
-  background: var(--paper);
-  border: var(--border) solid var(--ink);
-  color: var(--ink);
-  font-size: 1rem;
-  padding: 4px 10px;
-  border-radius: 6px;
-  box-shadow: 2px 2px 0 var(--ink);
-  margin-left: 0.5rem;
-}
-body:not(.admin-body) .theme-toggle:hover {
-  background: var(--gold-bright);
-  transform: translate(-1px, -1px);
-}
-
-/* Dark toggle kept in markup; exterior stays Ledger paper either way */
-body:not(.admin-body)[data-theme="dark"] {
-  background: var(--paper-warm) url('/assets/comic-paper-bk.png') repeat;
-  color: var(--ink);
-}
-
 body:not(.admin-body) main.container {
   flex: 1;
   max-width: 1100px;

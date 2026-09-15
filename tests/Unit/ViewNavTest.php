@@ -36,11 +36,12 @@ final class ViewNavTest extends TestCase
 
         self::assertStringContainsString('Project 1960', $html);
         self::assertStringContainsString('Dashboard', $html);
-        self::assertStringContainsString('themeToggle', $html);
-        self::assertStringContainsString('/assets/js/theme.js', $html);
+        self::assertStringNotContainsString('themeToggle', $html);
+        self::assertStringNotContainsString('/assets/js/theme.js', $html);
         self::assertStringContainsString('api.fontshare.com', $html);
         self::assertStringContainsString('site-exterior', $html);
         self::assertStringContainsString('nav-link active', $html);
+        self::assertStringContainsString('dsc-lockup', $html);
     }
 
     public function testMissingViewThrows(): void
@@ -66,7 +67,7 @@ final class ViewNavTest extends TestCase
             $response = $app->handle(new \Project1960\Request('GET', $path));
             self::assertSame(200, $response->status);
             self::assertStringContainsString('navbar', $response->body);
-            self::assertStringContainsString('themeToggle', $response->body);
+            self::assertStringNotContainsString('themeToggle', $response->body);
         }
     }
 }
