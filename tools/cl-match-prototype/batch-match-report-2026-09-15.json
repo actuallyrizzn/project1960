@@ -1,0 +1,272 @@
+{
+    "stats": {
+        "matched": 15,
+        "skipped_linked": 2,
+        "ambiguous": 1,
+        "no_match": 0,
+        "errors": 19
+    },
+    "report": [
+        {
+            "case_id": "8a86ddb0-1384-4a1a-9630-83e5489501cb",
+            "outcome": "already_linked"
+        },
+        {
+            "case_id": "bc43f368-e920-4fdb-a7b0-5b1cfb1d081f",
+            "title": "Seven Owners and Employees of Import-Export Companies Arrested for Conspiracy to",
+            "outcome": "matched",
+            "confidence": 0.9231,
+            "cl_docket_id": 8201048,
+            "top": [
+                {
+                    "cl_docket_id": 8201048,
+                    "score": 0.9231,
+                    "case_name": "United States v. Khwaja",
+                    "docket_number": "2:18-cr-00607"
+                }
+            ]
+        },
+        {
+            "case_id": "40d638a8-d636-4821-86ca-dd5b0ad02af2",
+            "title": "Thirty-Six Defendants Guilty for Their Roles in International Thai Sex Trafficki",
+            "outcome": "matched",
+            "confidence": 0.888,
+            "cl_docket_id": 7508872,
+            "top": [
+                {
+                    "cl_docket_id": 7508872,
+                    "score": 0.888,
+                    "case_name": "United States v. Morris",
+                    "docket_number": "0:17-cr-00107"
+                }
+            ]
+        },
+        {
+            "case_id": "dddc9c60-ec78-4167-abad-4ee98f293e34",
+            "title": "6 Colombian Nationals And Owner Of Consumer Electronics Business Charged For The",
+            "outcome": "matched",
+            "confidence": 0.8812,
+            "cl_docket_id": 16627105,
+            "top": [
+                {
+                    "cl_docket_id": 16627105,
+                    "score": 0.8812,
+                    "case_name": "United States v. Agarwal",
+                    "docket_number": "1:19-cr-00838"
+                }
+            ]
+        },
+        {
+            "case_id": "ffd6af71-da87-4de9-8f93-bf369406b242",
+            "title": "Owners of Underground, International Financial Institutions Plead Guilty to Oper",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 16798397,
+            "top": [
+                {
+                    "cl_docket_id": 16798397,
+                    "score": 1,
+                    "case_name": "United States v. Han",
+                    "docket_number": "3:20-cr-00369"
+                }
+            ]
+        },
+        {
+            "case_id": "f47a6d06-e3ed-4b40-b444-97f277940bf8",
+            "title": "Two Individuals Charged with Bank Secrecy Act Offenses and Operating an Unlicens",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 59909095,
+            "top": [
+                {
+                    "cl_docket_id": 59909095,
+                    "score": 1,
+                    "case_name": "United States v. Asre",
+                    "docket_number": "1:21-cr-00174"
+                }
+            ]
+        },
+        {
+            "case_id": "52eb904e-4c5b-46fd-85ea-b54b1ca1dc95",
+            "title": "BitConnect Founder Indicted in Global $2.4 Billion Cryptocurrency Scheme",
+            "outcome": "matched",
+            "confidence": 0.8884,
+            "cl_docket_id": 60363878,
+            "top": [
+                {
+                    "cl_docket_id": 60363878,
+                    "score": 0.8884,
+                    "case_name": "United States v. Arcaro",
+                    "docket_number": "3:21-cr-02542"
+                }
+            ]
+        },
+        {
+            "case_id": "ae2ec2c6-85d6-4432-828f-4398f229baf9",
+            "title": "Key West Man Sentenced to 180 Months in Federal Prison for Laundering Victim Fun",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 16245378,
+            "top": [
+                {
+                    "cl_docket_id": 16245378,
+                    "score": 1,
+                    "case_name": "United States v. Bindranauth",
+                    "docket_number": "4:19-cr-10016"
+                }
+            ]
+        },
+        {
+            "case_id": "ff6849bb-8498-4346-ba32-5f1fde38599b",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 63577926
+        },
+        {
+            "case_id": "1f04bc57-aa4b-4ae9-bef7-ae8bd1168137",
+            "title": "Queens Man Convicted of Laundering Bitcoin and Operating Unlicensed Money Transm",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 50277753,
+            "top": [
+                {
+                    "cl_docket_id": 50277753,
+                    "score": 1,
+                    "case_name": "United States v. Goklu",
+                    "docket_number": "1:19-cr-00386"
+                }
+            ]
+        },
+        {
+            "case_id": "7c8f241b-1e83-42dd-966c-44fbfe9a5d6c",
+            "title": "Eleven Defendants Arrested for Investment Fraud, Money Laundering and Unlicensed",
+            "outcome": "matched",
+            "confidence": 0.9239,
+            "cl_docket_id": 65424824,
+            "top": [
+                {
+                    "cl_docket_id": 65424824,
+                    "score": 0.9239,
+                    "case_name": "United States v. Zhang",
+                    "docket_number": "1:22-cr-00458"
+                }
+            ]
+        },
+        {
+            "case_id": "98bc7754-b777-4f8d-b82e-b33e74284b68",
+            "title": " Professional Money Launderer Sentenced to 40 Months in Prison for Transmitting ",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 63577926,
+            "top": [
+                {
+                    "cl_docket_id": 63577926,
+                    "score": 1,
+                    "case_name": "United States v. Padilla",
+                    "docket_number": "3:22-cr-01551"
+                }
+            ]
+        },
+        {
+            "case_id": "77f9338e-0b91-4adf-bbc5-1714fda1a17c",
+            "title": "Online Cryptocurrency Exchanger Pleads Guilty to Operating Unlicensed Money Tran",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 67493482,
+            "top": [
+                {
+                    "cl_docket_id": 67493482,
+                    "score": 1,
+                    "case_name": "United States v. Scotese",
+                    "docket_number": "2:23-cr-00231"
+                }
+            ]
+        },
+        {
+            "case_id": "daf28bd5-115b-44ea-9bc2-0b5d8512289d",
+            "outcome": "ambiguous",
+            "confidence": 0.7367,
+            "cl_docket_id": null
+        },
+        {
+            "case_id": "be84d15f-670c-4aad-8ed2-4f57dab64f19",
+            "title": "Federal Indictment Alleges Alliance Between Sinaloa Cartel and Money Launderers ",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 68906777,
+            "top": [
+                {
+                    "cl_docket_id": 68906777,
+                    "score": 1,
+                    "case_name": "United States v. Martinez-Reyes",
+                    "docket_number": "2:23-cr-00524"
+                }
+            ]
+        },
+        {
+            "case_id": "9cb7c3eb-bd0b-4c6c-80cc-1bffd0579df2",
+            "title": "Fifteen Defendants Charged in Operation Targeting Conversion of Bulk U.S. Cash P",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 69180400,
+            "top": [
+                {
+                    "cl_docket_id": 69180400,
+                    "score": 1,
+                    "case_name": "United States v. Vasquez Duarte",
+                    "docket_number": "1:24-cr-20367"
+                }
+            ]
+        },
+        {
+            "case_id": "0bf4e40a-afdc-4f4a-8584-781138f4ad26",
+            "outcome": "matched",
+            "confidence": 1,
+            "cl_docket_id": 67401957
+        },
+        {
+            "case_id": "6bd0bb00-24d0-4d08-9056-bddb0d155209",
+            "outcome": "already_linked"
+        },
+        {
+            "case_id": "fd153b9a-4e6f-4765-9e92-6a0d1c771253",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        },
+        {
+            "case_id": "7e55c9c6-492a-4804-bd1c-26aaf51bf428",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        },
+        {
+            "case_id": "1aef9ea9-b9d5-4574-8d8b-97a83784c239",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        },
+        {
+            "case_id": "e5b116d8-0b99-4d33-bd88-30dcc2000315",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        },
+        {
+            "case_id": "f605da0d-58b2-4a64-b597-43fb26dfa527",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        },
+        {
+            "case_id": "c6e39ec3-e8a3-4a47-9bff-83ee3b5f9ac1",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        },
+        {
+            "case_id": "839b9b69-aab2-4a35-9f68-121a9fd9e009",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        },
+        {
+            "case_id": "53192fc9-941b-47aa-a8aa-cb796b712dad",
+            "outcome": "error",
+            "error": "Rate limit exceeded. Please try again later."
+        }
+    ]
+}

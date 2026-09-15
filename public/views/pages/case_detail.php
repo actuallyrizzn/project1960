@@ -137,9 +137,22 @@ $clEmpty = ($cl['dockets'] ?? []) === []
             <?php else: ?>
                 <ul class="list-unstyled">
                     <?php foreach ($cl['dockets'] as $d): ?>
+                        <?php
+                        $clId = (int) ($d['cl_docket_id'] ?? 0);
+                        $clHref = $clId > 0
+                            ? 'https://www.courtlistener.com/docket/' . $clId . '/'
+                            : '';
+                        $label = trim((string) ($d['docket_number'] ?? $d['cl_case_name'] ?? ''));
+                        ?>
                         <li class="mb-1">
-                            CL #<?= $e($d['cl_docket_id'] ?? '') ?>
-                            <?= $e($d['docket_number'] ?? $d['cl_case_name'] ?? '') ?>
+                            <?php if ($clHref !== ''): ?>
+                                <a href="<?= $e($clHref) ?>" target="_blank" rel="noopener noreferrer">CL #<?= $e((string) $clId) ?></a>
+                            <?php else: ?>
+                                CL #<?= $e($d['cl_docket_id'] ?? '') ?>
+                            <?php endif; ?>
+                            <?php if ($label !== ''): ?>
+                                <?= $e($label) ?>
+                            <?php endif; ?>
                             <?php if (!empty($d['court_id'])): ?>
                                 <span class="text-muted">(<?= $e($d['court_id']) ?>)</span>
                             <?php endif; ?>
