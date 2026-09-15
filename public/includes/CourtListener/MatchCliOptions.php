@@ -106,7 +106,7 @@ Env:
 Cron example (slow drip on multihost):
   */30 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && \\
     DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db \\
-    php bin/match.php --limit=5 --wait=10 >> /var/log/project1960-cl-match.log 2>&1
+    php bin/match.php --limit=3 --wait=15 >> /var/log/project1960-cl-match.log 2>&1
 
 TXT;
     }

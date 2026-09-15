@@ -56,8 +56,8 @@ Token lives in `/root/.ssh/courtlistener-api.pass` (vault copy — not `sites/*.
 Example (Ada/Otto host crontab — custom lines, not `devops__add_cron`):
 
 ```cron
-# CourtListener match: 5 verified seeds / 30 min, 10s between searches (~240 API bursts/day max)
-*/30 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/match.php --limit=5 --wait=10 >> /var/log/project1960-cl-match.log 2>&1
+# CourtListener match: 3 verified seeds / 30 min, 15s between searches (back off on 429)
+*/30 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/match.php --limit=3 --wait=15 >> /var/log/project1960-cl-match.log 2>&1
 # Document metadata for newly linked dockets
 15 */2 * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/ingest-docs.php --limit=10 --wait=5 >> /var/log/project1960-cl-ingest.log 2>&1
 ```
