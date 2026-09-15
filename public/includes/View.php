@@ -44,4 +44,43 @@ final class View
     {
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
+
+    /**
+     * Human-readable date for case tables (legacy Flask human_date).
+     * Accepts Unix timestamps or common date strings → Y-m-d.
+     */
+    public static function humanDate(mixed $value): string
+    {
+        if ($value === null) {
+            return 'N/A';
+        }
+        if (is_string($value)) {
+            $value = trim($value);
+        }
+        if ($value === '' || $value === false) {
+            return 'N/A';
+        }
+
+        if (is_numeric($value)) {
+            $ts = (int) $value;
+            // Digits-only strings under 8 chars are unlikely Unix seconds (e.g. "20240115")
+            if (is_string($value) && !str_contains($value, '.') && strlen(ltrim($value, '-')) < 9) {
+                // fall through to string parse
+            } else {
+                return gmdate('Y-m-d', $ts);
+            }
+        }
+
+        $raw = (string) $value;
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $raw) === 1) {
+            return substr($raw, 0, 10);
+        }
+
+        $parsed = strtotime($raw);
+        if ($parsed !== false) {
+            return gmdate('Y-m-d', $parsed);
+        }
+
+        return $raw;
+    }
 }

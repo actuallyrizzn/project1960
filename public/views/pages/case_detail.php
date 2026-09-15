@@ -16,7 +16,7 @@ $meta = $enrichment['metadata'] ?? null;
     <div class="card-body">
         <h1 class="h3"><?= $e($case['title'] ?? 'Case') ?></h1>
         <p class="text-muted mb-2">
-            <?= $e($case['date'] ?? '') ?>
+            <?= $e(\Project1960\View::humanDate($case['date'] ?? null)) ?>
             <?php if (!empty($case['url'])): ?>
                 · <a href="<?= $e($case['url']) ?>" target="_blank" rel="noopener">Press release</a>
             <?php endif; ?>

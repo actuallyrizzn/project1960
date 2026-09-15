@@ -115,7 +115,7 @@ $queryKeep = static function (array $overrides) use ($filters): string {
                     <?php foreach ($cases as $case): ?>
                         <tr>
                             <td><?= $e($case['title'] ?? '') ?></td>
-                            <td><?= $e($case['date'] ?? '') ?></td>
+                            <td><?= $e(\Project1960\View::humanDate($case['date'] ?? null)) ?></td>
                             <td><?= $e($case['classification'] ?? '') ?></td>
                             <td>
                                 <?php if (!empty($case['mentions_1960'])): ?><span class="badge bg-primary me-1">1960</span><?php endif; ?>

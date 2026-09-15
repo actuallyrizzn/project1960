@@ -15,6 +15,17 @@ final class ViewNavTest extends TestCase
         self::assertSame('&lt;b&gt;', View::e('<b>'));
     }
 
+    public function testHumanDateFormatsTimestampsAndIso(): void
+    {
+        self::assertSame('N/A', View::humanDate(null));
+        self::assertSame('N/A', View::humanDate(''));
+        self::assertSame('2024-01-15', View::humanDate('2024-01-15'));
+        self::assertSame('2024-01-15', View::humanDate('2024-01-15 12:00:00'));
+        // 2025-12-12 12:00:00 UTC
+        self::assertSame('2025-12-12', View::humanDate(1765540800));
+        self::assertSame('2025-12-12', View::humanDate('1765540800'));
+    }
+
     public function testRenderPageInsideLayout(): void
     {
         $view = new View();
