@@ -48,18 +48,23 @@ final class ApiGateTest extends TestCase
         }
     }
 
-    public function testAnonymousPublicAllowedByDefault(): void
+    public function testAnonymousPublicDeniedByDefault(): void
     {
-        $gate = new ApiGate($this->pdo, false);
-        self::assertNull($gate->authorizePublic('/api/stats', []));
-    }
-
-    public function testAnonymousDeniedWhenRequireKey(): void
-    {
-        $gate = ApiGate::fromEnv($this->pdo, ['P1960_API_REQUIRE_KEY' => '1']);
+        $gate = new ApiGate($this->pdo);
         $deny = $gate->authorizePublic('/api/stats', []);
         self::assertNotNull($deny);
         self::assertSame(401, $deny->status);
+
+        $fromEnv = ApiGate::fromEnv($this->pdo, []);
+        $denyEnv = $fromEnv->authorizePublic('/api/cases', []);
+        self::assertNotNull($denyEnv);
+        self::assertSame(401, $denyEnv->status);
+    }
+
+    public function testAnonymousAllowedWhenExplicitlyOptedOut(): void
+    {
+        $gate = ApiGate::fromEnv($this->pdo, ['P1960_API_REQUIRE_KEY' => '0']);
+        self::assertNull($gate->authorizePublic('/api/stats', []));
     }
 
     public function testInvalidKey401(): void
@@ -84,6 +89,7 @@ final class ApiGateTest extends TestCase
         self::assertNull($gate->authorizePublic('/api/stats', ['HTTP_X_API_KEY' => $this->statsOnlyKey]));
         self::assertNull($gate->authorizePublic('/api/cases', ['HTTP_AUTHORIZATION' => 'Bearer ' . $this->goodKey]));
         self::assertNull($gate->authorizePublic('/api/enrichment/x', ['HTTP_X_API_KEY' => $this->goodKey]));
+        self::assertNull($gate->authorizePublic('/api/patterns', ['HTTP_X_API_KEY' => $this->goodKey]));
     }
 
     public function testAdminAlwaysRequiresKey(): void
@@ -109,10 +115,19 @@ final class ApiGateTest extends TestCase
     public function testAppRouteHonorsGate(): void
     {
         $app = new App(null, null, $this->pdo);
+        $anon = $app->handle(new Request('GET', '/api/stats', [], [], []));
+        self::assertSame(401, $anon->status);
+
         $bad = $app->handle(new Request('GET', '/api/stats', [], [], ['HTTP_X_API_KEY' => 'bad']));
         self::assertSame(401, $bad->status);
 
-        $ok = $app->handle(new Request('GET', '/api/stats', [], [], []));
+        $ok = $app->handle(new Request(
+            'GET',
+            '/api/stats',
+            [],
+            [],
+            ['HTTP_X_API_KEY' => $this->statsOnlyKey]
+        ));
         self::assertSame(200, $ok->status);
     }
 

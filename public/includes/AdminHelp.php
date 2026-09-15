@@ -72,12 +72,12 @@ Credentials for the first operator live in `~/.ssh/project1960-admin.pass` (vaul
 After bootstrap, sign in at `/admin/login`. Additional operators are created under Users.
 TXT,
             'api-scopes' => <<<'TXT'
-Public explorer JSON stays anonymous-OK by default. Presenting a key requires a valid scoped key.
-Admin JSON always requires a key. Lean scopes include:
+Public explorer JSON (/api/stats, /api/cases, /api/enrichment, /api/patterns) requires a valid API key with the matching read scope. Anonymous calls return 401.
+Admin JSON always requires a key (or an operator session for HTML admin). Lean scopes include:
 - stats:read, cases:read, enrichment:read, patterns:read
 - admin:read, admin:users, admin:keys, admin:settings
 - pipeline:status, pipeline:enqueue
-Set `P1960_API_REQUIRE_KEY=1` to require keys on public routes too.
+Mint keys under /admin/api-keys. Emergency local opt-out only: P1960_API_REQUIRE_KEY=0 (not for production).
 TXT,
             'enrichment-math' => <<<'TXT'
 Public `/enrichment` bars use the verified §1960 cohort as the denominator (`verified_yes`).

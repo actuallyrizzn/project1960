@@ -7,24 +7,26 @@ use InvalidArgumentException;
 use PDO;
 
 /**
- * API access policy (AD-S5 / AD-R2 lean):
- * - Public explorer JSON stays anonymous-OK by default.
- * - If a key is presented, it must be valid and carry the route scope.
+ * API access policy (Mark lock #3578 / #3984):
+ * - Public explorer JSON (/api/stats|cases|enrichment|patterns) requires a valid scoped key by default.
  * - Admin JSON always requires a valid key with the given scope.
- * - Set P1960_API_REQUIRE_KEY=1 to require keys on public routes too.
+ * - Set P1960_API_REQUIRE_KEY=0 only for local emergency opt-out (not prod default).
  */
 final class ApiGate
 {
     public function __construct(
         private PDO $pdo,
-        private bool $requireKeyForPublic = false,
+        private bool $requireKeyForPublic = true,
     ) {
     }
 
     public static function fromEnv(PDO $pdo, array $env = []): self
     {
-        $raw = $env['P1960_API_REQUIRE_KEY'] ?? getenv('P1960_API_REQUIRE_KEY') ?: '';
-        $require = is_string($raw) && in_array(strtolower($raw), ['1', 'true', 'yes'], true);
+        $raw = $env['P1960_API_REQUIRE_KEY'] ?? getenv('P1960_API_REQUIRE_KEY');
+        if ($raw === false || $raw === null || $raw === '') {
+            return new self($pdo, true);
+        }
+        $require = !in_array(strtolower(trim((string) $raw)), ['0', 'false', 'no', 'off'], true);
 
         return new self($pdo, $require);
     }

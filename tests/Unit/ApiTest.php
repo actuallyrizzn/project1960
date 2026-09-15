@@ -5,6 +5,7 @@ namespace Project1960\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use Project1960\Api;
+use Project1960\ApiKeys;
 use Project1960\App;
 use Project1960\FixtureDatabase;
 use Project1960\Request;
@@ -77,17 +78,30 @@ final class ApiTest extends TestCase
     public function testAppRoutesWireApiAndAbout(): void
     {
         $fixture = new FixtureDatabase();
-        $app = new App(null, null, $fixture->pdo());
+        $pdo = $fixture->pdo();
+        $hash = password_hash('long-enough-secret', PASSWORD_DEFAULT);
+        $pdo->exec(
+            "INSERT INTO admin_users (username, email, password_hash, role)
+             VALUES ('ops', 'ops@ex.com', " . $pdo->quote($hash) . ", 'operator')"
+        );
+        $uid = (int) $pdo->query('SELECT id FROM admin_users')->fetchColumn();
+        $key = (new ApiKeys($pdo))->mint($uid, 'test', null, $uid)['plaintext'];
+        $headers = ['HTTP_X_API_KEY' => $key];
 
-        $stats = $app->handle(new Request('GET', '/api/stats'));
+        $app = new App(null, null, $pdo);
+
+        $anon = $app->handle(new Request('GET', '/api/stats'));
+        self::assertSame(401, $anon->status);
+
+        $stats = $app->handle(new Request('GET', '/api/stats', [], [], $headers));
         self::assertSame(200, $stats->status);
         self::assertStringContainsString('application/json', $stats->headers['Content-Type']);
 
-        $cases = $app->handle(new Request('GET', '/api/cases'));
+        $cases = $app->handle(new Request('GET', '/api/cases', [], [], $headers));
         self::assertSame(200, $cases->status);
         self::assertStringContainsString('fixture-case-1', $cases->body);
 
-        $enrich = $app->handle(new Request('GET', '/api/enrichment/fixture-case-1'));
+        $enrich = $app->handle(new Request('GET', '/api/enrichment/fixture-case-1', [], [], $headers));
         self::assertSame(200, $enrich->status);
         self::assertStringContainsString('Jane Fixture', $enrich->body);
 
@@ -96,6 +110,7 @@ final class ApiTest extends TestCase
         self::assertStringContainsString('Independent research disclaimer', $about->body);
         self::assertStringContainsString('Methodology', $about->body);
         self::assertStringContainsString('>2</h3>', $about->body);
+        self::assertStringContainsString('API key', $about->body);
 
         $fixture->destroy();
     }

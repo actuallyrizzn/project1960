@@ -135,11 +135,12 @@ $e = static fn (mixed $v): string => \Project1960\View::e($v);
         <div class="card mb-4">
             <div class="card-body">
                 <h2 class="h4 card-title">JSON API</h2>
+                <p class="text-secondary small">These endpoints require an API key (<code>X-API-Key</code> or <code>Authorization: Bearer</code>) with the matching read scope. Mint keys in <code>/admin/api-keys</code>.</p>
                 <ul class="mb-0">
-                    <li><code>GET /api/stats/</code> — dashboard statistics</li>
-                    <li><code>GET /api/cases/</code> — recent cases (limit 100)</li>
-                    <li><code>GET /api/enrichment/?id=…</code> — enrichment tables for a case</li>
-                    <li><code>GET /health/</code> — liveness</li>
+                    <li><code>GET /api/stats/</code> — dashboard statistics (<code>stats:read</code>)</li>
+                    <li><code>GET /api/cases/</code> — recent cases, limit 100 (<code>cases:read</code>)</li>
+                    <li><code>GET /api/enrichment/?id=…</code> — enrichment tables for a case (<code>enrichment:read</code>)</li>
+                    <li><code>GET /health/</code> — liveness (no key)</li>
                 </ul>
             </div>
         </div>

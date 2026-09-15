@@ -49,6 +49,8 @@ final class AdminHelpTest extends TestCase
         self::assertNull(AdminHelp::normalizeSlug('nope'));
         $t = AdminHelp::topic('api-scopes');
         self::assertStringContainsString('stats:read', $t['body']);
+        self::assertStringContainsString('requires a valid API key', $t['body']);
+        self::assertStringNotContainsString('anonymous-OK', $t['body']);
         foreach (['bootstrap', 'enrichment-math', 'pipeline-cli'] as $slug) {
             self::assertNotSame('', AdminHelp::topic($slug)['body']);
         }

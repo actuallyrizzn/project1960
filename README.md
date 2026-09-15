@@ -78,6 +78,8 @@ Pass file vars: `P1960_ADMIN_USERNAME`, `P1960_ADMIN_EMAIL`, `P1960_ADMIN_PASSWO
 
 **API key scopes** (lean pack): `stats:read`, `cases:read`, `enrichment:read`, `patterns:read`, `admin:read`, `admin:users`, `admin:keys`, `admin:settings`, `pipeline:status`, `pipeline:enqueue`.
 
+Public JSON (`/api/stats`, `/api/cases`, `/api/enrichment`, …) **requires** a key with the matching read scope (Mark lock #3578). Send `X-API-Key` or `Authorization: Bearer`. HTML pages stay public; `/health` stays open. Mint keys under `/admin/api-keys`. Local emergency opt-out only: `P1960_API_REQUIRE_KEY=0`.
+
 **Live burn:** not wired from admin UI. Requires `P1960_PIPELINE_ALLOW_BURN=1` **and** Mark go, then host CLIs.
 
 Slice map: [Doc #1315](https://tasks.decisionsciencecorp.com/admin/doc.php?id=1315).
