@@ -46,8 +46,9 @@ final class CourtListenerDocumentStore
     public function upsertDocument(array $doc): void
     {
         $id = (int) ($doc['cl_document_id'] ?? 0);
-        if ($id <= 0) {
-            throw new InvalidArgumentException('cl_document_id must be a positive integer');
+        // Negative ids are synthetic entry-description stubs (-cl_entry_id).
+        if ($id === 0) {
+            throw new InvalidArgumentException('cl_document_id must be a non-zero integer');
         }
         $ocr = $doc['ocr_status'] ?? self::OCR_NONE;
         if (!is_string($ocr) || !in_array($ocr, self::OCR_STATUSES, true)) {
