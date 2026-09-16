@@ -68,11 +68,15 @@ Sustainable drip (installed on multihost):
 ```cron
 # 1 seed / hour, paced for free-auth daily budget (~125/day shared with ingest)
 0 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/match.php --limit=1 --wait=60 >> /var/log/project1960-cl-match.log 2>&1
-# Ingest 1 linked docket every 6h (2 API calls) — skip when day quota empty
+# Ingest 1 linked docket every 6h (2 API calls via dockets/{id}/docket-entries + /recap) — skip when day quota empty
 20 */6 * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/ingest-docs.php --limit=1 --wait=30 >> /var/log/project1960-cl-ingest.log 2>&1
+# Download free PDF bytes (no CL API quota) after ingest has rows
+40 */6 * * * cd /root/repos/project1960.rizzn.net && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db CL_DOCS_PATH=/var/www/project1960.rizzn.net/storage/cl-docs php bin/download-docs.php --limit=5 --wait=2 >> /var/log/project1960-cl-download.log 2>&1
 ```
 
 `match.php` / `ingest-docs.php` now: check api-usage before starting, **abort the batch on first 429**, flock against overlap, and search with **type=d first** (not d+r back-to-back).
+
+**Ingest API paths (fixed):** use nested `dockets/{id}/docket-entries/` and `dockets/{id}/recap/` — **not** `docket-entries/?docket=` (v4 returns 400 `unknown_params: docket`). Queue prefers **linked dockets with zero local docs**, strong matches before weak.
 
 **Public docket links:** CourtListener 404s on bare `/docket/{id}/` — pages must use `/docket/{id}/{slug}/` (`CourtListenerUrl::docket`).
 
@@ -81,8 +85,9 @@ Sustainable drip (installed on multihost):
 | Stage | Cadence | Batch | On Enrichment activity feed |
 |-------|---------|-------|------------------------------|
 | `bin/match.php` | every **hour** | **1** seed | `cl_match` (or `skipped` when quota empty) |
-| `bin/ingest-docs.php` | every **6 hours** | **1** docket | `cl_ingest` |
-| download / OCR / extract | **not on cron yet** | — | when those CLIs run |
+| `bin/ingest-docs.php` | every **6 hours** | **1** docket (zero-doc first) | `cl_ingest` |
+| `bin/download-docs.php` | every **6 hours** (+20m) | **5** free URLs | `cl_download` |
+| OCR / extract | **not on cron yet** | — | when those CLIs run |
 
 Do **not** raise `--limit` into the tens on free-auth without raising the CourtListener membership / commercial cap.
 

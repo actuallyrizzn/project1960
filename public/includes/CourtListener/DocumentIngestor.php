@@ -21,18 +21,27 @@ final class DocumentIngestor
     }
 
     /**
+     * Linked dockets needing doc metadata first: strong matches with zero docs, then others.
+     *
      * @return list<int>
      */
     public function linkedDocketIds(int $limit): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT cl_docket_id FROM (
+            'SELECT l.cl_docket_id FROM (
                 SELECT cl_docket_id,
                        MIN(CASE WHEN match_method = \'' . LinkQueuePriority::WEAK_METHOD . '\' THEN 1 ELSE 0 END) AS defer_rank
                 FROM case_courtlistener_links
                 GROUP BY cl_docket_id
-             )
-             ORDER BY defer_rank ASC, cl_docket_id ASC
+             ) l
+             LEFT JOIN (
+                SELECT cl_docket_id, COUNT(*) AS doc_count
+                FROM courtlistener_documents
+                GROUP BY cl_docket_id
+             ) d ON d.cl_docket_id = l.cl_docket_id
+             ORDER BY CASE WHEN COALESCE(d.doc_count, 0) = 0 THEN 0 ELSE 1 END ASC,
+                      l.defer_rank ASC,
+                      l.cl_docket_id ASC
              LIMIT :lim'
         );
         $stmt->bindValue(':lim', max(1, $limit), PDO::PARAM_INT);

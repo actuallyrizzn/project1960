@@ -186,28 +186,66 @@ final class DocumentIngestorTest extends TestCase
         self::assertStringContainsString('--wait', IngestCliOptions::helpText());
     }
 
-    public function testSdkIngestGatewayDelegates(): void
+    public function testLinkedDocketIdsPrefersZeroDocThenStrong(): void
     {
-        $entriesApi = $this->getMockBuilder(\CourtListener\Api\DocketEntries::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['listDocketEntries'])
-            ->getMock();
-        $entriesApi->method('listDocketEntries')->willReturn(['results' => [['id' => 1]]]);
+        $this->pdo->exec("INSERT INTO cases (id, title) VALUES ('c2', 'HasDocs'), ('c3', 'WeakEmpty')");
+        $dockets = new CourtListenerDocketStore($this->pdo);
+        $dockets->upsertDocket(['cl_docket_id' => 200, 'case_name' => 'Has Docs']);
+        $dockets->upsertDocket(['cl_docket_id' => 300, 'case_name' => 'Weak Empty']);
+        $dockets->upsertCaseLink([
+            'case_id' => 'c2',
+            'cl_docket_id' => 200,
+            'match_confidence' => 0.95,
+            'match_method' => 'auto',
+        ]);
+        $dockets->upsertCaseLink([
+            'case_id' => 'c3',
+            'cl_docket_id' => 300,
+            'match_confidence' => 0.55,
+            'match_method' => 'weak_accept',
+        ]);
+        (new CourtListenerDocumentStore($this->pdo))->upsertDocument([
+            'cl_document_id' => 9001,
+            'cl_docket_id' => 200,
+            'description' => 'already have meta',
+        ]);
 
-        $docsApi = $this->getMockBuilder(\CourtListener\Api\RecapDocuments::class)
+        // 100 = strong + zero docs; 300 = weak + zero docs; 200 = strong + has docs
+        self::assertSame([100, 300, 200], $this->ingestor()->linkedDocketIds(10));
+    }
+
+    public function testSdkIngestGatewayUsesNestedDocketRoutes(): void
+    {
+        $docketsApi = $this->getMockBuilder(\CourtListener\Api\Dockets::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['listRecapDocuments'])
+            ->onlyMethods(['getDocketEntries', 'getRecapDocuments'])
             ->getMock();
-        $docsApi->method('listRecapDocuments')->willReturn(['results' => [['id' => 2]]]);
+        $docketsApi->expects(self::once())
+            ->method('getDocketEntries')
+            ->with(42, ['page_size' => 10])
+            ->willReturn(['results' => [['id' => 1]]]);
+        $docketsApi->expects(self::once())
+            ->method('getRecapDocuments')
+            ->with(42, ['page_size' => 5])
+            ->willReturn([['id' => 2]]); // bare list → normalized
 
         $client = $this->getMockBuilder(\CourtListener\CourtListenerClient::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $client->docketEntries = $entriesApi;
-        $client->recapDocuments = $docsApi;
+        $client->dockets = $docketsApi;
 
         $gw = new \Project1960\CourtListener\SdkIngestGateway($client);
-        self::assertSame(1, $gw->listDocketEntries(['docket' => 1])['results'][0]['id']);
-        self::assertSame(2, $gw->listRecapDocuments(['docket' => 1])['results'][0]['id']);
+        self::assertSame(1, $gw->listDocketEntries(['docket' => 42, 'page_size' => 10])['results'][0]['id']);
+        self::assertSame(2, $gw->listRecapDocuments(['docket' => 42, 'page_size' => 5])['results'][0]['id']);
+    }
+
+    public function testSdkIngestGatewayRequiresDocketId(): void
+    {
+        $client = $this->getMockBuilder(\CourtListener\CourtListenerClient::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $gw = new \Project1960\CourtListener\SdkIngestGateway($client);
+        $this->expectException(\InvalidArgumentException::class);
+        $gw->listDocketEntries(['page_size' => 1]);
     }
 }
