@@ -26,9 +26,10 @@ final class DojClient
     }
 
     /**
+     * @param array<string, scalar> $extraQuery e.g. sort_by=date, sort_order=DESC
      * @return list<array<string, mixed>>
      */
-    public function fetchPage(int $page, int $pagesize = self::DEFAULT_PAGESIZE): array
+    public function fetchPage(int $page, int $pagesize = self::DEFAULT_PAGESIZE, array $extraQuery = []): array
     {
         $page = max(0, $page);
         $pagesize = max(1, min(100, $pagesize));
@@ -38,9 +39,13 @@ final class DojClient
         while ($attempt < $this->maxRetries) {
             $attempt++;
             try {
+                $query = array_merge(
+                    ['pagesize' => $pagesize, 'page' => $page],
+                    $extraQuery
+                );
                 $response = $this->transport->get(
                     $this->apiUrl,
-                    ['pagesize' => $pagesize, 'page' => $page],
+                    $query,
                     $this->timeoutSeconds
                 );
                 if ($response['status'] !== 200) {

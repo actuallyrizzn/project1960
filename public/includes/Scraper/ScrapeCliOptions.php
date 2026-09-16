@@ -16,6 +16,9 @@ final class ScrapeCliOptions
         public readonly bool $dryRun,
         public readonly bool $verbose,
         public readonly bool $help,
+        public readonly bool $incremental,
+        public readonly bool $legacyPages,
+        public readonly ?int $since,
     ) {
     }
 
@@ -26,9 +29,15 @@ final class ScrapeCliOptions
     {
         $maxPages = self::optionalInt($opts, 'max-pages');
         $limit = self::optionalInt($opts, 'limit');
-        // --limit N is an alias for capping pages when max-pages unset
         if ($maxPages === null && $limit !== null) {
             $maxPages = $limit;
+        }
+        $legacyPages = array_key_exists('legacy-pages', $opts)
+            || self::optionalInt($opts, 'page-start') !== null;
+        $incremental = !$legacyPages;
+        if (array_key_exists('incremental', $opts)) {
+            $incremental = true;
+            $legacyPages = false;
         }
 
         return new self(
@@ -39,6 +48,9 @@ final class ScrapeCliOptions
             dryRun: array_key_exists('dry-run', $opts),
             verbose: array_key_exists('verbose', $opts),
             help: array_key_exists('help', $opts),
+            incremental: $incremental,
+            legacyPages: $legacyPages,
+            since: self::optionalInt($opts, 'since'),
         );
     }
 
@@ -47,10 +59,7 @@ final class ScrapeCliOptions
      */
     public static function fromArgv(array $argv): self
     {
-        // Drop script name
         $args = array_values(array_slice($argv, 1));
-        $longopts = ['max-pages::', 'limit::', 'page-start::', 'wait::', 'dry-run', 'verbose', 'help'];
-        // getopt reads $argv globally; for tests we parse manually
         $opts = [];
         $i = 0;
         while ($i < count($args)) {
@@ -70,7 +79,17 @@ final class ScrapeCliOptions
                 $i++;
                 continue;
             }
-            foreach (['max-pages', 'limit', 'page-start', 'wait'] as $key) {
+            if ($arg === '--incremental') {
+                $opts['incremental'] = false;
+                $i++;
+                continue;
+            }
+            if ($arg === '--legacy-pages') {
+                $opts['legacy-pages'] = false;
+                $i++;
+                continue;
+            }
+            foreach (['max-pages', 'limit', 'page-start', 'wait', 'since'] as $key) {
                 $prefix = '--' . $key . '=';
                 if (str_starts_with($arg, $prefix)) {
                     $opts[$key] = substr($arg, strlen($prefix));
@@ -94,19 +113,23 @@ final class ScrapeCliOptions
         return <<<TXT
 Usage: php bin/scrape.php [options]
 
-  --max-pages=N     Stop after N pages (optional)
+Default mode is **incremental** (newest-first, stop at MAX(cases.date) watermark).
+
+  --incremental     Newest-first date watermark poll (default)
+  --since=UNIX      Override watermark (incremental mode)
+  --legacy-pages    Old oldest-first page cursor (scraper_state.last_page)
+  --max-pages=N     Stop after N pages (optional; incremental default cap 50)
   --limit=N         Alias for --max-pages=N
-  --page-start=N    Override scraper_state; fetch starting at page N
+  --page-start=N    Legacy mode: override scraper_state; start at page N
   --wait=SECONDS    Polite delay between pages (default 2)
-  --dry-run         Fetch and filter counts only; do not INSERT
+  --dry-run         Fetch/filter only; do not INSERT
   --verbose         Extra logging
   --help            Show this help
 
-Cron example (multihost — Ada installs; do not invent host crontab from Otto):
-  # every 6 hours, 2 pages max, wait 2s
-  15 */6 * * * cd /var/www/project1960.rizzn.net && \\
-    DATABASE_PATH=/var/www/project1960.rizzn.net/../db/doj_cases.db \\
-    php bin/scrape.php --max-pages=2 --wait=2 >> /var/log/project1960-scrape.log 2>&1
+Cron example (multihost — Ada installs):
+  17 3,15 * * * DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db \\
+    php /root/repos/project1960.rizzn.net/bin/scrape.php --max-pages=5 --wait=2 \\
+    >> /var/log/project1960-scrape.log 2>&1
 
 TXT;
     }

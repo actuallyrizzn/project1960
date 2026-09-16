@@ -2,38 +2,42 @@
 
 CLI: `php bin/scrape.php`
 
-Fetches DOJ press releases from `https://www.justice.gov/api/v1/press_releases.json` (pagesize 50), filters for 18 U.S.C. § 1960 / crypto keywords, and `INSERT OR IGNORE`s into SQLite (`DATABASE_PATH` or `db/doj_cases.db`).
+Fetches DOJ press releases from `https://www.justice.gov/api/v1/press_releases.json`, filters for 18 U.S.C. § 1960 / crypto keywords, and `INSERT OR IGNORE`s into SQLite (`DATABASE_PATH` or `db/doj_cases.db`).
 
-## Requirements
+## Incremental mode (default)
 
-- PHP 8.1+ with **curl** extension (`php-curl`)
-- Writable SQLite path via `DATABASE_PATH` or `db/doj_cases.db`
+Newest-first via `sort_by=date&sort_order=DESC`. Watermark = `MAX(cases.date)` (or `--since=UNIX`). Walks `page=0…` and **stops** when an item’s date is older than the watermark — does **not** re-download the archive.
+
+Prototype proof: `tools/doj-incremental-poll/` (Tasks #4000).
 
 | Flag | Meaning |
 |------|---------|
-| `--max-pages=N` | Stop after N pages |
+| `--incremental` | Newest-first watermark poll (**default**) |
+| `--since=UNIX` | Override watermark |
+| `--legacy-pages` | Old oldest-first `scraper_state.last_page` crawl |
+| `--max-pages=N` | Stop after N pages (incremental default cap 50) |
 | `--limit=N` | Alias for `--max-pages` |
-| `--page-start=N` | Start at page N (overrides `scraper_state.last_page`) |
+| `--page-start=N` | Legacy: start at page N (implies legacy mode) |
 | `--wait=SECONDS` | Delay between pages (default 2) |
-| `--dry-run` | Fetch only; no INSERT |
+| `--dry-run` | Fetch / count only; no INSERT |
 | `--verbose` | Extra log lines |
 | `--help` | Help text |
 
-## State
+## Legacy page cursor
 
-Table `scraper_state` key `last_page` resumes the crawl. `--page-start` sets the next page without requiring a prior run.
+Table `scraper_state` key `last_page` — only used with `--legacy-pages` / `--page-start`. Prod tip at ~5446 was returning **empty** pages; that is why incremental mode exists.
 
 ## Cron (multihost)
 
-Ada owns multihost crontab. Example only:
+Ada owns multihost crontab. Example:
 
 ```cron
-15 */6 * * * cd /var/www/project1960.rizzn.net && \
-  DATABASE_PATH=/var/www/project1960.rizzn.net/../db/doj_cases.db \
-  php bin/scrape.php --max-pages=2 --wait=2 >> /var/log/project1960-scrape.log 2>&1
+17 3,15 * * * DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db \
+  /usr/bin/php /root/repos/project1960.rizzn.net/bin/scrape.php --max-pages=5 --wait=2 \
+  >> /var/log/project1960-scrape.log 2>&1
 ```
 
-Do not point a live scrape at production until cutover (see SC5 / C* slices).
+No flag needed for incremental (default). Cap `--max-pages` so a bad watermark cannot walk forever.
 
 ## Keyword filters
 

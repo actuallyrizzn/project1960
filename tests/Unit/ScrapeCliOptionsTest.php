@@ -18,6 +18,8 @@ final class ScrapeCliOptionsTest extends TestCase
         self::assertFalse($o->dryRun);
         self::assertFalse($o->verbose);
         self::assertFalse($o->help);
+        self::assertTrue($o->incremental);
+        self::assertFalse($o->legacyPages);
     }
 
     public function testAllFlagsEqualsForm(): void
@@ -35,6 +37,23 @@ final class ScrapeCliOptionsTest extends TestCase
         self::assertSame(5, $o->waitSeconds);
         self::assertTrue($o->dryRun);
         self::assertTrue($o->verbose);
+        self::assertTrue($o->legacyPages);
+        self::assertFalse($o->incremental);
+    }
+
+    public function testIncrementalFlag(): void
+    {
+        $o = ScrapeCliOptions::fromArgv(['scrape.php', '--incremental', '--since=1700000000']);
+        self::assertTrue($o->incremental);
+        self::assertFalse($o->legacyPages);
+        self::assertSame(1700000000, $o->since);
+    }
+
+    public function testLegacyPagesFlag(): void
+    {
+        $o = ScrapeCliOptions::fromArgv(['scrape.php', '--legacy-pages']);
+        self::assertTrue($o->legacyPages);
+        self::assertFalse($o->incremental);
     }
 
     public function testLimitAliasesMaxPages(): void
