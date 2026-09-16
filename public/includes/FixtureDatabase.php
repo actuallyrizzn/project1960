@@ -79,24 +79,14 @@ final class FixtureDatabase
              VALUES ('fixture-case-1', 'Jane Fixture', 'defendant', NULL)"
         );
 
-        // Optional enrichment tables (idempotent) for detail page coverage
         $pdo->exec(
-            'CREATE TABLE IF NOT EXISTS charges (
-                charge_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                case_id TEXT,
-                charge_description TEXT,
-                statute TEXT,
-                severity TEXT,
-                max_penalty TEXT,
-                fine_amount TEXT,
-                defendant TEXT,
-                status TEXT,
-                FOREIGN KEY(case_id) REFERENCES cases(id)
-            )'
+            "INSERT INTO charges (case_id, charge_description, statute, defendant, is_1960, verified_1960, source)
+             VALUES ('fixture-case-1', 'Unlicensed money transmission', '18 U.S.C. § 1960', 'Jane Fixture', 1, 1, 'press')"
         );
+
         $pdo->exec(
-            "INSERT INTO charges (case_id, charge_description, statute, defendant)
-             VALUES ('fixture-case-1', 'Unlicensed money transmission', '18 U.S.C. § 1960', 'Jane Fixture')"
+            "INSERT INTO case_docket_refs (case_id, docket_number, court_hint, caption, source)
+             VALUES ('fixture-case-1', '1:24-cr-0001', 'nysd', 'United States v. Fixture', 'press')"
         );
 
         $pdo->exec(

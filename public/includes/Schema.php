@@ -73,6 +73,43 @@ final class Schema
             )'
         );
 
+        // Press / enrichment charges (defendant+statute grain). Prod already had a
+        // legacy Venice shape; Schema owns create + focus columns going forward.
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS charges (
+                charge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id TEXT NOT NULL,
+                charge_description TEXT,
+                statute TEXT,
+                severity TEXT,
+                max_penalty TEXT,
+                fine_amount TEXT,
+                defendant TEXT,
+                status TEXT,
+                FOREIGN KEY(case_id) REFERENCES cases(id)
+            )'
+        );
+        self::ensureChargeFocusColumns($pdo);
+
+        // Press-stated docket numbers (multi-docket PRs) before / beside CL links.
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS case_docket_refs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id TEXT NOT NULL,
+                docket_number TEXT NOT NULL,
+                court_hint TEXT,
+                caption TEXT,
+                source TEXT NOT NULL DEFAULT \'press\',
+                updated_at TEXT,
+                UNIQUE(case_id, docket_number),
+                FOREIGN KEY(case_id) REFERENCES cases(id)
+            )'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_case_docket_refs_case
+             ON case_docket_refs(case_id)'
+        );
+
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS scraper_state (
                 key TEXT PRIMARY KEY,
@@ -104,6 +141,7 @@ final class Schema
                 FOREIGN KEY(cl_docket_id) REFERENCES courtlistener_dockets(cl_docket_id)
             )'
         );
+        self::ensureCaseClLinkFocusColumns($pdo);
 
         $pdo->exec(
             'CREATE INDEX IF NOT EXISTS idx_case_cl_links_cl_docket
@@ -474,5 +512,67 @@ final class Schema
                 "ALTER TABLE courtlistener_documents ADD COLUMN download_status TEXT NOT NULL DEFAULT 'none'"
             );
         }
+    }
+
+    /**
+     * Charge-level §1960 focus (multi-defendant / multi-docket press releases).
+     * cases.verified_1960 stays press-level; is_1960 / verified_1960 on charges
+     * is the grain for "horn in" on the money-transmitting count.
+     */
+    private static function ensureChargeFocusColumns(PDO $pdo): void
+    {
+        $names = self::tableColumnNames($pdo, 'charges');
+        $adds = [
+            'participant_id' => 'INTEGER',
+            'cl_docket_id' => 'INTEGER',
+            'count_num' => 'INTEGER',
+            'is_1960' => 'INTEGER NOT NULL DEFAULT 0',
+            'verified_1960' => 'INTEGER',
+            'source' => "TEXT NOT NULL DEFAULT 'enrichment'",
+            'updated_at' => 'TEXT',
+        ];
+        foreach ($adds as $col => $decl) {
+            if (!in_array($col, $names, true)) {
+                $pdo->exec("ALTER TABLE charges ADD COLUMN {$col} {$decl}");
+            }
+        }
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_charges_case_1960
+             ON charges(case_id, is_1960, verified_1960)'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_charges_cl_docket
+             ON charges(cl_docket_id)'
+        );
+    }
+
+    /**
+     * Which linked CL docket is the §1960 subject vs ambient co-defendant paper.
+     */
+    private static function ensureCaseClLinkFocusColumns(PDO $pdo): void
+    {
+        $names = self::tableColumnNames($pdo, 'case_courtlistener_links');
+        $adds = [
+            'relevance' => "TEXT NOT NULL DEFAULT 'unspecified'",
+            'focus_charge_id' => 'INTEGER',
+            'focus_participant_id' => 'INTEGER',
+        ];
+        foreach ($adds as $col => $decl) {
+            if (!in_array($col, $names, true)) {
+                $pdo->exec("ALTER TABLE case_courtlistener_links ADD COLUMN {$col} {$decl}");
+            }
+        }
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_case_cl_links_relevance
+             ON case_courtlistener_links(case_id, relevance)'
+        );
+    }
+
+    /** @return list<string> */
+    private static function tableColumnNames(PDO $pdo, string $table): array
+    {
+        $cols = $pdo->query('PRAGMA table_info(' . $table . ')')->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(static fn (array $c): string => (string) $c['name'], $cols);
     }
 }

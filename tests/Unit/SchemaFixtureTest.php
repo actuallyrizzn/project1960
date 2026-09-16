@@ -23,6 +23,8 @@ final class SchemaFixtureTest extends TestCase
         self::assertContains('cases', $tables);
         self::assertContains('case_metadata', $tables);
         self::assertContains('participants', $tables);
+        self::assertContains('charges', $tables);
+        self::assertContains('case_docket_refs', $tables);
         self::assertContains('scraper_state', $tables);
         self::assertContains('courtlistener_dockets', $tables);
         self::assertContains('case_courtlistener_links', $tables);
