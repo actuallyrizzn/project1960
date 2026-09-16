@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 
 use CourtListener\Exceptions\RateLimitException;
+use Project1960\ActivityLog;
 use Project1960\Config;
 use Project1960\CourtListener\ClientFactory;
 use Project1960\CourtListener\DocketMatcher;
@@ -58,12 +59,20 @@ $matcher = new DocketMatcher(
 );
 
 $seeds = $matcher->loadSeeds($options->limit, verifiedOnly: !$options->allCases);
+$activity = new ActivityLog($pdo);
 fwrite(STDOUT, sprintf(
     "Matching %d seed(s)%s wait=%ds…\n",
     count($seeds),
     $options->dryRun ? ' [dry-run]' : '',
     $options->waitSeconds
 ));
+if (!$options->dryRun && $seeds === []) {
+    $activity->record(
+        ActivityLog::STAGE_CL_MATCH,
+        ActivityLog::STATUS_SKIPPED,
+        'drip tick: no matchable seeds (all linked or in review)'
+    );
+}
 
 $stats = new MatchBatchStats();
 foreach ($seeds as $i => $seed) {
@@ -86,10 +95,26 @@ foreach ($seeds as $i => $seed) {
         $stats->recordError();
         fwrite(STDERR, 'Rate limited on ' . $seed['case_id'] . ': ' . $e->getMessage() . "\n");
         fwrite(STDERR, "Backing off 30s then continuing…\n");
+        if (!$options->dryRun) {
+            $activity->record(
+                ActivityLog::STAGE_CL_MATCH,
+                ActivityLog::STATUS_ERROR,
+                'rate_limited: ' . $e->getMessage(),
+                (string) $seed['case_id']
+            );
+        }
         sleep(30);
     } catch (Throwable $e) {
         $stats->recordError();
         fwrite(STDERR, 'Error on ' . $seed['case_id'] . ': ' . $e->getMessage() . "\n");
+        if (!$options->dryRun) {
+            $activity->record(
+                ActivityLog::STAGE_CL_MATCH,
+                ActivityLog::STATUS_ERROR,
+                'error: ' . $e->getMessage(),
+                (string) $seed['case_id']
+            );
+        }
     }
 }
 

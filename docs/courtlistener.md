@@ -68,6 +68,16 @@ Example (Ada/Otto host crontab — custom lines, not `devops__add_cron`):
 15 */2 * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/ingest-docs.php --limit=10 --wait=5 >> /var/log/project1960-cl-ingest.log 2>&1
 ```
 
+**What that means in practice**
+
+| Stage | Cadence | Batch | Gap | On Enrichment activity feed |
+|-------|---------|-------|-----|------------------------------|
+| `bin/match.php` | every **30 min** | **3** verified cases not yet linked/reviewed | **15s** between cases (+30s on 429) | `cl_match` success / weak_accept / skipped / **error** (incl. rate limit) |
+| `bin/ingest-docs.php` | every **2 hours** at `:15` | up to **10** linked dockets | **5s** (+30s on 429) | `cl_ingest` |
+| download / OCR / extract | **not on cron yet** | — | — | only when those CLIs are run by hand |
+
+Seed picker skips anything already in `case_courtlistener_links` **or** `cl_match_reviews`, and prefers cases with real federal docket numbers. ~300 verified cases remain matchable after the 19 linked ones.
+
 Do **not** raise `--limit` into the hundreds or drop `--wait` without Mark go.
 
 **Activity log:** the Enrichment page reads `enrichment_activity_log`. Legacy Venice enrichment wrote here; as of the pipeline logging change, CourtListener **match / ingest / download / OCR / extract** also append rows (`table_name` = stage such as `cl_match`). Statuses: `success`, `skipped`, `error`, `weak_accept`.

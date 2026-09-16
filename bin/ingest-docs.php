@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 use CourtListener\Exceptions\RateLimitException;
+use Project1960\ActivityLog;
 use Project1960\Config;
 use Project1960\CourtListener\ClientFactory;
 use Project1960\CourtListener\DocumentIngestor;
@@ -53,6 +54,7 @@ $ingestor = new DocumentIngestor(
 );
 
 $dockets = $ingestor->linkedDocketIds($options->limit);
+$activity = new ActivityLog($pdo);
 fwrite(STDOUT, sprintf(
     "Ingesting %d linked docket(s)%s wait=%ds…\n",
     count($dockets),
@@ -80,10 +82,28 @@ foreach ($dockets as $i => $docketId) {
     } catch (RateLimitException $e) {
         $errors++;
         fwrite(STDERR, "Rate limited on docket {$docketId}; backing off 30s\n");
+        if (!$options->dryRun) {
+            $caseId = $activity->caseIdForDocket((int) $docketId);
+            $activity->record(
+                ActivityLog::STAGE_CL_INGEST,
+                ActivityLog::STATUS_ERROR,
+                'rate_limited docket #' . $docketId . ': ' . $e->getMessage(),
+                $caseId
+            );
+        }
         sleep(30);
     } catch (Throwable $e) {
         $errors++;
         fwrite(STDERR, "Error on docket {$docketId}: " . $e->getMessage() . "\n");
+        if (!$options->dryRun) {
+            $caseId = $activity->caseIdForDocket((int) $docketId);
+            $activity->record(
+                ActivityLog::STAGE_CL_INGEST,
+                ActivityLog::STATUS_ERROR,
+                'error docket #' . $docketId . ': ' . $e->getMessage(),
+                $caseId
+            );
+        }
     }
 }
 
