@@ -171,11 +171,26 @@ $clEmpty = ($cl['dockets'] ?? []) === []
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="table table-sm">
-                        <thead><tr><th>ID</th><th>Description</th><th>OCR</th><th>Download</th></tr></thead>
+                        <thead><tr><th>Entry</th><th>Description</th><th>OCR</th><th>Download</th></tr></thead>
                         <tbody>
                         <?php foreach ($cl['documents'] as $doc): ?>
                             <tr>
-                                <td><?= $e($doc['cl_document_id'] ?? '') ?></td>
+                                <td>
+                                    <?php
+                                    $entryNo = trim((string) ($doc['entry_number'] ?? ''));
+                                    $docId = (int) ($doc['cl_document_id'] ?? 0);
+                                    $noFile = $docId < 0 || trim((string) ($doc['filepath_or_url'] ?? '')) === '';
+                                    if ($entryNo !== '') {
+                                        echo $e('#' . $entryNo);
+                                    } elseif ($docId < 0) {
+                                        echo $e('entry');
+                                    } else {
+                                        echo $e((string) $docId);
+                                    }
+                                    if ($noFile): ?>
+                                        <span class="badge text-bg-secondary" title="Docket-entry description only — no RECAP file on CourtListener">desc</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= $e($doc['description'] ?? '') ?></td>
                                 <td><?= $e($doc['ocr_status'] ?? '') ?></td>
                                 <td><?= $e($doc['download_status'] ?? '') ?></td>

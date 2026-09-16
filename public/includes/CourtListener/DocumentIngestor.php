@@ -10,6 +10,10 @@ use PDO;
 /**
  * Pull docket-entry + RECAP document metadata into CL-S2 tables (CL-I2).
  * Idempotent by cl_document_id. Slow-drip friendly (--limit / --wait in CLI).
+ *
+ * When CourtListener has no RECAP file for an entry, we still store the entry
+ * description (often as informative as the PDF). Those stubs use a negative
+ * synthetic id (-entry_id) so they never collide with real RECAP document ids.
  */
 final class DocumentIngestor
 {
@@ -61,7 +65,6 @@ final class DocumentIngestor
         }
 
         // One API call: docket-entries/?docket= includes nested recap_documents.
-        // Separate recap-documents/?docket= is invalid (400); use gateway remap if needed.
         $entries = $this->gateway->listDocketEntries([
             'docket' => $clDocketId,
             'page_size' => $pageSize,
@@ -77,16 +80,24 @@ final class DocumentIngestor
                 continue;
             }
             $embedded = $entry['recap_documents'] ?? $entry['recapDocuments'] ?? null;
-            if (!is_array($embedded)) {
-                continue;
-            }
-            foreach ($embedded as $row) {
-                if (!is_array($row)) {
-                    continue;
+            $gotDoc = false;
+            if (is_array($embedded)) {
+                foreach ($embedded as $row) {
+                    if (!is_array($row)) {
+                        continue;
+                    }
+                    $doc = $this->mapRecapRow($row, $clDocketId, $entry);
+                    if ($doc !== null) {
+                        $mapped[(int) $doc['cl_document_id']] = $doc;
+                        $gotDoc = true;
+                    }
                 }
-                $doc = $this->mapRecapRow($row, $clDocketId, $entry);
-                if ($doc !== null) {
-                    $mapped[(int) $doc['cl_document_id']] = $doc;
+            }
+            // No RECAP file rows — still keep the docket-entry description text.
+            if (!$gotDoc) {
+                $stub = $this->mapEntryDescriptionStub($entry, $clDocketId);
+                if ($stub !== null) {
+                    $mapped[(int) $stub['cl_document_id']] = $stub;
                 }
             }
         }
@@ -95,6 +106,10 @@ final class DocumentIngestor
         if (!$dryRun) {
             foreach ($mapped as $doc) {
                 $this->docs->upsertDocument($doc);
+                $text = trim((string) ($doc['description'] ?? ''));
+                if ($text !== '' && !empty($doc['store_description_as_text'])) {
+                    $this->docs->upsertFullText((int) $doc['cl_document_id'], $text);
+                }
                 $upserted++;
             }
             $this->logActivity($clDocketId, $upserted, count($entryRows));
@@ -126,6 +141,39 @@ final class DocumentIngestor
     }
 
     /**
+     * Entry with no RECAP documents: synthetic negative id from CL entry id.
+     *
+     * @param array<string, mixed> $entry
+     * @return array<string, mixed>|null
+     */
+    public function mapEntryDescriptionStub(array $entry, int $clDocketId): ?array
+    {
+        $entryId = $entry['id'] ?? $entry['pk'] ?? null;
+        if (!is_numeric($entryId) || (int) $entryId <= 0) {
+            return null;
+        }
+        $description = $this->pickDescription(null, $entry);
+        if ($description === null || $description === '') {
+            return null;
+        }
+        $entryNum = $entry['entry_number'] ?? $entry['entryNumber'] ?? null;
+
+        return [
+            'cl_document_id' => -1 * (int) $entryId,
+            'cl_docket_id' => $clDocketId,
+            'entry_number' => $entryNum !== null ? (string) $entryNum : null,
+            'description' => $description,
+            'filepath_or_url' => null,
+            'mime' => 'text/plain',
+            'has_plaintext' => 1,
+            'ocr_status' => CourtListenerDocumentStore::OCR_NONE,
+            'byte_size' => null,
+            'raw_json' => json_encode($entry, JSON_THROW_ON_ERROR),
+            'store_description_as_text' => true,
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $row
      * @param array<string, mixed>|null $entry
      * @return array<string, mixed>|null
@@ -142,12 +190,14 @@ final class DocumentIngestor
         $hasText = !empty($row['plain_text']);
         $entryNum = $row['entry_number'] ?? $entry['entry_number'] ?? $entry['entryNumber'] ?? null;
         $bytes = $row['file_size'] ?? $row['size'] ?? null;
+        $docDesc = isset($row['description']) ? trim((string) $row['description']) : '';
+        $description = $this->pickDescription($docDesc !== '' ? $docDesc : null, $entry);
 
         return [
             'cl_document_id' => (int) $id,
             'cl_docket_id' => $clDocketId,
             'entry_number' => $entryNum !== null ? (string) $entryNum : null,
-            'description' => isset($row['description']) ? (string) $row['description'] : (isset($entry['description']) ? (string) $entry['description'] : null),
+            'description' => $description,
             'filepath_or_url' => $filepath,
             'mime' => isset($row['mimetype']) ? (string) $row['mimetype'] : null,
             'has_plaintext' => $hasText ? 1 : 0,
@@ -155,6 +205,28 @@ final class DocumentIngestor
             'byte_size' => is_numeric($bytes) ? (int) $bytes : null,
             'raw_json' => json_encode($row, JSON_THROW_ON_ERROR),
         ];
+    }
+
+    /**
+     * Prefer the richer docket-entry description when the RECAP row is thin/empty.
+     *
+     * @param array<string, mixed>|null $entry
+     */
+    public function pickDescription(?string $docDescription, ?array $entry): ?string
+    {
+        $doc = $docDescription !== null ? trim($docDescription) : '';
+        $entryDesc = '';
+        if ($entry !== null && isset($entry['description'])) {
+            $entryDesc = trim((string) $entry['description']);
+        }
+        if ($entryDesc !== '' && ($doc === '' || strlen($entryDesc) > strlen($doc))) {
+            return $entryDesc;
+        }
+        if ($doc !== '') {
+            return $doc;
+        }
+
+        return $entryDesc !== '' ? $entryDesc : null;
     }
 
     /**

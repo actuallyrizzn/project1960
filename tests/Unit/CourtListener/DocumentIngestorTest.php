@@ -256,6 +256,69 @@ final class DocumentIngestorTest extends TestCase
         self::assertSame(2, $gw->listRecapDocuments(['docket' => 42, 'page_size' => 5])['results'][0]['id']);
     }
 
+    public function testEntryWithoutRecapDocsStoresDescriptionStub(): void
+    {
+        $this->responses['entries'] = [
+            'results' => [
+                [
+                    'id' => 88801,
+                    'entry_number' => '12',
+                    'description' => 'MOTION to Dismiss by DEFENDANT KuCoin. (Attachments: # 1 Affidavit)',
+                    'recap_documents' => [],
+                ],
+            ],
+        ];
+        $result = $this->ingestor()->ingestDocket(100, dryRun: false);
+        self::assertSame(1, $result['documents_upserted']);
+
+        $store = new CourtListenerDocumentStore($this->pdo);
+        $stub = $store->getDocument(-88801);
+        self::assertNotNull($stub);
+        self::assertSame('12', $stub['entry_number']);
+        self::assertStringContainsString('MOTION to Dismiss', (string) $stub['description']);
+        self::assertSame(1, (int) $stub['has_plaintext']);
+        $text = $this->pdo->query(
+            'SELECT full_text FROM courtlistener_document_text WHERE cl_document_id = -88801'
+        )->fetchColumn();
+        self::assertStringContainsString('MOTION to Dismiss', (string) $text);
+    }
+
+    public function testPrefersLongerEntryDescriptionOverThinDocLabel(): void
+    {
+        $ing = $this->ingestor();
+        $picked = $ing->pickDescription(
+            'Motion',
+            ['description' => 'MOTION for Leave to File Amended Complaint by Plaintiff Foo Corp.']
+        );
+        self::assertStringContainsString('Amended Complaint', (string) $picked);
+        self::assertSame('OnlyDoc', $ing->pickDescription('OnlyDoc', ['description' => 'Short']));
+        self::assertSame('EntryOnly', $ing->pickDescription(null, ['description' => 'EntryOnly']));
+    }
+
+    public function testMapEntryDescriptionStubRequiresIdAndText(): void
+    {
+        $ing = $this->ingestor();
+        self::assertNull($ing->mapEntryDescriptionStub(['entry_number' => '1', 'description' => 'x'], 100));
+        self::assertNull($ing->mapEntryDescriptionStub(['id' => 5, 'description' => '  '], 100));
+        $stub = $ing->mapEntryDescriptionStub(['id' => 5, 'entry_number' => '2', 'description' => 'Notice'], 100);
+        self::assertSame(-5, $stub['cl_document_id']);
+        self::assertSame('Notice', $stub['description']);
+    }
+
+    public function testResolveFileUrl(): void
+    {
+        $ing = $this->ingestor();
+        self::assertSame(
+            'https://storage.courtlistener.com/recap/gov.uscourts.x/1.pdf',
+            $ing->resolveFileUrl('recap/gov.uscourts.x/1.pdf')
+        );
+        self::assertSame(
+            'https://example.test/a.pdf',
+            $ing->resolveFileUrl('https://example.test/a.pdf')
+        );
+        self::assertNull($ing->resolveFileUrl(null));
+    }
+
     public function testSdkIngestGatewayRequiresDocketId(): void
     {
         $client = $this->getMockBuilder(\CourtListener\CourtListenerClient::class)
