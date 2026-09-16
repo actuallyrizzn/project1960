@@ -6,6 +6,9 @@ declare(strict_types=1);
  * Slow-drip download of free CL/RECAP document bytes (CL-I3).
  *
  *   php bin/download-docs.php [--limit=N] [--wait=2] [--dry-run] [--verbose]
+ *
+ * Does not burn CourtListener API quota (HTTPS file fetch to storage/IA).
+ * Run after ingest has written document rows with free filepath URLs.
  */
 
 use Project1960\Config;
@@ -26,6 +29,14 @@ if (array_key_exists('help', $opts)) {
     fwrite(STDOUT, "Stores under storage/cl-docs/ (or CL_DOCS_PATH). Skips PACER-only URLs.\n");
     exit(0);
 }
+
+$lockPath = sys_get_temp_dir() . '/p1960-cl-download.lock';
+$lockFh = fopen($lockPath, 'c');
+if ($lockFh === false || !flock($lockFh, LOCK_EX | LOCK_NB)) {
+    fwrite(STDERR, "Another download-docs.php is running; exiting.\n");
+    exit(0);
+}
+
 $limit = isset($opts['limit']) && is_numeric($opts['limit']) ? max(1, (int) $opts['limit']) : 10;
 $wait = isset($opts['wait']) && is_numeric($opts['wait']) ? max(0, (int) $opts['wait']) : 2;
 $dryRun = array_key_exists('dry-run', $opts);
