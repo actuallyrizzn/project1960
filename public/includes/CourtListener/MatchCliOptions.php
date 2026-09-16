@@ -88,14 +88,15 @@ final class MatchCliOptions
         return <<<TXT
 Usage: php bin/match.php [options]
 
-Match verified_1960 seed cases to CourtListener dockets via courtlistener-sdk Search.
+Match verified_1960 and/or mentions_crypto seed cases to CourtListener dockets
+(chokepoint 2.0 priority: verified+crypto first, then crypto, then verified).
 Skips cases already linked or already in cl_match_reviews (cron advances).
 
 Options:
   --limit=N     Max cases to process (default 25)
   --wait=N      Seconds between CL searches (default 2; raise if rate-limited)
   --dry-run     Search + score only; do not write dockets/links/reviews
-  --all         Include cases that are not verified_1960
+  --all         Include cases that are neither verified_1960 nor mentions_crypto
   --verbose     Extra logging
   --help        This help
 

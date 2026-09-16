@@ -51,7 +51,7 @@ Queries are **docket-first** when `case_number` looks like a federal docket (`YY
 
 **Rate limits:** default `--wait=2`; raise to 5–10s on token 429s. CLI backs off 30s on `RateLimitException` and continues.
 
-**Seed selection:** `loadSeeds` skips cases already in `case_courtlistener_links` or `cl_match_reviews`, and **prefers known-good court docket numbers** over press-id-only verified rows so cron starts the machine on high-confidence seeds. Prototype notes: Tasks Doc #1358 / `tools/cl-match-prototype/`.
+**Seed selection:** `loadSeeds` skips cases already in `case_courtlistener_links` or `cl_match_reviews`. Default pool is **`verified_1960` OR `mentions_crypto`**. Order (chokepoint 2.0): **verified+crypto → crypto → verified**, then known-good court docket numbers, then newer dates. `--all` adds the rest of the unmatched corpus behind that queue. Doc ingest uses the same chokepoint rank among linked dockets. Prototype notes: Tasks Doc #1358 / `tools/cl-match-prototype/`.
 
 ## Slow-drip cron (multihost)
 

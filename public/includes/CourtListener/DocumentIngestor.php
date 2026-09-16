@@ -26,18 +26,22 @@ final class DocumentIngestor
     }
 
     /**
-     * Linked dockets needing doc metadata first: strong matches with zero docs, then others.
+     * Linked dockets needing doc metadata first: chokepoint (crypto+verified),
+     * strong matches with zero docs, then others. Weak accepts deferred.
      *
      * @return list<int>
      */
     public function linkedDocketIds(int $limit): array
     {
+        $choke = LinkQueuePriority::chokepointRankExpr('c');
         $stmt = $this->pdo->prepare(
             'SELECT l.cl_docket_id FROM (
-                SELECT cl_docket_id,
-                       MIN(CASE WHEN match_method = \'' . LinkQueuePriority::WEAK_METHOD . '\' THEN 1 ELSE 0 END) AS defer_rank
-                FROM case_courtlistener_links
-                GROUP BY cl_docket_id
+                SELECT cl.cl_docket_id,
+                       MIN(CASE WHEN cl.match_method = \'' . LinkQueuePriority::WEAK_METHOD . '\' THEN 1 ELSE 0 END) AS defer_rank,
+                       MIN(' . $choke . ') AS choke_rank
+                FROM case_courtlistener_links cl
+                LEFT JOIN cases c ON c.id = cl.case_id
+                GROUP BY cl.cl_docket_id
              ) l
              LEFT JOIN (
                 SELECT cl_docket_id, COUNT(*) AS doc_count
@@ -45,6 +49,7 @@ final class DocumentIngestor
                 GROUP BY cl_docket_id
              ) d ON d.cl_docket_id = l.cl_docket_id
              ORDER BY CASE WHEN COALESCE(d.doc_count, 0) = 0 THEN 0 ELSE 1 END ASC,
+                      l.choke_rank ASC,
                       l.defer_rank ASC,
                       l.cl_docket_id ASC
              LIMIT :lim'

@@ -277,16 +277,16 @@ final class DocketMatcherTest extends TestCase
              VALUES ('c1', 77, 'auto')"
         );
         $this->pdo->exec(
-            "INSERT INTO cases (id, title, date, verified_1960, number)
-             VALUES ('c_press', 'Press ID Only', '2025-01-01', 1, 'CAS25-9999-Nobody')"
+            "INSERT INTO cases (id, title, date, verified_1960, mentions_crypto, number)
+             VALUES ('c_press', 'Press ID Only', '2025-01-01', 1, 0, 'CAS25-9999-Nobody')"
         );
         $this->pdo->exec(
             "INSERT INTO case_metadata (case_id, district_office, case_number)
              VALUES ('c_press', 'Southern District of California', 'CAS25-9999-Nobody')"
         );
         $this->pdo->exec(
-            "INSERT INTO cases (id, title, date, verified_1960, number)
-             VALUES ('c_old', 'Older Court Docket', '2020-01-01', 1, '18-cr-1129')"
+            "INSERT INTO cases (id, title, date, verified_1960, mentions_crypto, number)
+             VALUES ('c_old', 'Older Court Docket', '2020-01-01', 1, 0, '18-cr-1129')"
         );
         $this->pdo->exec(
             "INSERT INTO case_metadata (case_id, district_office, case_number)
@@ -294,6 +294,46 @@ final class DocketMatcherTest extends TestCase
         );
         $seeds = $this->matcher->loadSeeds(1, verifiedOnly: true);
         self::assertSame('c_old', $seeds[0]['case_id']);
+    }
+
+    public function testLoadSeedsPrioritizesChokepointCryptoVerified(): void
+    {
+        $this->pdo->exec(
+            "INSERT INTO courtlistener_dockets (cl_docket_id, case_name) VALUES (77, 'Linked')"
+        );
+        $this->pdo->exec(
+            "INSERT INTO case_courtlistener_links (case_id, cl_docket_id, match_method)
+             VALUES ('c1', 77, 'auto')"
+        );
+        $this->pdo->exec(
+            "INSERT INTO cases (id, title, date, verified_1960, mentions_crypto, number)
+             VALUES ('c_verified', 'Verified Only Court', '2025-06-01', 1, 0, '24-cr-100')"
+        );
+        $this->pdo->exec(
+            "INSERT INTO case_metadata (case_id, case_number, district_office)
+             VALUES ('c_verified', '24-cr-100', 'Southern District of New York')"
+        );
+        $this->pdo->exec(
+            "INSERT INTO cases (id, title, date, verified_1960, mentions_crypto, number)
+             VALUES ('c_crypto', 'Crypto Only', '2025-07-01', 0, 1, 'CAS25-CRYPTO')"
+        );
+        $this->pdo->exec(
+            "INSERT INTO cases (id, title, date, verified_1960, mentions_crypto, number)
+             VALUES ('c_both', 'Verified Crypto Chokepoint', '2024-01-01', 1, 1, 'CAS24-BOTH')"
+        );
+
+        $seeds = $this->matcher->loadSeeds(3, verifiedOnly: true);
+        self::assertSame(['c_both', 'c_crypto', 'c_verified'], array_column($seeds, 'case_id'));
+
+        $this->pdo->exec(
+            "INSERT INTO cases (id, title, date, verified_1960, mentions_crypto, number)
+             VALUES ('c_neither', 'Neither', '2025-08-01', 0, 0, '25-cr-1')"
+        );
+        $default = $this->matcher->loadSeeds(10, verifiedOnly: true);
+        self::assertNotContains('c_neither', array_column($default, 'case_id'));
+        $all = $this->matcher->loadSeeds(10, verifiedOnly: false);
+        self::assertContains('c_neither', array_column($all, 'case_id'));
+        self::assertSame('c_both', $all[0]['case_id']);
     }
 
     public function testLoadSeedsSkipsLinkedAndReviewed(): void

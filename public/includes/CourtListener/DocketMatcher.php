@@ -325,14 +325,18 @@ final class DocketMatcher
     /**
      * Unmatched seeds for slow-drip: skips cases already linked to a CL docket
      * or already flagged in cl_match_reviews (so cron advances instead of re-hitting the same set).
-     * Prefer verified rows whose case_number looks like a court docket (known-good first).
      *
-     * @return list<array{case_id: string, title: ?string, case_number: ?string, district_office: ?string, date: ?string, party_names: list<string>}>
+     * Default pool (`$verifiedOnly=true`): verified_1960 OR mentions_crypto.
+     * Order (chokepoint 2.0): verified+crypto → crypto → verified → other,
+     * then known-good court docket numbers, then newer dates.
+     *
+     * @return list<array{case_id: string, title: ?string, case_number: ?string, district_office: ?string, date: ?string, party_names: list<string>, verified_1960: int, mentions_crypto: int}>
      */
     public function loadSeeds(int $limit, bool $verifiedOnly = true): array
     {
         $fetch = max($limit * 25, 40);
         $sql = 'SELECT c.id AS case_id, c.title, c.date, c.number AS case_number_fallback,
+                       c.verified_1960, c.mentions_crypto,
                        m.case_number, m.district_office
                 FROM cases c
                 LEFT JOIN case_metadata m ON m.case_id = c.id
@@ -340,9 +344,10 @@ final class DocketMatcher
                 LEFT JOIN cl_match_reviews r ON r.case_id = c.id
                 WHERE l.case_id IS NULL AND r.case_id IS NULL';
         if ($verifiedOnly) {
-            $sql .= ' AND c.verified_1960 = 1';
+            // Chokepoint drip: crypto mentions and/or verified §1960 — not press-only noise.
+            $sql .= ' AND (CAST(c.verified_1960 AS INTEGER) = 1 OR CAST(c.mentions_crypto AS INTEGER) = 1)';
         }
-        $sql .= ' ORDER BY c.date DESC LIMIT :lim';
+        $sql .= ' ORDER BY ' . LinkQueuePriority::chokepointRankExpr('c') . ' ASC, c.date DESC LIMIT :lim';
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue(':lim', $fetch, PDO::PARAM_INT);
         $stmt->execute();
@@ -366,10 +371,17 @@ final class DocketMatcher
                 'district_office' => $row['district_office'] !== null ? (string) $row['district_office'] : null,
                 'date' => $row['date'] !== null ? (string) $row['date'] : null,
                 'party_names' => array_map('strval', $names),
+                'verified_1960' => (int) ($row['verified_1960'] ?? 0),
+                'mentions_crypto' => (int) ($row['mentions_crypto'] ?? 0),
             ];
         }
 
         usort($out, function (array $a, array $b): int {
+            $aRank = LinkQueuePriority::chokepointRank($a['verified_1960'] ?? 0, $a['mentions_crypto'] ?? 0);
+            $bRank = LinkQueuePriority::chokepointRank($b['verified_1960'] ?? 0, $b['mentions_crypto'] ?? 0);
+            if ($aRank !== $bRank) {
+                return $aRank <=> $bRank;
+            }
             $aGood = $this->looksLikeCourtDocketNumber((string) ($a['case_number'] ?? '')) ? 0 : 1;
             $bGood = $this->looksLikeCourtDocketNumber((string) ($b['case_number'] ?? '')) ? 0 : 1;
             if ($aGood !== $bGood) {
