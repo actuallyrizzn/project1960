@@ -68,7 +68,7 @@ Sustainable drip (installed on multihost):
 ```cron
 # 1 seed / hour, paced for free-auth daily budget (~125/day shared with ingest)
 0 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/match.php --limit=1 --wait=60 >> /var/log/project1960-cl-match.log 2>&1
-# Ingest 1 linked docket every 6h (2 API calls via dockets/{id}/docket-entries + /recap) — skip when day quota empty
+# Ingest 1 linked docket every 6h (1 API call: docket-entries/?docket= with nested docs) — skip when day quota empty
 20 */6 * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/ingest-docs.php --limit=1 --wait=30 >> /var/log/project1960-cl-ingest.log 2>&1
 # Download free PDF bytes (no CL API quota) after ingest has rows
 40 */6 * * * cd /root/repos/project1960.rizzn.net && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db CL_DOCS_PATH=/var/www/project1960.rizzn.net/storage/cl-docs php bin/download-docs.php --limit=5 --wait=2 >> /var/log/project1960-cl-download.log 2>&1
@@ -76,7 +76,7 @@ Sustainable drip (installed on multihost):
 
 `match.php` / `ingest-docs.php` now: check api-usage before starting, **abort the batch on first 429**, flock against overlap, and search with **type=d first** (not d+r back-to-back).
 
-**Ingest API paths (fixed):** use nested `dockets/{id}/docket-entries/` and `dockets/{id}/recap/` — **not** `docket-entries/?docket=` (v4 returns 400 `unknown_params: docket`). Queue prefers **linked dockets with zero local docs**, strong matches before weak.
+**Ingest API paths (fixed):** `docket-entries/?docket={id}` (official RelatedFilter). Do **not** call `recap-documents/?docket=` (400 `unknown_params: docket`) — harvest nested `recap_documents` from entries, or use `recap-documents/?docket_entry__docket=`. Nested SDK `dockets/{id}/…` paths **404** on prod. Queue prefers **linked dockets with zero local docs**, strong matches before weak.
 
 **Public docket links:** CourtListener 404s on bare `/docket/{id}/` — pages must use `/docket/{id}/{slug}/` (`CourtListenerUrl::docket`).
 

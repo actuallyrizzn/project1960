@@ -55,8 +55,8 @@ $token = (string) (getenv('COURTLISTENER_API_TOKEN') ?: getenv('COURTLISTENER_TO
 if ($token !== '' && !$options->dryRun) {
     $gate = ApiUsageGate::fetch($token);
     fwrite(STDOUT, $gate->summary() . "\n");
-    // Each docket ≈ 2 API calls (entries + recap).
-    if ($gate->shouldSkip(2)) {
+    // Each docket ≈ 1 API call (docket-entries with nested docs).
+    if ($gate->shouldSkip(1)) {
         $msg = 'skip ingest: ' . $gate->summary();
         fwrite(STDERR, $msg . "\n");
         $activity->record(ActivityLog::STAGE_CL_INGEST, ActivityLog::STATUS_SKIPPED, $msg);

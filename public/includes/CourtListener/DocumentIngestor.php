@@ -60,6 +60,8 @@ final class DocumentIngestor
             throw new \InvalidArgumentException('cl_docket_id must be positive');
         }
 
+        // One API call: docket-entries/?docket= includes nested recap_documents.
+        // Separate recap-documents/?docket= is invalid (400); use gateway remap if needed.
         $entries = $this->gateway->listDocketEntries([
             'docket' => $clDocketId,
             'page_size' => $pageSize,
@@ -69,26 +71,7 @@ final class DocumentIngestor
             $entryRows = [];
         }
 
-        $recap = $this->gateway->listRecapDocuments([
-            'docket' => $clDocketId,
-            'page_size' => $pageSize,
-        ]);
-        $docRows = $recap['results'] ?? [];
-        if (!is_array($docRows)) {
-            $docRows = [];
-        }
-
-        // Prefer RECAP documents list; also harvest embedded docs from entries.
         $mapped = [];
-        foreach ($docRows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $doc = $this->mapRecapRow($row, $clDocketId);
-            if ($doc !== null) {
-                $mapped[(int) $doc['cl_document_id']] = $doc;
-            }
-        }
         foreach ($entryRows as $entry) {
             if (!is_array($entry)) {
                 continue;
@@ -153,7 +136,9 @@ final class DocumentIngestor
         if (!is_numeric($id) || (int) $id <= 0) {
             return null;
         }
-        $filepath = $row['filepath_local'] ?? $row['filepath_ia'] ?? $row['absolute_url'] ?? null;
+        $filepath = $this->resolveFileUrl(
+            $row['filepath_local'] ?? $row['filepath_ia'] ?? $row['absolute_url'] ?? null
+        );
         $hasText = !empty($row['plain_text']);
         $entryNum = $row['entry_number'] ?? $entry['entry_number'] ?? $entry['entryNumber'] ?? null;
         $bytes = $row['file_size'] ?? $row['size'] ?? null;
@@ -163,12 +148,35 @@ final class DocumentIngestor
             'cl_docket_id' => $clDocketId,
             'entry_number' => $entryNum !== null ? (string) $entryNum : null,
             'description' => isset($row['description']) ? (string) $row['description'] : (isset($entry['description']) ? (string) $entry['description'] : null),
-            'filepath_or_url' => $filepath !== null ? (string) $filepath : null,
+            'filepath_or_url' => $filepath,
             'mime' => isset($row['mimetype']) ? (string) $row['mimetype'] : null,
             'has_plaintext' => $hasText ? 1 : 0,
             'ocr_status' => CourtListenerDocumentStore::OCR_NONE,
             'byte_size' => is_numeric($bytes) ? (int) $bytes : null,
             'raw_json' => json_encode($row, JSON_THROW_ON_ERROR),
         ];
+    }
+
+    /**
+     * CL filepath_local is often a relative storage key (recap/…); download needs HTTPS.
+     */
+    public function resolveFileUrl(mixed $raw): ?string
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $s = trim((string) $raw);
+        if ($s === '') {
+            return null;
+        }
+        if (str_starts_with($s, 'http://') || str_starts_with($s, 'https://')) {
+            return $s;
+        }
+        $s = ltrim($s, '/');
+        if (str_starts_with($s, 'storage/')) {
+            $s = substr($s, strlen('storage/'));
+        }
+
+        return 'https://storage.courtlistener.com/' . $s;
     }
 }

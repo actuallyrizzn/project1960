@@ -78,21 +78,23 @@ final class DocumentIngestorTest extends TestCase
         self::assertSame([100], $ids);
     }
 
-    public function testIngestUpsertsFromRecapAndEmbeddedEntries(): void
+    public function testIngestUpsertsFromEmbeddedEntries(): void
     {
-        $this->responses['docs'] = [
-            'results' => [
-                [
-                    'id' => 501,
-                    'description' => 'Indictment',
-                    'filepath_local' => '/storage/501.pdf',
-                    'plain_text' => 'text',
-                    'file_size' => 2048,
-                ],
-            ],
-        ];
         $this->responses['entries'] = [
             'results' => [
+                [
+                    'entry_number' => '1',
+                    'description' => 'Indictment',
+                    'recap_documents' => [
+                        [
+                            'id' => 501,
+                            'description' => 'Indictment',
+                            'filepath_local' => '/storage/501.pdf',
+                            'plain_text' => 'text',
+                            'file_size' => 2048,
+                        ],
+                    ],
+                ],
                 [
                     'entry_number' => '3',
                     'description' => 'Motion',
@@ -109,7 +111,7 @@ final class DocumentIngestorTest extends TestCase
 
         $result = $this->ingestor()->ingestDocket(100, dryRun: false);
         self::assertSame(2, $result['documents_upserted']);
-        self::assertSame(1, $result['entries_seen']);
+        self::assertSame(2, $result['entries_seen']);
 
         $store = new CourtListenerDocumentStore($this->pdo);
         $a = $store->getDocument(501);
@@ -124,8 +126,13 @@ final class DocumentIngestorTest extends TestCase
 
     public function testDryRunDoesNotWrite(): void
     {
-        $this->responses['docs'] = [
-            'results' => [['id' => 777, 'description' => 'X']],
+        $this->responses['entries'] = [
+            'results' => [
+                [
+                    'entry_number' => '1',
+                    'recap_documents' => [['id' => 777, 'description' => 'X']],
+                ],
+            ],
         ];
         $result = $this->ingestor()->ingestDocket(100, dryRun: true);
         self::assertSame(1, $result['documents_upserted']);
@@ -134,12 +141,16 @@ final class DocumentIngestorTest extends TestCase
 
     public function testIdempotentUpsert(): void
     {
-        $this->responses['docs'] = [
-            'results' => [['id' => 9, 'description' => 'First']],
+        $this->responses['entries'] = [
+            'results' => [
+                ['entry_number' => '1', 'recap_documents' => [['id' => 9, 'description' => 'First']]],
+            ],
         ];
         $this->ingestor()->ingestDocket(100);
-        $this->responses['docs'] = [
-            'results' => [['id' => 9, 'description' => 'Updated']],
+        $this->responses['entries'] = [
+            'results' => [
+                ['entry_number' => '1', 'recap_documents' => [['id' => 9, 'description' => 'Updated']]],
+            ],
         ];
         $this->ingestor()->ingestDocket(100);
         $row = (new CourtListenerDocumentStore($this->pdo))->getDocument(9);
@@ -214,25 +225,31 @@ final class DocumentIngestorTest extends TestCase
         self::assertSame([100, 300, 200], $this->ingestor()->linkedDocketIds(10));
     }
 
-    public function testSdkIngestGatewayUsesNestedDocketRoutes(): void
+    public function testSdkIngestGatewayRemapsFilters(): void
     {
-        $docketsApi = $this->getMockBuilder(\CourtListener\Api\Dockets::class)
+        $entriesApi = $this->getMockBuilder(\CourtListener\Api\DocketEntries::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['getDocketEntries', 'getRecapDocuments'])
+            ->onlyMethods(['listDocketEntries'])
             ->getMock();
-        $docketsApi->expects(self::once())
-            ->method('getDocketEntries')
-            ->with(42, ['page_size' => 10])
+        $entriesApi->expects(self::once())
+            ->method('listDocketEntries')
+            ->with(['page_size' => 10, 'docket' => 42])
             ->willReturn(['results' => [['id' => 1]]]);
-        $docketsApi->expects(self::once())
-            ->method('getRecapDocuments')
-            ->with(42, ['page_size' => 5])
-            ->willReturn([['id' => 2]]); // bare list → normalized
+
+        $docsApi = $this->getMockBuilder(\CourtListener\Api\RecapDocuments::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['listRecapDocuments'])
+            ->getMock();
+        $docsApi->expects(self::once())
+            ->method('listRecapDocuments')
+            ->with(['page_size' => 5, 'docket_entry__docket' => 42])
+            ->willReturn(['results' => [['id' => 2]]]);
 
         $client = $this->getMockBuilder(\CourtListener\CourtListenerClient::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $client->dockets = $docketsApi;
+        $client->docketEntries = $entriesApi;
+        $client->recapDocuments = $docsApi;
 
         $gw = new \Project1960\CourtListener\SdkIngestGateway($client);
         self::assertSame(1, $gw->listDocketEntries(['docket' => 42, 'page_size' => 10])['results'][0]['id']);

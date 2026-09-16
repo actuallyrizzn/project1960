@@ -7,10 +7,13 @@ use CourtListener\CourtListenerClient;
 use InvalidArgumentException;
 
 /**
- * Live ingest via courtlistener-sdk nested docket routes.
+ * Live ingest via courtlistener-sdk list endpoints.
  *
- * Do NOT use docket-entries/?docket=… — v4 rejects unknown filter `docket` (400).
- * Correct paths: dockets/{id}/docket-entries/ and dockets/{id}/recap/.
+ * CourtListener v4 (see DocketEntryFilter / RECAPDocumentFilter):
+ * - docket-entries/?docket={id}          — RelatedFilter on DocketEntry
+ * - recap-documents/?docket_entry__docket={id} — no bare `docket` filter (400 unknown_params)
+ *
+ * Nested SDK helpers dockets/{id}/docket-entries|recap return HTML 404 on prod — do not use.
  */
 final class SdkIngestGateway implements IngestGateway
 {
@@ -21,10 +24,10 @@ final class SdkIngestGateway implements IngestGateway
     public function listDocketEntries(array $params): array
     {
         $id = $this->requireDocketId($params);
-        $query = $params;
-        unset($query['docket'], $query['docket_id']);
+        $query = $this->queryWithoutDocketKeys($params);
+        $query['docket'] = $id;
         /** @var mixed $out */
-        $out = $this->client->dockets->getDocketEntries($id, $query);
+        $out = $this->client->docketEntries->listDocketEntries($query);
 
         return $this->asResults($out);
     }
@@ -32,10 +35,11 @@ final class SdkIngestGateway implements IngestGateway
     public function listRecapDocuments(array $params): array
     {
         $id = $this->requireDocketId($params);
-        $query = $params;
-        unset($query['docket'], $query['docket_id']);
+        $query = $this->queryWithoutDocketKeys($params);
+        // RECAPDocumentFilter has docket_entry RelatedFilter → nest to Docket.
+        $query['docket_entry__docket'] = $id;
         /** @var mixed $out */
-        $out = $this->client->dockets->getRecapDocuments($id, $query);
+        $out = $this->client->recapDocuments->listRecapDocuments($query);
 
         return $this->asResults($out);
     }
@@ -45,12 +49,23 @@ final class SdkIngestGateway implements IngestGateway
      */
     private function requireDocketId(array $params): int
     {
-        $id = (int) ($params['docket'] ?? $params['docket_id'] ?? 0);
+        $id = (int) ($params['docket'] ?? $params['docket_id'] ?? $params['docket_entry__docket'] ?? 0);
         if ($id <= 0) {
             throw new InvalidArgumentException('docket / docket_id required for ingest');
         }
 
         return $id;
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
+    private function queryWithoutDocketKeys(array $params): array
+    {
+        unset($params['docket'], $params['docket_id'], $params['docket_entry__docket']);
+
+        return $params;
     }
 
     /**
