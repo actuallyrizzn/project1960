@@ -40,7 +40,9 @@ Press `40d638a8-…` stays one `cases` row. Then:
 ### Backfill existing seeds (done path)
 
 ```bash
-# Default: verified_1960 ∩ mentions_crypto (chokepoint 2.0)
+# Default: CL drip pool (verified_1960 OR mentions_crypto)
+php bin/backfill-charge-focus.php --cohort=drip --verbose
+# Intersection only
 php bin/backfill-charge-focus.php --cohort=chokepoint --verbose
 # One case
 php bin/backfill-charge-focus.php --case-id=40d638a8-d636-4821-86ca-dd5b0ad02af2 --verbose

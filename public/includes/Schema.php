@@ -311,6 +311,8 @@ final class Schema
         // After dedupe: restore PRIMARY KEY + unique URL so INSERT OR IGNORE works
         self::ensureCasesPrimaryKey($pdo);
         self::ensureCasesUrlUniqueIndex($pdo);
+        // PK rebuild left FKs pointing at cases_legacy_nopk — retarget to cases.
+        self::repairCasesLegacyNopkForeignKeys($pdo);
     }
 
     /**
@@ -393,6 +395,10 @@ final class Schema
 
     private static function ensureCasesUrlUniqueIndex(PDO $pdo): void
     {
+        $names = self::tableColumnNames($pdo, 'cases');
+        if ($names === [] || !in_array('url', $names, true)) {
+            return;
+        }
         $exists = (int) $pdo->query(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_cases_url_unique'"
         )->fetchColumn();
@@ -566,6 +572,70 @@ final class Schema
             'CREATE INDEX IF NOT EXISTS idx_case_cl_links_relevance
              ON case_courtlistener_links(case_id, relevance)'
         );
+    }
+
+    /**
+     * ensureCasesPrimaryKey renames cases → cases_legacy_nopk briefly; SQLite keeps
+     * that name in existing FOREIGN KEY clauses on child tables. Retarget to cases.
+     */
+    private static function repairCasesLegacyNopkForeignKeys(PDO $pdo): void
+    {
+        $rows = $pdo->query(
+            "SELECT name, sql FROM sqlite_master
+             WHERE type = 'table' AND sql LIKE '%cases_legacy_nopk%'"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        if ($rows === []) {
+            return;
+        }
+
+        $pdo->exec('PRAGMA foreign_keys = OFF');
+        foreach ($rows as $row) {
+            $name = (string) $row['name'];
+            $sql = (string) $row['sql'];
+            if ($name === '' || $sql === '') {
+                continue;
+            }
+            $indexSqls = $pdo->query(
+                "SELECT sql FROM sqlite_master
+                 WHERE type = 'index' AND tbl_name = " . $pdo->quote($name) . ' AND sql IS NOT NULL'
+            )->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+            $rewritten = str_replace(
+                ['"cases_legacy_nopk"', "'cases_legacy_nopk'", 'cases_legacy_nopk'],
+                ['cases', 'cases', 'cases'],
+                $sql
+            );
+            $tmp = $name . '__fkfix';
+            $createTmp = preg_replace(
+                '/^CREATE TABLE\s+(IF NOT EXISTS\s+)?(["`]?)' . preg_quote($name, '/') . '\2/i',
+                'CREATE TABLE $1' . $tmp,
+                $rewritten,
+                1,
+                $count
+            );
+            if (!is_string($createTmp) || $count !== 1) {
+                throw new \RuntimeException('Could not rewrite CREATE TABLE for ' . $name);
+            }
+
+            $pdo->exec('DROP TABLE IF EXISTS ' . $tmp);
+            $pdo->exec($createTmp);
+            $srcCols = self::tableColumnNames($pdo, $name);
+            $dstCols = self::tableColumnNames($pdo, $tmp);
+            $copy = array_values(array_intersect($srcCols, $dstCols));
+            if ($copy === []) {
+                throw new \RuntimeException('No overlapping columns rebuilding ' . $name);
+            }
+            $list = implode(', ', $copy);
+            $pdo->exec("INSERT INTO {$tmp} ({$list}) SELECT {$list} FROM {$name}");
+            $pdo->exec('DROP TABLE ' . $name);
+            $pdo->exec("ALTER TABLE {$tmp} RENAME TO {$name}");
+            foreach ($indexSqls as $idxSql) {
+                if (is_string($idxSql) && $idxSql !== '') {
+                    $pdo->exec($idxSql);
+                }
+            }
+        }
+        $pdo->exec('PRAGMA foreign_keys = ON');
     }
 
     /** @return list<string> */

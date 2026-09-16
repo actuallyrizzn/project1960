@@ -107,4 +107,43 @@ final class SchemaFixtureTest extends TestCase
         self::assertFileExists($path);
         $fixture->destroy();
     }
+
+    public function testRepairsCasesLegacyNopkForeignKeys(): void
+    {
+        $path = sys_get_temp_dir() . '/p1960_fk_' . bin2hex(random_bytes(4)) . '.db';
+        $pdo = new PDO('sqlite:' . $path);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->exec('PRAGMA foreign_keys = OFF');
+        $pdo->exec(
+            'CREATE TABLE cases (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                url TEXT,
+                mentions_1960 NUM,
+                mentions_crypto NUM,
+                verified_1960,
+                verified_crypto,
+                classification TEXT
+            )'
+        );
+        $pdo->exec("INSERT INTO cases (id, title, url) VALUES ('c1', 't', 'https://ex/c1')");
+        $pdo->exec(
+            'CREATE TABLE charges (
+                charge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id TEXT,
+                charge_description TEXT,
+                FOREIGN KEY(case_id) REFERENCES cases_legacy_nopk(id)
+            )'
+        );
+        $pdo->exec("INSERT INTO charges (case_id, charge_description) VALUES ('c1', 'old')");
+        Schema::migrate($pdo);
+        $sql = (string) $pdo->query(
+            "SELECT sql FROM sqlite_master WHERE name='charges'"
+        )->fetchColumn();
+        self::assertStringNotContainsString('cases_legacy_nopk', $sql);
+        $pdo->exec('PRAGMA foreign_keys = ON');
+        $pdo->exec("INSERT INTO charges (case_id, charge_description) VALUES ('c1', 'new')");
+        self::assertSame(2, (int) $pdo->query('SELECT COUNT(*) FROM charges')->fetchColumn());
+        unlink($path);
+    }
 }
