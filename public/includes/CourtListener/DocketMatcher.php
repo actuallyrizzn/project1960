@@ -101,10 +101,20 @@ final class DocketMatcher
 
         $queries = $this->buildQueries($seed);
         $courtId = $this->courtIdFromDistrict((string) ($seed['district_office'] ?? ''));
+        $seedNumber = trim((string) ($seed['case_number'] ?? ''));
+        $docketShaped = $seedNumber !== '' && $this->looksLikeCourtDocketNumber($seedNumber);
         $results = [];
-        foreach ($queries as $q) {
-            foreach ($this->collectSearchResults($q, $courtId) as $row) {
+        foreach ($queries as $qi => $q) {
+            if ($qi > 0) {
+                // Stay under free-auth ~5 requests/minute.
+                usleep(13_000_000);
+            }
+            foreach ($this->collectSearchResults($q, $courtId, $docketShaped) as $row) {
                 $results[] = $row;
+            }
+            // Party lane: one successful query is enough — don't burn the daily quota.
+            if ($results !== [] && !$docketShaped) {
+                break;
             }
         }
 
@@ -266,10 +276,13 @@ final class DocketMatcher
     /**
      * @return list<array<string, mixed>>
      */
-    private function collectSearchResults(string $q, ?string $courtId = null): array
+    private function collectSearchResults(string $q, ?string $courtId = null, bool $docketShaped = false): array
     {
         $out = [];
-        foreach (['d', 'r'] as $type) {
+        // Free auth caps ~5/min — never fire type=d and type=r back-to-back.
+        // Docket-shaped queries: type=d only. Party queries: type=d first; type=r only if empty.
+        $types = ['d'];
+        foreach ($types as $type) {
             $params = [
                 'q' => $q,
                 'type' => $type,
@@ -278,6 +291,25 @@ final class DocketMatcher
             if ($courtId !== null && $courtId !== '') {
                 $params['court'] = $courtId;
             }
+            $resp = $this->search->search($params);
+            $chunk = $resp['results'] ?? [];
+            if (is_array($chunk)) {
+                foreach ($chunk as $row) {
+                    $out[] = $row;
+                }
+            }
+        }
+        if ($out === [] && !$docketShaped) {
+            $params = [
+                'q' => $q,
+                'type' => 'r',
+                'page_size' => 10,
+            ];
+            if ($courtId !== null && $courtId !== '') {
+                $params['court'] = $courtId;
+            }
+            // Pace under 5/min
+            usleep(13_000_000);
             $resp = $this->search->search($params);
             $chunk = $resp['results'] ?? [];
             if (is_array($chunk)) {

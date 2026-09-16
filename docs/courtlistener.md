@@ -61,24 +61,30 @@ Token lives in `/root/.ssh/courtlistener-api.pass` (vault copy — not `sites/*.
 
 Example (Ada/Otto host crontab — custom lines, not `devops__add_cron`):
 
+**Rate limits (this is why the drip was all 429s):** Free authenticated CourtListener caps are about **5/min, 50/hour, 125/day** (rolling). Check live with `GET /api/rest/v4/api-usage/` (own throttle). On 2026-09-16 the token showed **125/125 day used** after our match+ingest+manual batch work — every subsequent cron tick was guaranteed to 429.
+
+Sustainable drip (installed on multihost):
+
 ```cron
-# CourtListener match: 3 verified seeds / 30 min, 15s between searches (back off on 429)
-*/30 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/match.php --limit=3 --wait=15 >> /var/log/project1960-cl-match.log 2>&1
-# Document metadata for newly linked dockets
-15 */2 * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/ingest-docs.php --limit=10 --wait=5 >> /var/log/project1960-cl-ingest.log 2>&1
+# 1 seed / hour, paced for free-auth daily budget (~125/day shared with ingest)
+0 * * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/match.php --limit=1 --wait=60 >> /var/log/project1960-cl-match.log 2>&1
+# Ingest 1 linked docket every 6h (2 API calls) — skip when day quota empty
+20 */6 * * * cd /root/repos/project1960.rizzn.net && set -a && . /root/.ssh/courtlistener-api.pass && set +a && DATABASE_PATH=/var/www/project1960.rizzn.net/db/doj_cases.db php bin/ingest-docs.php --limit=1 --wait=30 >> /var/log/project1960-cl-ingest.log 2>&1
 ```
+
+`match.php` / `ingest-docs.php` now: check api-usage before starting, **abort the batch on first 429**, flock against overlap, and search with **type=d first** (not d+r back-to-back).
+
+**Public docket links:** CourtListener 404s on bare `/docket/{id}/` — pages must use `/docket/{id}/{slug}/` (`CourtListenerUrl::docket`).
 
 **What that means in practice**
 
-| Stage | Cadence | Batch | Gap | On Enrichment activity feed |
-|-------|---------|-------|-----|------------------------------|
-| `bin/match.php` | every **30 min** | **3** verified cases not yet linked/reviewed | **15s** between cases (+30s on 429) | `cl_match` success / weak_accept / skipped / **error** (incl. rate limit) |
-| `bin/ingest-docs.php` | every **2 hours** at `:15` | up to **10** linked dockets | **5s** (+30s on 429) | `cl_ingest` |
-| download / OCR / extract | **not on cron yet** | — | — | only when those CLIs are run by hand |
+| Stage | Cadence | Batch | On Enrichment activity feed |
+|-------|---------|-------|------------------------------|
+| `bin/match.php` | every **hour** | **1** seed | `cl_match` (or `skipped` when quota empty) |
+| `bin/ingest-docs.php` | every **6 hours** | **1** docket | `cl_ingest` |
+| download / OCR / extract | **not on cron yet** | — | when those CLIs run |
 
-Seed picker skips anything already in `case_courtlistener_links` **or** `cl_match_reviews`, and prefers cases with real federal docket numbers. ~300 verified cases remain matchable after the 19 linked ones.
-
-Do **not** raise `--limit` into the hundreds or drop `--wait` without Mark go.
+Do **not** raise `--limit` into the tens on free-auth without raising the CourtListener membership / commercial cap.
 
 **Activity log:** the Enrichment page reads `enrichment_activity_log`. Legacy Venice enrichment wrote here; as of the pipeline logging change, CourtListener **match / ingest / download / OCR / extract** also append rows (`table_name` = stage such as `cl_match`). Statuses: `success`, `skipped`, `error`, `weak_accept`.
 

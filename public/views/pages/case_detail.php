@@ -139,10 +139,11 @@ $clEmpty = ($cl['dockets'] ?? []) === []
                     <?php foreach ($cl['dockets'] as $d): ?>
                         <?php
                         $clId = (int) ($d['cl_docket_id'] ?? 0);
+                        $clName = (string) ($d['cl_case_name'] ?? $d['case_name'] ?? '');
                         $clHref = $clId > 0
-                            ? 'https://www.courtlistener.com/docket/' . $clId . '/'
+                            ? \Project1960\CourtListener\CourtListenerUrl::docket($clId, $clName !== '' ? $clName : null)
                             : '';
-                        $label = trim((string) ($d['docket_number'] ?? $d['cl_case_name'] ?? ''));
+                        $label = trim((string) ($d['docket_number'] ?? $clName));
                         ?>
                         <li class="mb-1">
                             <?php if ($clHref !== ''): ?>
