@@ -35,8 +35,20 @@ Press `40d638a8-…` stays one `cases` row. Then:
 2. `charges`: Bhunna Win / “Unlicensed money transmitting business” / `is_1960=1` (and sex-trafficking counts as `is_1960=0`)
 3. CL link to `7508872` marked `relevance=ambient` (or `related`) until Win’s count is tied to the correct docket; only a `primary_1960` link should drive §1960-priority ingest
 
-## Pipeline follow-ups (not this migration)
+## Pipeline follow-ups
 
-- Press charge parser → populate `charges` + `case_docket_refs`
-- Verifier writes **charge-level** `verified_1960`, not only case-level
-- Matcher / ingest prefer `relevance=primary_1960` and `charges.is_1960=1`
+### Backfill existing seeds (done path)
+
+```bash
+# Default: verified_1960 ∩ mentions_crypto (chokepoint 2.0)
+php bin/backfill-charge-focus.php --cohort=chokepoint --verbose
+# One case
+php bin/backfill-charge-focus.php --case-id=40d638a8-d636-4821-86ca-dd5b0ad02af2 --verbose
+# Dry-run
+php bin/backfill-charge-focus.php --cohort=chokepoint --dry-run --limit=20
+```
+
+Parser: `PressReleaseChargeParser` (structured defendant lists + prose UMT/§1960 phrases + docket refs).  
+Runner: `CaseChargeFocusBackfill` also flags legacy Venice `charges` rows and tags CL links (`primary_1960` vs `ambient` when mixed).
+
+Still open for live drip: verifier writing charge-level `verified_1960`; matcher preferring `relevance=primary_1960`.
