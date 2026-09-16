@@ -11,9 +11,10 @@ use PDO;
  * Pull docket-entry + RECAP document metadata into CL-S2 tables (CL-I2).
  * Idempotent by cl_document_id. Slow-drip friendly (--limit / --wait in CLI).
  *
- * When CourtListener has no RECAP file for an entry, we still store the entry
- * description (often as informative as the PDF). Those stubs use a negative
- * synthetic id (-entry_id) so they never collide with real RECAP document ids.
+ * For every docket entry returned on a queued (linked) case we store the entry
+ * description (synthetic id -entry_id). When nested RECAP documents exist we
+ * also store those rows so download/OCR can run. Descriptions are free once we
+ * have fetched entries; docs are opportunistic.
  */
 final class DocumentIngestor
 {
@@ -74,30 +75,28 @@ final class DocumentIngestor
             $entryRows = [];
         }
 
+        // Queue = linked cases only (linkedDocketIds). For every entry we already
+        // fetched: always keep the description; also keep RECAP docs when present.
         $mapped = [];
         foreach ($entryRows as $entry) {
             if (!is_array($entry)) {
                 continue;
             }
-            $embedded = $entry['recap_documents'] ?? $entry['recapDocuments'] ?? null;
-            $gotDoc = false;
-            if (is_array($embedded)) {
-                foreach ($embedded as $row) {
-                    if (!is_array($row)) {
-                        continue;
-                    }
-                    $doc = $this->mapRecapRow($row, $clDocketId, $entry);
-                    if ($doc !== null) {
-                        $mapped[(int) $doc['cl_document_id']] = $doc;
-                        $gotDoc = true;
-                    }
-                }
+            $stub = $this->mapEntryDescriptionStub($entry, $clDocketId);
+            if ($stub !== null) {
+                $mapped[(int) $stub['cl_document_id']] = $stub;
             }
-            // No RECAP file rows — still keep the docket-entry description text.
-            if (!$gotDoc) {
-                $stub = $this->mapEntryDescriptionStub($entry, $clDocketId);
-                if ($stub !== null) {
-                    $mapped[(int) $stub['cl_document_id']] = $stub;
+            $embedded = $entry['recap_documents'] ?? $entry['recapDocuments'] ?? null;
+            if (!is_array($embedded)) {
+                continue;
+            }
+            foreach ($embedded as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $doc = $this->mapRecapRow($row, $clDocketId, $entry);
+                if ($doc !== null) {
+                    $mapped[(int) $doc['cl_document_id']] = $doc;
                 }
             }
         }

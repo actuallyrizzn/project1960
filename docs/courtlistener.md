@@ -78,7 +78,7 @@ Sustainable drip (installed on multihost):
 
 **Ingest API paths (fixed):** `docket-entries/?docket={id}` (official RelatedFilter). Do **not** call `recap-documents/?docket=` (400 `unknown_params: docket`) — harvest nested `recap_documents` from entries, or use `recap-documents/?docket_entry__docket=`. Nested SDK `dockets/{id}/…` paths **404** on prod. Queue prefers **linked dockets with zero local docs**, strong matches before weak.
 
-**Entry descriptions without PDFs:** when an entry has no RECAP file rows, ingest still stores the docket-entry description (synthetic `cl_document_id = -entry_id`, `has_plaintext`, text copy for extract). Case pages badge these as **desc**. When a RECAP row exists but its label is thinner than the entry text, the longer entry description is kept.
+**Entry descriptions (always) + docs (when available):** ingest only runs for **queued/linked** cases. For every docket entry returned we store the entry description (synthetic `cl_document_id = -entry_id`, text copy for extract). Nested RECAP documents are stored too when present so download/OCR can run. Case pages badge description-only rows as **desc**. When a RECAP label is thinner than the entry text, the longer entry description is preferred on the doc row as well.
 
 **Public docket links:** CourtListener 404s on bare `/docket/{id}/` — pages must use `/docket/{id}/{slug}/` (`CourtListenerUrl::docket`).
 

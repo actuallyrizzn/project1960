@@ -83,6 +83,7 @@ final class DocumentIngestorTest extends TestCase
         $this->responses['entries'] = [
             'results' => [
                 [
+                    'id' => 9001,
                     'entry_number' => '1',
                     'description' => 'Indictment',
                     'recap_documents' => [
@@ -96,6 +97,7 @@ final class DocumentIngestorTest extends TestCase
                     ],
                 ],
                 [
+                    'id' => 9003,
                     'entry_number' => '3',
                     'description' => 'Motion',
                     'recap_documents' => [
@@ -110,10 +112,13 @@ final class DocumentIngestorTest extends TestCase
         ];
 
         $result = $this->ingestor()->ingestDocket(100, dryRun: false);
-        self::assertSame(2, $result['documents_upserted']);
+        // 2 entry description stubs + 2 RECAP docs
+        self::assertSame(4, $result['documents_upserted']);
         self::assertSame(2, $result['entries_seen']);
 
         $store = new CourtListenerDocumentStore($this->pdo);
+        self::assertNotNull($store->getDocument(-9001));
+        self::assertNotNull($store->getDocument(-9003));
         $a = $store->getDocument(501);
         self::assertNotNull($a);
         self::assertSame('100', (string) $a['cl_docket_id']);
@@ -281,6 +286,39 @@ final class DocumentIngestorTest extends TestCase
             'SELECT full_text FROM courtlistener_document_text WHERE cl_document_id = -88801'
         )->fetchColumn();
         self::assertStringContainsString('MOTION to Dismiss', (string) $text);
+    }
+
+    public function testAlwaysStoresEntryDescriptionEvenWhenRecapDocsExist(): void
+    {
+        $this->responses['entries'] = [
+            'results' => [
+                [
+                    'id' => 77701,
+                    'entry_number' => '5',
+                    'description' => 'INDICTMENT as to John Doe. (Attachments: # 1 Unredacted)',
+                    'recap_documents' => [
+                        [
+                            'id' => 501,
+                            'description' => 'Indictment',
+                            'filepath_local' => 'recap/gov.uscourts.x/501.pdf',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $result = $this->ingestor()->ingestDocket(100, dryRun: false);
+        self::assertSame(2, $result['documents_upserted']);
+
+        $store = new CourtListenerDocumentStore($this->pdo);
+        $stub = $store->getDocument(-77701);
+        self::assertNotNull($stub);
+        self::assertStringContainsString('INDICTMENT as to John Doe', (string) $stub['description']);
+
+        $doc = $store->getDocument(501);
+        self::assertNotNull($doc);
+        self::assertStringContainsString('storage.courtlistener.com', (string) $doc['filepath_or_url']);
+        // Doc row also gets the richer entry text when it is longer than the thin label.
+        self::assertStringContainsString('INDICTMENT as to John Doe', (string) $doc['description']);
     }
 
     public function testPrefersLongerEntryDescriptionOverThinDocLabel(): void
