@@ -13,14 +13,12 @@ final class AdminSession
         if (session_status() !== PHP_SESSION_NONE) {
             return;
         }
+        require_once __DIR__ . '/https_request.php';
         session_name(self::COOKIE_NAME);
-        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || ((string) ($_SERVER['SERVER_PORT'] ?? '') === '443')
-            || (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
         session_start([
             'cookie_httponly' => true,
             'cookie_samesite' => 'Lax',
-            'cookie_secure' => $secure,
+            'cookie_secure' => dsc_session_cookie_secure(),
         ]);
     }
 }
